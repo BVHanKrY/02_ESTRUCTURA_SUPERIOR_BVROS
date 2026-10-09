@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "artist": {
+    "internalId": "BVROS-ART-000001",
+    "slug": "bvhankry",
+    "name": "BVHanKrY",
+    "country": "Ecuador",
+    "profileType": "pilot-client",
+    "catalogRole": "Primer artista y cliente experimental de BVros"
+  },
+  "releases": [
+    {
+      "internalId": "BVROS-REL-PULSO-001",
+      "slug": "pulso",
+      "title": "Pulso",
+      "type": "EP",
+      "catalogStatus": "historical-import",
+      "tracks": [
+        {
+          "internalId": "BVROS-TRK-PULSO-001",
+          "slug": "tinkuy",
+          "title": "Tinkuy",
+          "trackNumber": 1,
+          "audioMode": "existing-public-demo"
+        },
+        {
+          "internalId": "BVROS-TRK-PULSO-002",
+          "slug": "subtle-gad",
+          "title": "Subtle Gad",
+          "trackNumber": 2,
+          "audioMode": "existing-public-demo"
+        },
+        {
+          "internalId": "BVROS-TRK-PULSO-003",
+          "slug": "regresion",
+          "title": "Regresión",
+          "trackNumber": 3,
+          "audioMode": "existing-public-demo"
+        }
+      ]
+    },
+    {
+      "internalId": "BVROS-REL-RAIZ-001",
+      "slug": "raiz-de-mi-ser",
+      "title": "Raíz de mi ser",
+      "type": "single",
+      "catalogStatus": "draft-native-bvros",
+      "tracks": [
+        {
+          "internalId": "BVROS-TRK-RAIZ-001",
+          "slug": "raiz-de-mi-ser",
+          "title": "Raíz de mi ser",
+          "trackNumber": 1,
+          "audioMode": "private-signed-url"
+        }
+      ]
+    }
+  ]
+}

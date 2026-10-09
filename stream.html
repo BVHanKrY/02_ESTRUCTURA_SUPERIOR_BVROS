@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#050505">
+
+    <title>Musica en Línea — Catálogo Global</title>
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/hub.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/theme-hankry.css">
+    <meta name="theme-color" content="#070605">
+
+    <style>
+
+        .stream-content{
+            max-width:1100px;
+            margin:0 auto;
+            padding:28px 0 120px;
+        }
+
+        .catalog-header{
+            display:grid;
+            grid-template-columns:42px 52px minmax(220px,1fr) 150px 80px 70px 42px;
+            align-items:center;
+            gap:14px;
+            padding:0 14px 10px;
+            border-bottom:1px solid var(--border);
+            color:var(--text-muted);
+            font-family:var(--mono);
+            font-size:.62rem;
+            letter-spacing:1.5px;
+            text-transform:uppercase;
+        }
+
+        .catalog-header .h-dur,
+        .catalog-header .h-plays{
+            text-align:right;
+        }
+
+        .track-list{
+            display:flex;
+            flex-direction:column;
+            margin-top:0;
+        }
+
+        .track-row{
+            display:grid !important;
+            grid-template-columns:42px 52px minmax(220px,1fr) 150px 80px 70px 42px !important;
+            align-items:center !important;
+            gap:14px !important;
+            width:100%;
+            min-height:72px !important;
+            height:72px !important;
+            padding:8px 14px !important;
+            margin:0 !important;
+            border:0 !important;
+            border-bottom:1px solid var(--border) !important;
+            border-radius:0 !important;
+            background:transparent;
+            cursor:pointer;
+            transition:background-color .15s ease, border-color .15s ease;
+        }
+
+        .track-row:hover{
+            background:rgba(255,255,255,.025) !important;
+        }
+
+        .track-row.active{
+            background:rgba(0,255,102,.025) !important;
+        }
+
+        .track-num{
+            width:42px;
+            color:var(--text-muted);
+            font-family:var(--mono);
+            font-size:.72rem;
+            text-align:center;
+        }
+
+        .track-row.active .track-num{
+            color:var(--accent);
+        }
+
+        .track-cover{
+            width:52px !important;
+            height:52px !important;
+            aspect-ratio:1/1;
+            border-radius:3px !important;
+            object-fit:cover;
+            background:#111;
+        }
+
+        .track-main{
+            min-width:0;
+            overflow:hidden;
+        }
+
+        .track-title{
+            color:var(--text);
+            font-size:.9rem;
+            font-weight:600;
+            line-height:1.2;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        .track-row.active .track-title{
+            color:var(--accent);
+        }
+
+        .track-artist{
+            margin-top:4px;
+            color:var(--text-muted);
+            font-family:var(--mono);
+            font-size:.64rem;
+            line-height:1;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        .track-album,
+        .track-dur,
+        .track-plays{
+            color:var(--text-muted);
+            font-family:var(--mono);
+            font-size:.67rem;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        .track-dur,
+        .track-plays{
+            text-align:right;
+        }
+
+        .track-like{
+            width:32px;
+            height:32px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:0;
+            border:0;
+            background:transparent;
+            color:var(--text-muted);
+            cursor:pointer;
+            font-size:16px;
+            transition:color .15s ease, transform .15s ease;
+        }
+
+        .track-like:hover{
+            color:var(--text);
+            transform:scale(1.1);
+        }
+
+        .track-like.liked{
+            color:var(--accent);
+        }
+
+        .empty-catalog{
+            padding:50px 20px;
+            text-align:center;
+            color:var(--text-muted);
+            font-family:var(--mono);
+            font-size:.75rem;
+        }
+
+        footer a{
+            color:var(--text-muted);
+            text-decoration:underline;
+            transition:color .15s ease;
+        }
+
+        footer a:hover{
+            color:var(--accent);
+        }
+
+        @media(max-width:850px){
+
+            .catalog-header{
+                grid-template-columns:32px 48px minmax(150px,1fr) 70px 55px 36px;
+            }
+
+            .catalog-header > :nth-child(4){
+                display:none;
+            }
+
+            .track-row{
+                grid-template-columns:32px 48px minmax(150px,1fr) 70px 55px 36px !important;
+                min-height:68px !important;
+                height:68px !important;
+            }
+
+            .track-album{
+                display:none;
+            }
+        }
+
+        @media(max-width:620px){
+
+            .stream-content{
+                padding-top:20px;
+                padding-bottom:110px;
+            }
+
+            .catalog-header{
+                grid-template-columns:28px 44px minmax(120px,1fr) 55px 32px;
+                gap:9px;
+                padding-left:8px;
+                padding-right:8px;
+            }
+
+            .catalog-header > :nth-child(5){
+                display:none;
+            }
+
+            .track-row{
+                grid-template-columns:28px 44px minmax(120px,1fr) 55px 32px !important;
+                gap:9px !important;
+                min-height:64px !important;
+                height:64px !important;
+                padding:6px 8px !important;
+            }
+
+            .track-cover{
+                width:44px !important;
+                height:44px !important;
+            }
+
+            .track-dur{ font-size:.6rem; }
+
+            .track-plays{ display:none; }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     CONFIGURACIÓN: script clásico, corre ANTES que
+     cualquier módulo (shell.js / player.js la leen).
+========================================================= -->
+
+<script>
+    window.BVROS_CONFIG_OVERRIDE = {
+        supabaseUrl:
+            'https://udbwjixdwoahonzezbqj.supabase.co',
+
+        supabaseAnonKey:
+            'sb_publishable_CERYzMSJCTQkzIVjkn7c8g_C1QAo6Hc',
+
+        audioFunctionName:
+            'get-audio-url',
+
+        signedUrlRefreshMarginMs:
+            15000
+    };
+</script>
+
+        <div class="top-progress" id="topProgress"></div>
+
+<div class="shell">
+    <nav class="hub-nav">
+            <a class="hub-brand" href="index.html">
+            BVros
+            </a>
+
+        <div class="hub-links">
+            <a href="stream.html" style="color:var(--accent);">
+            Stream
+            </a>
+
+            <a href="distribution.html">
+            Distribution
+            </a>
+
+            <a href="academy.html">
+            Academy
+            </a>
+
+            <a href="artists.html">
+            Artists
+            </a>
+
+            <a href="privacy.html">
+            Privacidad
+            </a>
+        </div>
+    </nav>
+
+<header class="page-head">
+        <div class="eyebrow">
+            CATÁLOGO GLOBAL
+        </div>
+
+        <h1>
+            Musica en Línea
+        </h1>
+
+        <p>
+            Toda la música del ecosistema en un solo lugar.
+        </p>
+
+</header>
+    <main class="stream-content">
+        <div class="catalog-header">
+
+            <div>#</div>
+            <div></div>
+            <div>PISTA</div>
+            <div>ÁLBUM</div>
+            <div class="h-dur">
+                DURACIÓN
+            </div>
+
+            <div class="h-plays">
+                PLAYS
+            </div>
+            <div></div>
+        </div>
+
+        <div id="track-list" class="track-list">
+
+            <div class="empty-catalog">
+                Cargando catálogo...
+            </div>
+
+        </div>
+    </main>
+
+
+    <footer>
+        © 2026 · BVros Music Ecuador · versión 1.1 ·
+        <a href="privacy.html">Privacidad</a> ·
+        <a href="terms.html">Términos</a>
+    </footer>
+</div>
+
+
+<!--
+    SIN reproductor local y SIN <audio> local:
+    el reproductor global (player.js vía shell.js)
+    es el ÚNICO del ecosistema.
+-->
+
+<script type="module" src="assets/js/shell.js"></script>
+<script type="module" src="assets/js/gate.js"></script>
+
+<script type="module">
+
+/* =========================================================
+   BVROS STREAM — SOLO CATÁLOGO
+   La reproducción vive 100% en el reproductor global.
+   Si esta página se abriera sin shell, importa
+   player.js directamente: mismo reproductor único.
+========================================================= */
+
+const SHELL_ACTIVE =
+    !!window.__BVROS_SHELL__;
+
+
+/*
+   STANDALONE (sin shell):
+   crear el reproductor global aquí mismo.
+*/
+
+if(!SHELL_ACTIVE){
+
+    try{
+
+        const m =
+            await import('./assets/js/player.js');
+
+        window.BVrosPlayer =
+            m.default;
+
+        window.dispatchEvent(
+            new CustomEvent('bvros:playerready')
+        );
+
+    }catch(error){
+
+        console.warn(
+            '[BVros Stream] No se pudo crear el reproductor.',
+            error
+        );
+
+    }
+
+}
+
+import { BVrosAuth } from './assets/js/services/auth-service.js';
+import './assets/js/gate.js';
+
+/* =========================================================
+   ANALYTICS
+========================================================= */
+
+let analyticsModule = null;
+
+try{
+
+    analyticsModule =
+        await import(
+            './assets/js/modules/analytics.js'
+        );
+
+}catch(error){
+
+    console.warn(
+        '[BVros] analytics.js no disponible — modo local.'
+    );
+
+}
+
+
+const analyticsService = analyticsModule
+    ? {
+
+        registerPlay:
+            analyticsModule.registerPlay,
+
+        getPlayCount:
+            analyticsModule.getPlayCount,
+
+        toggleLike:
+            analyticsModule.toggleLike,
+
+        isLiked:
+            analyticsModule.isLiked
+
+    }
+    : (() => {
+
+        const LIKES_KEY =
+            'bvros_likes_v2';
+
+        const readLikes = () => {
+
+            try{
+
+                return JSON.parse(
+                    localStorage.getItem(LIKES_KEY) || '{}'
+                );
+
+            }catch{
+
+                return {};
+
+            }
+
+        };
+
+        return {
+
+            async registerPlay(){},
+            async getPlayCount(){ return 0; },
+
+            async toggleLike(trackId){
+
+                const likes =
+                    readLikes();
+
+                const liked =
+                    !!likes[trackId];
+
+                if(liked){
+                    delete likes[trackId];
+                }else{
+                    likes[trackId] = true;
+                }
+
+                localStorage.setItem(
+                    LIKES_KEY,
+                    JSON.stringify(likes)
+                );
+
+                return !liked;
+
+            },
+
+            isLiked(trackId){
+                return !!readLikes()[trackId];
+            }
+
+        };
+
+    })();
+
+
+/* =========================================================
+   ELEMENTOS
+========================================================= */
+
+const list =
+    document.getElementById('track-list');
+
+
+/* =========================================================
+   ESTADO
+========================================================= */
+
+let tracks = [];
+
+let currentIndex = -1;
+
+let currentSlug = null;
+
+
+/* Totales de PLAYS desde la nube (sin destello):
+   caché de nube para pintar al instante. */
+
+const CLOUD_CACHE_KEY =
+    'bvros_cloud_plays_v1';
+
+let playCounts = (() => {
+
+    try{
+
+        return JSON.parse(
+            localStorage.getItem(CLOUD_CACHE_KEY) || '{}'
+        );
+
+    }catch{
+
+        return {};
+
+    }
+
+})();
+
+
+function saveCloudCache(){
+
+    try{
+
+        localStorage.setItem(
+            CLOUD_CACHE_KEY,
+            JSON.stringify(playCounts)
+        );
+
+    }catch(error){
+
+        /* ignorar */
+
+    }
+
+}
+
+
+/* =========================================================
+   UTILIDADES
+========================================================= */
+
+function formatTime(seconds){
+
+    if(
+        !Number.isFinite(seconds) ||
+        seconds < 0
+    ){
+        return '0:00';
+    }
+
+    const minutes =
+        Math.floor(seconds / 60);
+
+    const secs =
+        Math.floor(seconds % 60)
+            .toString()
+            .padStart(2,'0');
+
+    return `${minutes}:${secs}`;
+
+}
+
+
+const TRACK_IDS = {
+
+    'tinkuy':
+        'BVROS-TRK-PULSO-001',
+
+    'subtle-gad':
+        'BVROS-TRK-PULSO-002',
+
+    'regresion':
+        'BVROS-TRK-PULSO-003',
+
+    'raiz-de-mi-ser':
+        'BVROS-TRK-RAIZ-001'
+
+};
+
+
+function trackIdFor(slug){
+
+    return TRACK_IDS[slug] || slug;
+
+}
+
+
+function getCachedDuration(slug){
+
+    const raw =
+        localStorage.getItem(
+            `bvros_dur_${trackIdFor(slug)}`
+        );
+
+    if(!raw) return null;
+
+    const num =
+        Number(raw);
+
+    return (
+        Number.isFinite(num) && num > 0
+    )
+        ? num
+        : null;
+
+}
+
+
+/* Esperar al reproductor global (blindaje anti-carrera) */
+
+function waitForPlayer(timeoutMs = 5000){
+
+    return new Promise(resolve => {
+
+        if(window.BVrosPlayer){
+            resolve(window.BVrosPlayer);
+            return;
+        }
+
+        const timer =
+            setTimeout(() => {
+
+                cleanup();
+
+                resolve(
+                    window.BVrosPlayer || null
+                );
+
+            }, timeoutMs);
+
+        function onReady(){
+            cleanup();
+            resolve(
+                window.BVrosPlayer || null
+            );
+        }
+
+        function cleanup(){
+            clearTimeout(timer);
+            window.removeEventListener(
+                'bvros:playerready',
+                onReady
+            );
+        }
+
+        window.addEventListener(
+            'bvros:playerready',
+            onReady
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   PLAYS DE LA LISTA
+========================================================= */
+
+function updateRowPlays(slug, value){
+
+    const cell =
+        list.querySelector(
+            `[data-plays="${slug}"]`
+        );
+
+    if(cell){
+        cell.textContent = value;
+    }
+
+}
+
+
+/* Se llama DESPUÉS de renderizar: nunca bloquea. */
+
+async function refreshPlayCounts(){
+
+    for(const track of tracks){
+
+        try{
+
+            const total =
+                await analyticsService.getPlayCount(
+                    trackIdFor(track.slug)
+                );
+
+            playCounts[track.slug] = total;
+
+            updateRowPlays(
+                track.slug,
+                total
+            );
+
+        }catch(error){
+
+            /* se conserva caché de nube */
+
+        }
+
+    }
+
+    saveCloudCache();
+
+}
+
+
+/* =========================================================
+   CARGAR CATÁLOGO
+========================================================= */
+
+const CATALOG_PATHS = [
+    'assets/data/catalog.json',
+    'assets/data/catalogo.json'
+];
+
+
+async function load(){
+
+    try{
+
+        let response = null;
+
+        let pathUsed = null;
+
+        const tried = [];
+
+
+        for(const path of CATALOG_PATHS){
+
+            try{
+
+                const r =
+                    await fetch(
+                        path,
+                        { cache: 'no-store' }
+                    );
+
+                if(r.ok){
+                    response = r;
+                    pathUsed = path;
+                    break;
+                }
+
+                tried.push(
+                    `${path} (HTTP ${r.status})`
+                );
+
+            }catch(pathError){
+
+                tried.push(
+                    `${path} (${pathError.message})`
+                );
+
+            }
+
+        }
+
+
+        if(!response){
+
+            throw new Error(
+                'No se encontró el catálogo. Probé: ' +
+                tried.join(', ')
+            );
+
+        }
+
+
+        console.info(
+            '[BVros] Catálogo cargado desde ' + pathUsed
+        );
+
+
+        tracks =
+            await response.json();
+
+
+        /* Render inmediato con caché de nube:
+           nunca se queda en "Cargando...". */
+
+        renderTracks();
+
+
+        refreshPlayCounts();
+
+
+        /* El reproductor global recibe el catálogo
+           para anterior/siguiente/autoplay. */
+
+        const p =
+            await waitForPlayer();
+
+        if(p){
+            p.setTracks(tracks);
+
+
+            /* Si el global ya estaba reproduciendo,
+               marcar esa fila como activa. */
+
+            if(p.currentSlug){
+
+                const idx =
+                    tracks.findIndex(
+                        t => t.slug === p.currentSlug
+                    );
+
+                if(idx >= 0){
+                    currentIndex = idx;
+                    currentSlug = p.currentSlug;
+                    updateActiveRow();
+                }
+
+            }
+
+        }
+
+    }catch(error){
+
+        console.error(error);
+
+        list.innerHTML = `
+            <div class="empty-catalog">
+                Error al cargar el catálogo.<br>
+                ${error.message}
+            </div>
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER
+========================================================= */
+
+function renderTracks(){
+
+    if(!tracks.length){
+
+        list.innerHTML = `
+            <div class="empty-catalog">
+                No hay pistas disponibles.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    list.innerHTML =
+        tracks.map((track,index)=>{
+
+            const liked =
+                analyticsService.isLiked(
+                    trackIdFor(track.slug)
+                );
+
+            const plays =
+                playCounts[track.slug] || 0;
+
+            const cachedDur =
+                getCachedDuration(track.slug);
+
+            const durationText =
+                cachedDur !== null
+                    ? formatTime(cachedDur)
+                    : (track.duration || '--:--');
+
+            return `
+
+                <div
+                    class="track-row"
+                    data-index="${index}"
+                >
+
+                    <div class="track-num">
+                        ${String(index + 1).padStart(2,'0')}
+                    </div>
+
+
+                    <img
+                        class="track-cover"
+                        src="${track.cover || ''}"
+                        alt=""
+                    >
+
+
+                    <div class="track-main">
+
+                        <div class="track-title">
+                            ${track.title || 'Sin título'}
+                        </div>
+
+                        <div class="track-artist">
+                            ${track.artist || 'BVros'}
+                        </div>
+
+                    </div>
+
+
+                    <div class="track-album">
+                        ${track.album || ''}
+                    </div>
+
+
+                    <div
+                        class="track-dur"
+                        data-duration="${track.slug}"
+                    >
+                        ${durationText}
+                    </div>
+
+
+                    <div
+                        class="track-plays"
+                        data-plays="${track.slug}"
+                    >
+                        ${plays}
+                    </div>
+
+
+                    <button
+                        class="track-like ${liked ? 'liked' : ''}"
+                        data-like="${track.slug}"
+                        type="button"
+                        title="Me gusta"
+                    >
+                        ${liked ? '♥' : '♡'}
+                    </button>
+
+                </div>
+
+            `;
+
+        }).join('');
+
+
+    list
+        .querySelectorAll('.track-row')
+        .forEach(row => {
+
+            row.addEventListener(
+                'click',
+                event => {
+
+                    if(
+                        event.target.closest(
+                            '.track-like'
+                        )
+                    ){
+                        return;
+                    }
+
+                    const index =
+                        Number(
+                            row.dataset.index
+                        );
+
+                    play(index);
+
+                }
+            );
+
+        });
+
+
+    list
+        .querySelectorAll('.track-like')
+        .forEach(button => {
+
+            button.addEventListener(
+                'click',
+                async event => {
+
+                    event.stopPropagation();
+
+                    const slug =
+                        button.dataset.like;
+
+                    button.disabled = true;
+
+                    try{
+
+                        const newValue =
+                            await analyticsService.toggleLike(
+                                trackIdFor(slug)
+                            );
+
+                        button.classList.toggle(
+                            'liked',
+                            newValue
+                        );
+
+                        button.textContent =
+                            newValue ? '♥' : '♡';
+
+                        if(
+                            window.BVrosPlayer &&
+                            window.BVrosPlayer.currentSlug === slug
+                        ){
+                            window.BVrosPlayer.refreshLikeUI();
+                        }
+
+                    }finally{
+
+                        button.disabled = false;
+
+                    }
+
+                }
+            );
+
+        });
+
+}
+
+
+/* =========================================================
+   FILA ACTIVA
+========================================================= */
+
+function updateActiveRow(){
+
+    list
+        .querySelectorAll('.track-row')
+        .forEach(row => {
+
+            const index =
+                Number(row.dataset.index);
+
+            row.classList.toggle(
+                'active',
+                index === currentIndex
+            );
+
+        });
+
+}
+
+
+/* =========================================================
+   REPRODUCIR — delegación al reproductor global
+========================================================= */
+
+async function play(index){
+
+    const track =
+        tracks[index];
+
+    if(!track){
+        return;
+    }
+
+    /* NIVEL 1: contenido bloqueado → interfaz de acceso */
+
+    if(
+        track.locked &&
+        !BVrosAuth.isAuthenticated()
+    ){
+        window.BVrosGate.open('stream');
+        return;
+    }
+
+        /* PISTA EXCLUSIVA (Subtle_Gad):
+       nivel 1 y nivel 2 → pasarela de pago
+       (suscripción o compra del single).
+       Solo premium reproduce completo. */
+
+    if(
+        track.exclusive &&
+        window.BVrosAuth?.profile?.plan !== 'premium'
+    ){
+        window.BVrosGate.open('suscripcion');
+        return;
+    }
+
+    currentIndex =
+        index;
+
+    currentSlug =
+        track.slug;
+
+
+    updateActiveRow();
+
+
+    const p =
+        await waitForPlayer();
+
+
+    if(!p){
+
+        console.error(
+            '[BVros Stream] Reproductor global no disponible.'
+        );
+
+        return;
+
+    }
+
+
+    p.setTracks(tracks);
+
+    p.playTrack(
+        track.slug,
+        tracks
+    );
+
+}
+
+
+/* =========================================================
+   SINCRONIZACIÓN CON EL REPRODUCTOR GLOBAL
+========================================================= */
+
+window.addEventListener(
+    'bvros:playertrack',
+    event => {
+
+        const { slug } =
+            event.detail || {};
+
+        if(!slug || !tracks.length) return;
+
+        const idx =
+            tracks.findIndex(
+                t => t.slug === slug
+            );
+
+        if(idx >= 0){
+            currentIndex = idx;
+            currentSlug = slug;
+            updateActiveRow();
+        }
+
+    }
+);
+
+
+window.addEventListener(
+    'bvros:playregistered',
+    event => {
+
+        const { slug, total } =
+            event.detail || {};
+
+        if(!slug) return;
+
+        playCounts[slug] =
+            total;
+
+        saveCloudCache();
+
+        updateRowPlays(
+            slug,
+            total
+        );
+
+    }
+);
+
+
+window.addEventListener(
+    'bvros:playerliked',
+    event => {
+
+        const { slug, liked } =
+            event.detail || {};
+
+        if(!slug) return;
+
+        const rowButton =
+            list.querySelector(
+                `[data-like="${slug}"]`
+            );
+
+        if(rowButton){
+
+            rowButton.classList.toggle(
+                'liked',
+                liked
+            );
+
+            rowButton.textContent =
+                liked ? '♥' : '♡';
+
+        }
+
+    }
+);
+
+
+window.addEventListener(
+    'bvros:playerduration',
+    event => {
+
+        const { slug, text } =
+            event.detail || {};
+
+        if(!slug || !text) return;
+
+        const cell =
+            list.querySelector(
+                `[data-duration="${slug}"]`
+            );
+
+        if(cell){
+            cell.textContent = text;
+        }
+
+    }
+);
+
+
+/* =========================================================
+   INICIALIZAR
+========================================================= */
+
+load();
+
+</script>
+
+</body>
+</html>

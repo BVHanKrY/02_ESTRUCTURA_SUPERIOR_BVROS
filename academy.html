@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#050505">
+    <title>Academy — BVros</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/hub.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/theme-hankry.css">
+    <meta name="theme-color" content="#070605">    
+    <style>
+        .courses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.5rem;margin-top:2rem}
+        .course-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;display:flex;flex-direction:column;gap:.75rem;transition:transform .25s,border-color .25s}
+        .course-card:hover{transform:translateY(-6px);border-color:var(--accent)}
+        .course-badges{display:flex;gap:.5rem;flex-wrap:wrap}
+        .badge{font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;padding:.25rem .6rem;border-radius:999px;border:1px solid var(--border);color:var(--text-muted)}
+        .badge.mode{color:var(--accent);border-color:var(--accent)}
+        .course-card h3{margin:0;font-size:1.05rem}
+        .course-card p{margin:0;color:var(--text-muted);font-size:.85rem;line-height:1.6;flex:1}
+        .pill{font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .7rem;border-radius:999px;border:1px solid;align-self:flex-start}
+        .pill.open{color:var(--accent);border-color:var(--accent)}
+        .pill.soon{color:#f59e0b;border-color:#f59e0b}
+        .join-card{border:1px dashed var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;padding:2rem;text-align:center;color:var(--text-muted);text-decoration:none;transition:border-color .25s,color .25s}
+        .join-card:hover{border-color:var(--accent);color:var(--accent)}
+        .join-card span{font-size:2rem}
+    </style>
+</head>
+<body>
+    <div class="top-progress" id="topProgress"></div>
+    <div class="shell">
+        <nav class="hub-nav">
+            <a class="hub-brand" href="index.html">BVros</a>
+            <div class="hub-links">
+                <a href="stream.html">Stream</a>
+                <a href="distribution.html">Distribution</a>
+                <a href="academy.html" style="color: var(--accent);">Academy</a>
+                <a href="artists.html">Artists</a>
+                <a href="privacy.html">Privacidad</a>
+            </div>
+        </nav>
+
+        <header class="page-head">
+            <div class="eyebrow">ACADEMY</div>
+            <h1>Academy</h1>
+            <p>Cursos, talleres y acompañamiento musical para creadores del ecosistema.</p>
+        </header>
+
+        <main class="content">
+            <div id="courses-grid" class="courses-grid">
+                <p style="grid-column:1/-1;text-align:center;color:var(--text-muted);">Cargando cursos...</p>
+            </div>
+        </main>
+
+    <footer>
+     © 2026 · BVros Music Ecuador · versión 1.1 ·
+        <a href="privacy.html">Privacidad</a> ·
+        <a href="terms.html">Términos</a>
+    </footer>
+    </div>
+
+    <script type="module">
+        const grid = document.getElementById('courses-grid');
+        const labels = { open: 'Inscripciones abiertas', soon: 'Próximamente' };
+
+        async function loadCourses() {
+            try {
+                const res = await fetch('assets/data/courses.json');
+                if (!res.ok) throw new Error('No se encontró courses.json');
+                const courses = await res.json();
+                grid.innerHTML = courses.map(c => `
+                    <div class="course-card">
+                        <div class="course-badges">
+                            <span class="badge">${c.level}</span>
+                            <span class="badge">${c.duration}</span>
+                            <span class="badge mode">${c.mode}</span>
+                        </div>
+                        <h3>${c.title}</h3>
+                        <p>${c.desc}</p>
+                        <span class="pill ${c.status}">${labels[c.status] || c.status}</span>
+                    </div>
+                `).join('') + `
+                    <a href="mailto:academy@bvros.com" class="join-card">
+                        <span>+</span>
+                        <strong>Propón un taller</strong>
+                        <small>¿Dominas algo? Enséñalo en BVros Academy.</small>
+                    </a>
+                `;
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<p style="color:var(--danger);text-align:center;">Error al cargar cursos. Usa Live Server.</p>';
+            }
+        }
+
+        loadCourses();
+    </script>
+    <script type="module" src="assets/js/shell.js"></script>
+    <script type="module" src="assets/js/gate.js"></script>
+</body>
+</html>

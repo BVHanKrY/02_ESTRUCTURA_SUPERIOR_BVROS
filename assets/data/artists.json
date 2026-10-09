@@ -1,0 +1,18 @@
+[
+  {
+    "name": "BVHanKrY",
+    "genre": "Dub Music / Electronic",
+    "bio": "Cliente piloto número 0001 y catálogo histórico. Frecuencias bajas desde Ecuador.",
+    "followers": "1.2K",
+    "img": "https://raw.githubusercontent.com/BVHanKrY/bvhankry.music/refs/heads/main/fondo/portada%20pulso.png",
+    "url": "artist/bvhankry/index.html"
+  },
+  {
+    "name": "Nuevo Fichaje",
+    "genre": "Género por definir",
+    "bio": "Espacio reservado para el próximo artista del ecosistema. Sin foto aún: se muestra el degradado.",
+    "followers": "0",
+    "img": "",
+    "url": "distribution.html"
+  }
+]

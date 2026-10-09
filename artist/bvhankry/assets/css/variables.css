@@ -1,0 +1,7 @@
+:root{
+  --bg:#0a0a0a;--surface:#111111;--border:#1a1a1a;--border-hi:#2a2a2a;
+  --text:#e0e0e0;--muted:#505050;--accent:#00ff66;--accent-dim:#00cc52;
+  --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;
+  --nav-h:52px;--player-h:52px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}

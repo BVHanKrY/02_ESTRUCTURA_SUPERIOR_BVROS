@@ -1,0 +1,1585 @@
+/* =========================================================
+   BVROS · TEMA HANKRY
+   Identidad visual: negro cálido + naranja HANKRY
+   + verde rana + teal. Solo pintura: no altera
+   ninguna lógica ni estructura.
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&display=swap');
+
+:root{
+
+    /* --- ACENTO PRINCIPAL: naranja HANKRY --- */
+    --accent:
+        #F97316;
+
+    --accent-hover:
+        #FFA33D;
+
+    --accent-soft:
+        rgba(249,115,22,.15);
+
+    --accent-glow:
+        rgba(249,115,22,.45);
+
+    /* --- SECUNDARIOS DE LA IDENTIDAD --- */
+    --accent-2:
+        #7CB342;                 /* verde rana */
+
+    --teal:
+        #1F5F5B;                 /* membranas */
+
+    /* --- NEUTROS CÁLIDOS --- */
+    --bg:
+        #070605;                 /* negro cálido */
+
+    --surface:
+        #14100C;
+
+    --border:
+        #2A2119;
+
+    --text:
+        #F2EDE4;
+
+    --text-muted:
+        #9A8D7D;
+
+    --danger:
+        #EF4444;
+}
+
+
+/* =========================================================
+   FONDO: bruma cálida superior (resplandor del anillo)
+========================================================= */
+
+body{
+
+    background:
+        radial-gradient(
+            1200px 600px at 50% -10%,
+            rgba(249,115,22,.055),
+            transparent 60%
+        ),
+        var(--bg);
+}
+
+
+/* =========================================================
+   TIPOGRAFÍA DE IDENTIDAD
+   Orbitron (geométrica como el logotipo) en títulos
+   y marca. El mono se conserva para datos/tiempos.
+========================================================= */
+
+h1,
+h2,
+.hub-brand{
+
+    font-family:
+        'Orbitron',
+        ui-sans-serif,
+        sans-serif;
+
+    letter-spacing:
+        .01em;
+
+}
+
+.hub-brand{
+
+    font-weight:
+        800;
+
+}
+
+
+/* =========================================================
+   BARRAS DEL REPRODUCTOR GLOBAL
+   (los brillos estaban fijos en verde: se cubren aquí)
+========================================================= */
+
+.bvg-range::-webkit-slider-thumb,
+.dp-range::-webkit-slider-thumb{
+
+    box-shadow:
+        0 0 8px var(--accent-glow) !important;
+
+}
+
+.bvg-range::-moz-range-thumb,
+.dp-range::-moz-range-thumb{
+
+    box-shadow:
+        0 0 8px var(--accent-glow) !important;
+
+}
+
+/* Botón play principal: aura naranja sutil */
+
+.bvg-ctl.main,
+.dp-control.main{
+
+    box-shadow:
+        0 0 14px rgba(249,115,22,.30);
+
+}
+
+
+/* =========================================================
+   DISCO GIRATORIO
+   Guiño al anillo del logo: borde naranja al girar
+========================================================= */
+
+.bvg-player.playing .bvg-cover{
+
+    border-color:
+        var(--accent);
+
+    box-shadow:
+        0 0 12px rgba(249,115,22,.35);
+
+}
+
+
+/* =========================================================
+   CATÁLOGO — fila activa
+   (estaba fija en verde translúcido con !important:
+    misma fuerza, especificidad mayor, gana el tema)
+========================================================= */
+
+.shell .track-row.active,
+.track-row.active{
+
+    background:
+        rgba(249,115,22,.05) !important;
+
+}
+
+.shell .track-row.active .track-title,
+.track-row.active .track-title{
+
+    color:
+        var(--accent);
+
+}
+
+.shell .track-row.active .track-num,
+.track-row.active .track-num{
+
+    color:
+        var(--accent);
+
+}
+
+
+/* =========================================================
+   DETALLES FINOS
+========================================================= */
+
+/* Selección de texto: teal de las membranas */
+
+::selection{
+
+    background:
+        rgba(31,95,91,.55);
+
+    color:
+        var(--text);
+
+}
+
+/* Scrollbar discreto acorde al tema */
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:
+        var(--bg);
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:
+        var(--border);
+
+    border-radius:
+        999px;
+
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:
+        var(--accent);
+
+}
+
+/* Barra de progreso de navegación del shell
+   (ya usa var(--accent): solo refuerzo) */
+
+#bvgRouterBar,
+.top-progress{
+
+    background:
+        var(--accent) !important;
+
+}
+/* =========================================================
+   UNIFICACIÓN TIPOGRÁFICA:
+   H1 de cabecera en Orbitron (hub.css lo sobreescribía
+   por especificidad — esto lo refuerza).
+========================================================= */
+
+.page-head h1,
+header.page-head h1,
+h1{
+
+    font-family:
+        'Orbitron',
+        ui-sans-serif,
+        sans-serif !important;
+
+    font-weight:
+        700 !important;
+
+    letter-spacing:
+        .01em !important;
+
+}
+/* =========================================================
+   PATAS HANKRY — v2 + NEÓN DE CONTORNO + ANIMACIÓN
+   Las imágenes son PNG transparentes, así que el glow
+   usa drop-shadow: brillo pegado a la silueta alfa
+   exacta (no manchas circulares).
+   - Patas afiladas: tus medidas v2, intactas
+   - Neón: cadena de 3 drop-shadow (núcleo + medio + halo)
+   - Animación: el resplandor respira
+========================================================= */
+
+
+/* =========================================================
+   CAPA DE NEÓN (detrás de las patas afiladas)
+   Misma imagen, mismas coordenadas: el drop-shadow
+   proyecta el brillo alrededor de la silueta.
+   La copia de la imagen queda perfectamente alineada
+   bajo la pata afilada (invisible como duplicado).
+========================================================= */
+
+html::before,
+html::after{
+
+    content:
+        '';
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    pointer-events:
+        none;
+
+    z-index:
+        0;
+
+    background-repeat:
+        no-repeat;
+
+    /*
+       NEÓN EN CADENA:
+       1ª sombra = núcleo pegado al borde
+       2ª = difusión media
+       3ª = halo amplio
+    */
+
+    filter:
+        drop-shadow(0 0 5px rgba(255,150,50,.60))
+        drop-shadow(0 0 14px rgba(249,115,22,.55))
+        drop-shadow(0 0 30px rgba(124,179,66,.35));
+
+    animation:
+        pawGlow 120s ease-in-out infinite alternate;
+
+}
+
+
+/* --- NEÓN SUPERIORES (mismas medidas que las patas) --- */
+
+html::before{
+
+    background-image:
+        url('../img/paw/paw-top-left.png'),
+        url('../img/paw/paw-top-right.png');
+
+    background-position:
+        left -80px top 10px,
+        right -70px top 20px;
+
+    background-size:
+        300px 300px,
+        320px 320px;
+
+}
+
+
+/* --- NEÓN INFERIORES (mismas medidas que las patas) --- */
+
+html::after{
+
+    background-image:
+        url('../img/paw/paw-bottom-left.png'),
+        url('../img/paw/paw-bottom-right.png');
+
+    background-position:
+        left -55px bottom 20px,
+        right -36px bottom -38px;
+
+    background-size:
+        320px 320px,
+        300px 300px;
+
+}
+
+
+/* =========================================================
+   PATAS AFILADAS — tus medidas v2, intactas
+========================================================= */
+
+body::before,
+body::after{
+
+    content:
+        '';
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    pointer-events:
+        none;
+
+    z-index:
+        0;
+
+    background-repeat:
+        no-repeat;
+
+    mix-blend-mode:
+        screen;
+
+    opacity:
+        .80;
+
+}
+
+
+/* --- SUPERIORES --- */
+
+body::before{
+
+    background-image:
+        url('../img/paw/paw-top-left.png'),
+        url('../img/paw/paw-top-right.png');
+
+    background-position:
+        left -80px top 10px,
+        right -70px top 20px;
+
+    background-size:
+        300px 300px,
+        320px 320px;
+
+}
+
+
+/* --- INFERIORES (sobre la franja del reproductor) --- */
+
+body::after{
+
+    background-image:
+        url('../img/paw/paw-bottom-left.png'),
+        url('../img/paw/paw-bottom-right.png');
+
+    background-position:
+        left -55px bottom 20px,
+        right -36px bottom -38px;
+
+    background-size:
+        320px 320px,
+        300px 300px;
+
+}
+
+
+/* =========================================================
+   ANIMACIÓN — el neón respira
+========================================================= */
+
+@keyframes pawGlow{
+
+    from{
+        opacity:
+            .10;
+    }
+
+    to{
+        opacity:
+            .90;
+    }
+
+}
+
+
+/* Contenido de la página por encima de las patas
+   (el player ya tiene z-index 9000, muy por encima) */
+
+.shell{
+
+    position:
+        relative;
+
+    z-index:
+        1;
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:850px){
+
+    html::before{
+
+        background-size:
+            190px 190px,
+            200px 200px;
+
+    }
+
+    html::after{
+
+        display:
+            none;
+
+    }
+
+    body::before{
+
+        background-size:
+            190px 190px,
+            200px 200px;
+
+    }
+
+    body::after{
+
+        display:
+            none;
+
+    }
+
+}
+/* =========================================================
+   ARO HANKRY — emblema central detrás del contenido
+   Fijo al viewport, centrado, detrás del título y las
+   tarjetas de todos los módulos. Con neón de silueta
+   (drop-shadow) y pulso lento.
+========================================================= */
+
+.shell::before{
+
+    content:
+        '';
+
+    position:
+        fixed;
+
+    left:
+        40%;
+
+    top:
+        15%;
+
+    width:
+        500px;
+
+    height:
+        500px;
+
+    transform:
+        translate(-50%,-50%);
+
+    background:
+        url('../img/paw/paw-ring.png') center / contain no-repeat;
+
+    pointer-events:
+        none;
+
+    z-index:
+        -1;
+
+    opacity:
+        .45;
+
+    filter:
+        drop-shadow(0 0 10px rgba(86, 170, 226, 0.87))
+        drop-shadow(0 0 35px rgba(3, 62, 90, 0.897));
+
+    animation:
+    ringPulse 20s ease-in-out infinite alternate, ringSpin 320s linear infinite;
+
+}
+
+
+@keyframes ringPulse{
+
+    from{
+        opacity:
+            .35;
+    }
+
+    to{
+        opacity:
+            .100;
+    }
+
+}
+@keyframes ringSpin{
+
+    from{
+        transform:
+            translate(-50%,-50%) rotate(0deg);
+    }
+
+    to{
+        transform:
+            translate(-50%,-50%) rotate(360deg);
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE: el aro se reduce en pantallas chicas
+========================================================= */
+
+@media(max-width:1150px){
+
+    .shell::before{
+
+        width:
+            480px;
+
+        height:
+            480px;
+
+    }
+
+}
+
+@media(max-width:620px){
+
+    .shell::before{
+
+        width:
+            320px;
+
+        height:
+            320px;
+
+        opacity:
+            .35;
+
+    }
+
+}
+
+/* =========================================================
+   REPRODUCTOR — RELLENO PIEL DE RANA (v5B · OSCURO)
+   Variante B: oscuridad integrada en cada textura
+   (filter brightness) — el velo NUNCA toca los
+   controles. Mosaico: parches piel verde + membrana
+   azul en los huecos. Muy oscuro para máximo
+   contraste con los controles naranjas.
+========================================================= */
+
+
+/* --- BASE: verde-negro profundo --- */
+
+.bvg-player{
+
+    background-color:
+        #030705;
+
+    border-top:
+        3px solid #0A1826;
+
+}
+
+
+/* --- PISO 1: MEMBRANA AZUL (huecos del mosaico) ---
+   brightness .13 → azul petróleo muy profundo
+========================================================= */
+
+.bvg-player::before{
+
+    content:
+        '';
+
+    position:
+        absolute;
+
+    inset:
+        0;
+
+    background:
+        url('../img/paw/fin.png') center / 460px auto repeat;
+
+    filter:
+        brightness(.13)
+        saturate(.75);
+
+    opacity:
+        .85;
+
+    pointer-events:
+        none;
+
+    z-index:
+        -1;
+
+}
+
+
+/* --- PISO 2: PIEL VERDE EN PARCHEZ ---
+   brightness .15 → verde bosque nocturno,
+   manchas apenas adivinables
+========================================================= */
+
+.bvg-player::after{
+
+    content:
+        '';
+
+    position:
+        absolute;
+
+    inset:
+        0;
+
+    background:
+        url('../img/paw/skin.png') center / 540px auto repeat;
+
+    filter:
+        brightness(.15)
+        saturate(.9);
+
+    opacity:
+        .95;
+
+    -webkit-mask-image:
+        radial-gradient(
+            circle,
+            #000 0 46%,
+            transparent 54%
+        ),
+        radial-gradient(
+            circle,
+            #000 0 38%,
+            transparent 46%
+        );
+
+    -webkit-mask-position:
+        0 0,
+        170px 150px;
+
+    -webkit-mask-size:
+        340px 340px,
+        340px 340px;
+
+    mask-image:
+        radial-gradient(
+            circle,
+            #000 0 46%,
+            transparent 54%
+        ),
+        radial-gradient(
+            circle,
+            #000 0 38%,
+            transparent 46%
+        );
+
+    mask-position:
+        0 0,
+        170px 150px;
+
+    mask-size:
+        340px 340px,
+        340px 340px;
+
+    pointer-events:
+        none;
+
+    z-index:
+        -1;
+
+}
+/* =========================================================
+   JERARQUÍA LUMÍNICA v1
+   1) Controles del player: contorno naranja + glow sutil
+   2) Contadores PLAYS y corazones de la lista: brillantes
+========================================================= */
+
+
+/* =========================================================
+   1) CONTROLES DEL REPRODUCTOR
+========================================================= */
+
+/* Botones circulares: contorno naranja tenue
+   que los separa del fondo oscuro */
+
+.bvg-player .bvg-ctl{
+
+    border-color:
+        rgba(249,115,22,.45) !important;
+
+    color:
+        #FFFFFF;
+
+    transition:
+        border-color .15s,
+        color .15s,
+        box-shadow .15s;
+
+}
+
+/* Hover: el contorno se enciende */
+
+.bvg-player .bvg-ctl:hover{
+
+    border-color:
+        var(--accent) !important;
+
+    box-shadow:
+        0 0 10px rgba(249,115,22,.35);
+
+}
+
+
+/* Botón play: aura constante suave
+   (el protagonista indiscutible) */
+
+.bvg-player .bvg-ctl.main{
+
+    box-shadow:
+        0 0 14px rgba(249,115,22,.45) !important;
+
+}
+
+.bvg-player .bvg-ctl.main:hover{
+
+    box-shadow:
+        0 0 20px rgba(249,115,22,.65) !important;
+
+}
+
+
+/* Barras: relleno más luminoso + bolita con halo */
+
+.bvg-player .bvg-range{
+
+    background:
+        linear-gradient(
+            to right,
+            #FF9A3D 0%,
+            #FF9A3D var(--fill,0%),
+            rgba(249,115,22,.22) var(--fill,0%),
+            rgba(249,115,22,.22) 100%
+        ) !important;
+
+}
+
+.bvg-player .bvg-range::-webkit-slider-thumb{
+
+    background:
+        #FFA33D;
+
+    box-shadow:
+        0 0 9px rgba(255,163,61,.55) !important;
+
+}
+
+.bvg-player .bvg-range::-moz-range-thumb{
+
+    background:
+        #FFA33D;
+
+    box-shadow:
+        0 0 9px rgba(255,163,61,.55) !important;
+
+}
+
+
+/* COMPARTIR / COMPRAR: contorno más presente */
+
+.bvg-player .bvg-action{
+
+    border-color:
+        rgba(249,115,22,.55) !important;
+
+    color:
+        #F0E6D8;
+
+}
+
+.bvg-player .bvg-action:hover{
+
+    box-shadow:
+        0 0 10px rgba(249,115,22,.35);
+
+}
+
+.bvg-player .bvg-action.buy{
+
+    background:
+        rgba(249,115,22,.12) !important;
+
+    color:
+        #FFB25C !important;
+
+    border-color:
+        var(--accent) !important;
+
+}
+
+
+/* =========================================================
+   2) CONTADORES DE LA LISTA (PLAYS + corazones)
+========================================================= */
+
+/* Número de PLAYS: de gris apagado → blanco brillante,
+   un punto más grande para presencia */
+
+.track-plays,
+.track-dur{
+
+    color:
+        #FFFFFF !important;
+
+    font-size:
+        .72rem !important;
+
+    text-shadow:
+        0 0 6px rgba(255,255,255,.25);
+
+}
+
+/* Encabezado PLAYS de la tabla, acorde */
+
+.catalog-header .h-plays,
+.catalog-header .h-dur{
+
+    color:
+        var(--accent);
+
+}
+
+
+/* Corazones de la lista: más grandes y con luz */
+
+.track-like{
+
+    font-size:
+        19px !important;
+
+}
+
+/* Corazón marcado: naranja brillante con halo */
+
+.track-like.liked{
+
+    color:
+        var(--accent) !important;
+
+    text-shadow:
+        0 0 8px rgba(249,115,22,.55);
+
+}
+
+/* Corazón sin marcar: gris claro visible
+   (antes casi desaparecía) */
+
+.track-like:not(.liked){
+
+    color:
+        #B8AD9C !important;
+
+}
+
+.track-like:hover{
+
+    color:
+        #FFFFFF !important;
+
+    transform:
+        scale(1.15);
+
+}
+
+/* =========================================================
+   ALINEACIÓN DEL CHIP DE USUARIO EN EL NAV
+========================================================= */
+
+.hub-links{
+
+    align-items:
+        center !important;
+
+}
+
+.bv-auth-chip{
+
+    align-self:
+        center;
+
+    /* PERILLA: sube/baja el chip completo.
+       Negativo = sube. Prueba -1px, -2px... */
+
+    transform:
+        translateY(-1px);
+
+}
+
+.bv-auth-trigger{
+
+    line-height:
+        1;
+
+    padding-top:
+        0;
+
+    padding-bottom:
+        0;
+
+}
+
+/* =========================================================
+   BOTÓN INICIO — tipografía de marca (Orbitron),
+   igual que "BVros". El recuadro se mantiene.
+========================================================= */
+
+button.bv-auth-login{
+
+    font-family:
+        'Orbitron',
+        ui-sans-serif,
+        sans-serif !important;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        .12em;
+
+}
+/* =========================================================
+   FOOTER — Privacidad y Términos prominentes
+========================================================= */
+
+footer{
+
+    font-size:
+        .8rem !important;
+
+}
+
+footer a{
+
+    color:
+        var(--text) !important;
+
+    font-weight:
+        600;
+
+    text-decoration:
+        underline;
+
+}
+
+footer a:hover{
+
+    color:
+        var(--accent) !important;
+
+}
+
+/* =========================================================
+   PLAYER — botón minimizar + píldora de retorno
+========================================================= */
+
+.bvg-min{
+    position:absolute;
+    top:6px;
+    right:10px;
+    width:20px;
+    height:20px;
+    border:1px solid var(--border,#2A2119);
+    background:none;
+    color:var(--text-muted,#9A8D7D);
+    font-size:12px;
+    line-height:1;
+    cursor:pointer;
+}
+.bvg-min:hover{
+    color:var(--accent);
+    border-color:var(--accent);
+}
+
+.bvg-player.minimized{
+    transform:
+        translateY(110%) !important;
+}
+
+.bvg-pill{
+    position:fixed;
+    right:14px;
+    bottom:14px;
+    z-index:9000;
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    border:1px solid var(--accent,#F97316);
+    background:rgba(5,5,5,.92);
+    color:var(--accent,#F97316);
+    font-size:16px;
+    cursor:pointer;
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+.bvg-pill.show{
+    display:flex;
+}
+
+/* Espacio garantizado sobre el player para
+   que el footer jamás quede tapado */
+
+.shell{
+    padding-bottom:
+        110px;
+}
+
+/* =========================================================
+   SELECTS — lista desplegable legible (tema oscuro)
+========================================================= */
+
+.bv-gate select option,
+.bv-menu-panel select option,
+select option{
+
+    background:
+        #14100C;
+
+    color:
+        #f2e8e4;
+
+}
+
+.bv-gate select,
+.bv-menu-panel select{
+
+    color:
+        var(--text);
+
+}
+
+/* =========================================================
+   FOOTER — siempre alineado a la izquierda,
+   en todas las páginas, sin excepción.
+========================================================= */
+
+footer{text-align:left !important;}
+
+
+/* =========================================================
+   PANEL DE CONTROL RESPONSIVE — v2
+   PC: sin cambios (los valores :root son las medidas
+   actuales de escritorio). Móvil: nav en grilla limpia
+   + patas visibles y controladas.
+========================================================= */
+
+:root{
+
+    /* --- PATAS SUPERIORES (escritorio) --- */
+    --paw-tl-x: -80px;
+    --paw-tl-y: 40px;
+    --paw-tl-size: 300px;
+
+    --paw-tr-x: -70px;
+    --paw-tr-y: 20px;
+    --paw-tr-size: 320px;
+
+    /* --- PATAS INFERIORES (escritorio) --- */
+    --paw-bl-x: -55px;
+    --paw-bl-lift: 40px;
+    --paw-bl-size: 320px;
+
+    --paw-br-x: -36px;
+    --paw-br-lift: -38px;
+    --paw-br-size: 300px;
+
+}
+
+
+/* --- Las 4 capas leen las variables
+   (neón y patas siempre sincronizadas) --- */
+
+html::before,
+body::before{
+
+    background-position:
+        left var(--paw-tl-x) top var(--paw-tl-y),
+        right var(--paw-tr-x) top var(--paw-tr-y);
+
+    background-size:
+        var(--paw-tl-size) var(--paw-tl-size),
+        var(--paw-tr-size) var(--paw-tr-size);
+
+}
+
+html::after,
+body::after{
+
+    background-position:
+        left var(--paw-bl-x) bottom var(--paw-bl-lift),
+        right var(--paw-br-x) bottom var(--paw-br-lift);
+
+    background-size:
+        var(--paw-bl-size) var(--paw-bl-size),
+        var(--paw-br-size) var(--paw-br-size);
+
+}
+
+
+/* =========================================================
+   MÓVIL (≤850px): patas menores y VISIBLES
+   en las 4 esquinas (incluidas las inferiores,
+   por encima de la franja del reproductor)
+========================================================= */
+
+@media(max-width:850px){
+
+    :root{
+        --paw-tl-x: -98px;
+        --paw-tl-y: 25px;
+        --paw-tl-size: 240px;
+        --paw-tr-x: -68px;
+        --paw-tr-y: -44px;
+        --paw-tr-size: 250px;
+        --paw-bl-x: -50px;
+        --paw-bl-lift: 68px;
+        --paw-bl-size: 240px;
+        --paw-br-x: -55px;
+        --paw-br-lift: 90px;
+        --paw-br-size: 245px;
+    }
+
+    /* Anula el display:none de patas inferiores
+       que quedó en el bloque antiguo */
+
+    html::after,
+    body::after{
+        display:
+            block !important;
+    }
+
+}
+
+
+/* =========================================================
+   MÓVIL (≤640px): NAV EN GRILLA LIMPIA
+   Fila 1: BVros (izq) + avatar/nombre (der)
+   Fila 2: enlaces centrados + ES/EN a la derecha
+========================================================= */
+
+@media(max-width:640px){
+
+    .hub-nav{
+        display:
+            grid !important;
+
+        grid-template-columns:
+            auto 1fr;
+
+        align-items:
+            center;
+
+        gap:
+            12px 10px;
+    }
+
+    /* Fila 1: marca a la izquierda */
+
+    .hub-brand{
+        grid-column:
+            1;
+
+        grid-row:
+            1;
+    }
+
+    /* Fila 1: chip (avatar + nombre) a la derecha,
+       a la misma altura que BVros */
+
+    .bv-auth-chip{
+        grid-column:
+            2;
+
+        grid-row:
+            1;
+
+        justify-self:
+            end;
+
+        transform:
+            none;
+
+        margin:
+            0;
+    }
+
+    /* Fila 2: enlaces centrados, más grandes,
+       con el conmutador cerrando a la derecha */
+
+    .hub-links{
+        grid-column:
+            1 / -1;
+
+        grid-row:
+            2;
+
+        display:
+            flex !important;
+
+        flex-wrap:
+            wrap;
+
+        justify-content:
+            center;
+
+        align-items:
+            center;
+
+        gap:
+            10px 16px;
+
+        width:
+            100%;
+    }
+
+    .hub-links a{
+
+        font-size:
+            .6rem !important;
+
+        letter-spacing:
+            .08em;
+
+        white-space:
+            nowrap;
+
+    }
+
+    /* El chip pasa a su propia fila,
+       alineado a la izquierda */
+
+    .bv-auth-chip{
+        grid-column:
+            1 / -1;
+
+        grid-row:
+            1;
+
+        justify-self:
+            flex-start;
+
+        margin-left:
+            100px;
+    }
+
+    /* Los enlaces pasan a la fila 3 */
+
+    .hub-links{
+        grid-row:
+            3;
+    }    
+
+    /* ES/EN fuera de la fila de enlaces:
+       fila 1, a la altura de BVros, corrido
+       a la izquierda de la pata superior derecha */
+
+    #bvLangToggle{
+        grid-column:
+            2;
+
+        grid-row:
+            1;
+
+        justify-self:
+            end;
+
+        margin-right:
+            55px;
+    }
+
+
+    /* Hero compacto: mayor encuadre */
+
+    .hub-hero h1{
+        font-size:
+            1.5rem !important;
+        line-height:
+            1.2;
+    }
+
+    .hub-hero p{
+        font-size:
+            .76rem;
+    }
+
+}
+
+/* =========================================================
+   PLAYER — anuncio de suscripción (pista exclusiva)
+========================================================= */
+
+.bvg-buy-gold{
+
+    background:
+        linear-gradient(
+            135deg,
+            #FFD700,
+            #FFA500
+        ) !important;
+
+    color:
+        #000 !important;
+
+    border-color:
+        #FFD700 !important;
+
+    box-shadow:
+        0 0 16px rgba(255,215,0,.7) !important;
+
+    animation:
+        bvgGoldPulse 1.4s ease-in-out infinite alternate;
+
+}
+
+@keyframes bvgGoldPulse{
+
+    from{
+        box-shadow:
+            0 0 10px rgba(255,215,0,.5);
+    }
+
+    to{
+        box-shadow:
+            0 0 22px rgba(255,215,0,.9);
+    }
+
+}
+
+#bvgPayAnn{
+    position:
+        fixed;
+
+    left:
+        50%;
+
+    bottom:
+        100px;
+
+    transform:
+        translateX(-50%);
+
+    z-index:
+        9400;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        12px;
+
+    max-width:
+        min(560px, calc(100vw - 24px));
+
+    padding:
+        12px 14px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2A1A08,
+            #14100C
+        );
+
+    border:
+        1px solid #FFD700;
+
+    box-shadow:
+        0 0 22px rgba(255,215,0,.35);
+
+    color:
+        var(--text, #F2EDE4);
+}
+
+.bvg-pay-ann-arrow{
+
+    font-size:
+        1.3rem;
+
+    color:
+        #FFD700;
+
+    animation:
+        bvgArrowUp 1s ease-in-out infinite alternate;
+
+}
+
+@keyframes bvgArrowUp{
+    from{ transform: translateY(3px); }
+    to{ transform: translateY(-3px); }
+}
+
+.bvg-pay-ann-text{
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        2px;
+
+    min-width:
+        0;
+
+}
+
+.bvg-pay-ann-text b{
+
+    font-family:
+        'Orbitron', sans-serif;
+
+    font-size:
+        .7rem;
+
+    color:
+        #FFD700;
+
+}
+
+.bvg-pay-ann-text small{
+
+    font-size:
+        .58rem;
+
+    color:
+        var(--text-muted, #9A8D7D);
+
+    line-height:
+        1.4;
+
+}
+
+.bvg-pay-ann-btn{
+
+    padding:
+        9px 12px;
+
+    background:
+        #FFD700;
+
+    border:
+        none;
+
+    color:
+        #000;
+
+    font-weight:
+        800;
+
+    font-size:
+        .6rem;
+
+    letter-spacing:
+        .06em;
+
+    cursor:
+        pointer;
+
+    white-space:
+        nowrap;
+
+}
+
+.bvg-pay-ann-btn:hover{
+    filter: brightness(1.1);
+}
+
+.bvg-pay-ann-close{
+
+    position:
+        absolute;
+
+    top:
+        4px;
+
+    right:
+        6px;
+
+    background:
+        none;
+
+    border:
+        none;
+
+    color:
+        var(--text-muted, #9A8D7D);
+
+    cursor:
+        pointer;
+
+    font-size:
+        13px;
+
+}
+
+@media(max-width:640px){
+
+    #bvgPayAnn{
+        bottom:
+            86px;
+        flex-wrap:
+            wrap;
+    }
+
+}

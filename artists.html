@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#050505">
+    <title>BVros Artists — BVros</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/hub.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/theme-hankry.css">
+    <meta name="theme-color" content="#070605">
+    <style>
+        .artists-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.5rem;margin-top:2rem}
+        .artist-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.25rem;text-decoration:none;display:block;transition:transform .25s,border-color .25s}
+        .artist-card:hover{transform:translateY(-6px);border-color:var(--accent)}
+        .artist-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;margin-bottom:1rem}
+        .artist-img--fallback{background:linear-gradient(135deg,var(--accent),#8b5cf6)}
+        .artist-name{margin:0 0 .35rem;color:var(--text);font-size:1.05rem;font-weight:700}
+        .artist-genre{margin:0 0 .75rem;color:var(--accent);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+        .artist-bio{margin:0 0 .75rem;color:var(--text-muted);font-size:.85rem;line-height:1.5}
+        .artist-followers{color:var(--text-muted);font-size:.75rem}
+        .artist-followers b{color:var(--text)}
+        .join-card{border:1px dashed var(--border);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;padding:2rem;text-align:center;color:var(--text-muted);text-decoration:none;transition:border-color .25s,color .25s}
+        .join-card:hover{border-color:var(--accent);color:var(--accent)}
+        .join-card span{font-size:2rem}
+    </style>
+</head>
+<body>
+    <div class="top-progress" id="topProgress"></div>
+    <div class="shell">
+        <nav class="hub-nav">
+            <a class="hub-brand" href="index.html">BVros</a>
+            <div class="hub-links">
+                <a href="stream.html">Stream</a>
+                <a href="distribution.html">Distribution</a>
+                <a href="academy.html">Academy</a>
+                <a href="artists.html" style="color: var(--accent);">Artists</a>
+                <a href="privacy.html">Privacidad</a>
+            </div>
+        </nav>
+
+        <header class="page-head">
+            <div class="eyebrow">DIRECTORIO</div>
+            <h1>Nuestros Artistas</h1>
+            <p>Descubre a los creadores que forman parte del ecosistema BVros.</p>
+        </header>
+
+        <main class="content">
+            <div id="artists-grid" class="artists-grid">
+                <p style="grid-column:1/-1;text-align:center;color:var(--text-muted);">Cargando artistas...</p>
+            </div>
+        </main>
+
+    <footer>
+        © 2026 · BVros Music Ecuador · versión 1.1 ·
+        <a href="privacy.html">Privacidad</a> ·
+        <a href="terms.html">Términos</a>
+    </footer>
+
+</div>
+
+    <script type="module">
+        const grid = document.getElementById('artists-grid');
+
+        async function loadArtists() {
+            try {
+                const res = await fetch('assets/data/artists.json');
+                if (!res.ok) throw new Error('No se encontró artists.json');
+                const artists = await res.json();
+
+                grid.innerHTML = artists.map(a => `
+                    <a href="${a.url}" class="artist-card">
+                        ${a.img
+                            ? `<img class="artist-img" src="${a.img}" alt="${a.name}">`
+                            : `<div class="artist-img artist-img--fallback"></div>`}
+                        <h3 class="artist-name">${a.name}</h3>
+                        <p class="artist-genre">${a.genre}</p>
+                        <p class="artist-bio">${a.bio}</p>
+                        <p class="artist-followers"><b>${a.followers || '0'}</b> seguidores</p>
+                    </a>
+                `).join('') + `
+                    <a href="distribution.html" class="join-card">
+                        <span>+</span>
+                        <strong>Tu espacio aquí</strong>
+                        <small>Distribuye tu música con BVros</small>
+                    </a>
+                `;
+            } catch (err) {
+                console.error(err);
+                grid.innerHTML = '<p style="color:var(--danger);text-align:center;">Error al cargar artistas. Usa Live Server.</p>';
+            }
+        }
+
+        loadArtists();
+    </script>
+    <script type="module" src="assets/js/shell.js"></script>
+    <script type="module" src="assets/js/gate.js"></script>
+</body>
+</html>

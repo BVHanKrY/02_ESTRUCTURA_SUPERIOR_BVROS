@@ -1,0 +1,4 @@
+project_id = "PEGA_AQUI_TU_PROJECT_REF"
+
+[functions.get-audio-url]
+verify_jwt = false

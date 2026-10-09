@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+:root{--bg:#080808;--surface:#111;--line:#242424;--text:#ededed;--muted:#8a8a8a;--accent:#00ff66;--sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--mono:"JetBrains Mono",monospace}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}a{color:inherit}.shell{max-width:1120px;margin:auto;padding:24px}.hub-nav{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0 20px}.hub-brand{text-decoration:none;font-weight:800;font-size:1.25rem}.hub-links{display:flex;gap:18px;flex-wrap:wrap}.hub-links a{text-decoration:none;color:var(--muted);font:12px var(--mono)}.hub-links a:hover{color:var(--accent)}.hub-hero{padding:80px 0 48px;border-bottom:1px solid var(--line)}.eyebrow{font:12px var(--mono);color:var(--accent);letter-spacing:2px;text-transform:uppercase}.hub-hero h1{font-size:clamp(42px,9vw,92px);line-height:.92;margin:16px 0}.hub-hero p{max-width:720px;color:var(--muted);font-size:18px;line-height:1.65}.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin:36px 0}.module-card{background:var(--bg);padding:26px;min-height:190px;text-decoration:none}.module-card:hover{background:var(--surface)}.module-card span{font:11px var(--mono);color:var(--accent)}.module-card h2{margin:20px 0 8px}.module-card p{color:var(--muted);line-height:1.5}.page-head{padding:64px 0 32px;border-bottom:1px solid var(--line)}.page-head h1{font-size:clamp(36px,7vw,72px);margin:10px 0}.content{padding:34px 0;max-width:800px;line-height:1.7;color:var(--muted)}.status{display:inline-block;border:1px solid var(--line);padding:6px 10px;font:11px var(--mono);color:var(--accent)}footer{border-top:1px solid var(--line);padding:24px 0;color:var(--muted);font:11px var(--mono)}@media(max-width:760px){.hub-nav{align-items:flex-start;gap:20px;flex-direction:column}.module-grid{grid-template-columns:1fr}.hub-hero{padding-top:50px}}
+
+/* ============ PUENTE ORIGIN v2 · valores exactos del perfil ============ */
+:root{
+  --bg:#0a0a0a;--surface:#111111;--border:#1a1a1a;--border-hi:#2a2a2a;
+  --text:#e0e0e0;--muted:#505050;--accent:#00ff66;--accent-dim:#00cc52;
+  --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;
+  --nav-h:52px;--player-h:52px;
+  --text-muted:#505050;--danger:#ff5555;
+}
+
+/* Fondo idéntico al base.css del perfil: cuadrículas 48px */
+body{
+  background-color:#0a0a0a !important;
+  background-image:
+    linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px) !important;
+  background-size:48px 48px !important;
+  font-family:var(--sans);
+}
+.shell,.content,.page-head{background:transparent !important}
+
+/* Monoespaciada en menú, etiquetas y datos (como layout.css) */
+.hub-brand,.hub-links a,.eyebrow,.pill,.badge,
+.track-num,.track-dur,.track-artist,.artist-genre,.artist-followers,
+.rel-info p,.dp-artist,footer{font-family:var(--mono)}
+
+/* Menú del hub con el estilo del nav original */
+.hub-links a{font-size:.68rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.hub-links a:hover{color:var(--text);border-bottom:1px solid var(--text)}
+.eyebrow{letter-spacing:3px}
+
+/* Títulos con el peso y tracking del hero original */
+.page-head h1{font-family:var(--sans);font-weight:700;letter-spacing:-2px}
+
+/* Esquinas rectas y bordes 1px: la firma visual del perfil */
+.course-card,.artist-card,.merch-card,.rel-row,.track-row,
+.step,.dist-form,.pill,.badge,.btn-accent,.btn-outline{border-radius:0}
+.track-row{border:1px solid var(--border)}

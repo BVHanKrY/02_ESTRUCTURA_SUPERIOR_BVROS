@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "physical": [
+    {
+      "name": "Colección NFC",
+      "image": "merch/coleccion NFC .png",
+      "price": 15.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Camiseta Colección",
+      "image": "merch/camisetas coleccion.png",
+      "price": 45.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Camiseta Colección 6",
+      "image": "merch/camisetas coleccion 6.png",
+      "price": 12.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Camiseta Colección 5",
+      "image": "merch/camisetas coleccion 5.png",
+      "price": 25.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Camiseta Colección 4",
+      "image": "merch/camisetas coleccion 4.png",
+      "price": 15.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Camiseta Colección 3",
+      "image": "merch/camisetas coleccion 3.png",
+      "price": 25.0,
+      "paymentUrl": null
+    }
+  ],
+  "digital": [
+    {
+      "name": "Ebook Modos",
+      "category": "ebook",
+      "price": 2.5,
+      "paymentUrl": null
+    },
+    {
+      "name": "Cursos de Música",
+      "category": "curso",
+      "price": 10.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Curso de Piano Avanzado",
+      "category": "curso",
+      "price": 18.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Curso de Piano Básico",
+      "category": "curso",
+      "price": 10.0,
+      "paymentUrl": null
+    },
+    {
+      "name": "Curso de Piano Intermedio",
+      "category": "curso",
+      "price": 12.0,
+      "paymentUrl": null
+    }
+  ]
+}

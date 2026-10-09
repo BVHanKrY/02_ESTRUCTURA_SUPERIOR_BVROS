@@ -1,0 +1,9 @@
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);background-color:var(--bg);
+  background-image:linear-gradient(rgba(255,255,255,.013) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.013) 1px,transparent 1px);
+  background-size:48px 48px;color:var(--text);min-height:100vh;
+  padding-bottom:calc(var(--player-h) + 24px);overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+a{color:inherit}button{font-family:inherit}img{display:block}
+.top-progress{position:fixed;top:0;left:0;height:2px;width:0%;background:var(--accent);z-index:3000;pointer-events:none}

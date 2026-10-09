@@ -1,0 +1,10 @@
+[
+  { "title": "Tinkuy", "artist": "BVHanKrY", "album": "Pulso", "duration": "4:12", "slug": "tinkuy",
+    "cover": "https://raw.githubusercontent.com/BVHanKrY/bvhankry.music/refs/heads/main/fondo/portada%20pulso.png","locked": true },
+  { "title": "Subtle_Gad", "artist": "BVHanKrY", "album": "Pulso", "duration": "3:48", "slug": "subtle-gad",
+    "cover": "https://raw.githubusercontent.com/BVHanKrY/bvhankry.music/refs/heads/main/fondo/portada%20pulso.png" , "exclusive": true},
+  { "title": "Regresión", "artist": "BVHanKrY", "album": "Pulso", "duration": "5:03", "slug": "regresion",
+    "cover": "https://raw.githubusercontent.com/BVHanKrY/bvhankry.music/refs/heads/main/fondo/portada%20pulso.png" },
+  { "title": "Raíz de mi ser", "artist": "BVHanKrY", "album": "Single", "duration": "4:44", "slug": "raiz-de-mi-ser",
+    "cover": "https://raw.githubusercontent.com/BVHanKrY/bvhankry.music/refs/heads/main/fondo/portada%20pulso.png" }
+]

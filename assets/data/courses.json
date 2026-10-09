@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Piano esencial para productores",
+    "level": "Inicial",
+    "duration": "4 semanas",
+    "mode": "Gratuito",
+    "status": "open",
+    "desc": "Armonía y ritmo aplicados a la música electrónica, desde cero."
+  },
+  {
+    "title": "Producción en casa con pocos recursos",
+    "level": "Intermedio",
+    "duration": "6 semanas",
+    "mode": "Pago único",
+    "status": "open",
+    "desc": "Grabación, mezcla y dub desde tu habitación, sin estudio profesional."
+  },
+  {
+    "title": "Distribución musical 101",
+    "level": "Inicial",
+    "duration": "2 semanas",
+    "mode": "Gratuito",
+    "status": "soon",
+    "desc": "Cómo publicar en plataformas sin morir en el intento, con derechos claros."
+  }
+]
