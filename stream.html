@@ -403,6 +403,7 @@ if(!SHELL_ACTIVE){
 
 import { BVrosAuth } from './assets/js/services/auth-service.js';
 import './assets/js/gate.js';
+import './assets/js/bvlux.js';
 
 /* =========================================================
    ANALYTICS
@@ -1079,26 +1080,22 @@ async function play(index){
 
     /* NIVEL 1: contenido bloqueado → interfaz de acceso */
 
-    if(
-        track.locked &&
-        !BVrosAuth.isAuthenticated()
-    ){
-        window.BVrosGate.open('stream');
-        return;
-    }
+
+
+
+
 
         /* PISTA EXCLUSIVA (Subtle_Gad):
        nivel 1 y nivel 2 → pasarela de pago
        (suscripción o compra del single).
        Solo premium reproduce completo. */
 
-    if(
-        track.exclusive &&
-        window.BVrosAuth?.profile?.plan !== 'premium'
-    ){
-        window.BVrosGate.open('suscripcion');
-        return;
-    }
+
+
+
+
+
+
 
     currentIndex =
         index;

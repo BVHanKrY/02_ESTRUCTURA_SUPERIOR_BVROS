@@ -558,6 +558,50 @@ button.bv-auth-login:hover{
     color:var(--accent,#F97316);
 }
 
+.bv-levels{
+    display:flex;
+    gap:8px;
+    margin:6px 0 4px;
+}
+.bv-level{
+    flex:1;
+    padding:10px 8px;
+    border:1px solid var(--border,#2A2119);
+    background:none;
+    color:var(--text,#F2EDE4);
+    cursor:pointer;
+    text-align:left;
+}
+.bv-level.on{
+    border-color:var(--accent,#F97316);
+}
+.bv-level .lv-tag{
+    display:block;
+    font-family:'Orbitron',sans-serif;
+    font-size:.5rem;
+    color:var(--text-muted,#9A8D7D);
+    margin-bottom:4px;
+}
+.bv-level.on .lv-tag{
+    color:var(--accent,#F97316);
+}
+.bv-level .lv-price{
+    display:block;
+    font-weight:800;
+    font-size:.8rem;
+    margin-bottom:6px;
+}
+.bv-level ul{
+    margin:0;
+    padding:0;
+    list-style:none;
+}
+.bv-level li{
+    font-size:.55rem;
+    line-height:1.45;
+    color:var(--text-muted,#9A8D7D);
+}
+
 `;
 
 document.head.appendChild(STYLE);
@@ -573,8 +617,33 @@ let gateRoot =
 let chosenType =
     'perfil1';
 
-let resolveGate =
+let resolveGate = null;
+
+let payPlan =
     null;
+
+let payIntent =
+    null;
+
+let bvWelcomeLine =
+    null;
+
+function planBadge(){
+
+    const auth =
+        window.BVrosAuth;
+
+    if(!auth?.profile) return '';
+
+    if(auth.profile.plan === 'premium'){
+        return auth.profile.profile_type === 'perfil2'
+            ? 'SUSCRIPTOR CREADOR AVANZADO'
+            : 'SUSCRIPTOR OYENTE EXPERTO';
+    }
+
+    return 'MIEMBRO GRATUITO';
+
+}
 
 
 function buildGate(){
@@ -870,34 +939,52 @@ function buildGate(){
 
             <div data-view="suscribe" hidden>
 
-                <div class="bv-gate-price">
-                    <b data-ref="price">$3.99</b>
-                    <span>/ mes · renovación automática</span>
+                <p class="bv-gate-sub" style="text-align:center;">
+                    <b style="color:var(--accent);">Regístrate gratis y accede a beneficios</b>
+                </p>
+
+                <div class="bv-levels">
+
+                    <button type="button" class="bv-level" data-plan="nivel1">
+                        <span class="lv-tag">NIVEL 1 · ESPECTADOR</span>
+                        <span class="lv-price">GRATUITO</span>
+                        <ul>
+                            <li>Navega todos los módulos</li>
+                            <li>Catálogo por álbumes y sencillos</li>
+                            <li>Compra productos en la tienda</li>
+                            <li>Escucha con limitaciones</li>
+                            <li class="no">Sin previsualizaciones</li>
+                        </ul>
+                    </button>
+
+                    <button type="button" class="bv-level" data-plan="nivel2">
+                        <span class="lv-tag">NIVEL 2 · OYENTE</span>
+                        <span class="lv-price">$3.99<small>/mes</small></span>
+                        <ul>
+                            <li>Streaming indefinido</li>
+                            <li>Previsualizaciones de ebooks,
+                                videos y pistas</li>
+                            <li>50% dscto. en productos</li>
+                            <li>Acceso a la Escuela</li>
+                            <li class="no">Sin distribución ni perfil
+                                de artista</li>
+                        </ul>
+                    </button>
+
+                    <button type="button" class="bv-level" data-plan="nivel3">
+                        <span class="lv-tag">NIVEL 3 · CREADOR</span>
+                        <span class="lv-price">$4.75<small>/mes</small></span>
+                        <ul>
+                            <li>Todo lo del Nivel 2</li>
+                            <li>Perfil de artista público</li>
+                            <li>Distribución BVros Music Network
+                                (verificación)</li>
+                            <li>Vende merch, cursos y servicios</li>
+                            <li class="no">Verificación: 2 semanas</li>
+                        </ul>
+                    </button>
+
                 </div>
-
-                <div
-                    data-ref="priceLabel"
-                    class="bv-gate-sub"
-                >Suscripción estándar — Perfil 1</div>
-
-                <ul class="bv-gate-benefits">
-                    <li>Streaming completo con conteo de
-                        plays y likes</li>
-                    <li>Acceso exclusivo a álbumes
-                        gestionados por BVros</li>
-                    <li>50% de descuento en productos
-                        seleccionados (tienda y academy)</li>
-                    <li>Perfil 2: perfil de artista, tienda
-                        y exposición</li>
-                    <li>Perfil 2: acceso a distribución con
-                        BVros Music Network Ecuador</li>
-                </ul>
-
-                <button
-                    class="bv-gate-submit"
-                    data-act="do-pay"
-                    type="button"
-                >ACTIVAR SUSCRIPCIÓN</button>
 
                 <div class="bv-gate-err" data-ref="errPay"></div>
 
@@ -907,14 +994,42 @@ function buildGate(){
                 ></div>
 
                 <p class="bv-gate-note">
-                    Pasarela de pago (PayPal / Stripe)
-                    en integración — Fase 2B.2. Al activarla,
-                    este botón abrirá el cobro con el precio
-                    de tu perfil: Perfil 1 $3.99 ·
-                    Perfil 2 $3.00. Suscribirte antes de
-                    registrarte clasifica tu cuenta como
-                    Perfil 1.
+                    Pasarela: PayPal y tarjeta de débito o
+                    crédito. Stripe en integración. Tus datos
+                    están protegidos contra fraude en estricto
+                    régimen de leyes nacionales e
+                    internacionales; son de uso exclusivo y tú
+                    respondes por su veracidad. BVros se
+                    responsabiliza por la seguridad dentro del
+                    entorno. La suscripción se renueva cada mes,
+                    un día antes contando desde la adquisición.
+                    Reembolsos y disputas: primero de forma
+                    administrativa; no se aceptan reclamos
+                    después de 30 días. Los beneficios se
+                    activan eligiendo Perfil 1 (oyente) o
+                    Perfil 2 (creador), este último con
+                    verificación dentro de dos semanas.
                 </p>
+
+                <button
+                    class="bv-gate-google"
+                    data-act="google-sub"
+                    type="button"
+                >
+                    <svg width="16" height="16" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
+                        <path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.8-6.1z"/>
+                        <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.4-5.5l-7.5-5.8c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/>
+                    </svg>
+                    <span data-ref="googleSubLabel">Continuar con Google</span>
+                </button>
+
+                <button
+                    class="bv-gate-link"
+                    data-act="go-signup"
+                    type="button"
+                >Prefiero registrarme con mi correo</button>
 
             </div>
 
@@ -1004,7 +1119,13 @@ function buildGate(){
             q('[data-f="role"]'),
 
         roleSelect2:
-            q('[data-f="role2"]')
+            q('[data-f="role2"]'),
+
+        errBlocked:
+            q('[data-ref="errBlocked"]'),
+
+        googleSubLabel:
+            q('[data-ref="googleSubLabel"]')
 
     };
 
@@ -1077,21 +1198,31 @@ function buildGate(){
 
 
     gateRoot
-        .querySelectorAll('[data-act]')
+        .querySelectorAll('.bv-level')
         .forEach(btn => {
 
             btn.addEventListener(
                 'click',
-                () => handleAction(
-                    btn.dataset.act
-                )
+                () => {
+
+                    payPlan =
+                        btn.dataset.plan;
+
+                    gateRoot
+                        .querySelectorAll('.bv-level')
+                        .forEach(b =>
+                            b.classList.toggle(
+                                'on',
+                                b === btn
+                            )
+                        );
+
+                }
             );
 
         });
 
-}
-
-
+    }
 function val(name){
 
     const el =
@@ -1129,6 +1260,45 @@ function fillRoles(){
 
 function showView(name){
 
+        if(
+        gateRoot &&
+        name === 'complete'
+    ){
+
+        const p1 =
+            gateRoot.querySelectorAll(
+                '[data-type="perfil1"]'
+            );
+
+        p1.forEach(b => {
+            b.style.display =
+                payIntent?.onlyPerfil2
+                    ? 'none'
+                    : '';
+        });
+
+        if(payIntent?.onlyPerfil2){
+            chosenType =
+                'perfil2';
+        }
+
+        if(
+            payIntent?.plan === 'nivel2' &&
+            payIntent.price
+        ){
+            const gl =
+                gateRoot.querySelector(
+                    '[data-ref="googleSubLabel"]'
+                );
+
+            if(gl){
+                gl.textContent =
+                    'Continuar con Google — $' +
+                    payIntent.price.toFixed(2);
+            }
+        }
+
+    }
     gateRoot
         .querySelectorAll('[data-view]')
         .forEach(v => {
@@ -1311,14 +1481,30 @@ async function handleAction(action){
                     gateRoot._ui.roleSelect2.value
                 );
 
-                afterAuth();
+                if(
+                    payIntent &&
+                    payIntent.plan !== 'nivel1'
+                ){
+
+                    showView('suscribe');
+
+                    setTimeout(
+                        () => handleAction('do-pay'),
+                        200
+                    );
+
+                }else{
+
+                    afterAuth();
+
+                }
 
             }catch(error){
 
-            console.error(
-            '[BVros Gate] Error al guardar perfil:',
+                console.error(
+                    '[BVros Gate] Error al guardar perfil:',
                     error
-                ); 
+                );
 
                 ui.errComplete.textContent =
                     error.message;
@@ -1336,24 +1522,22 @@ async function handleAction(action){
 
         case 'do-pay': {
 
-            /* Sin cuenta → registrar primero.
-               (El pago necesita usuario para
-               activar el plan.) */
+            if(!payPlan){
+                ui.errPay.textContent =
+                    'Elige primero un nivel.';
+                return;
+            }
 
             if(!window.BVrosAuth?.isAuthenticated()){
                 showView('signup');
                 return;
             }
 
-
             setBusy(action, true);
 
             ui.errPay.textContent = '';
 
             try{
-
-                /* Montar los botones de PayPal
-                   (una sola vez por sesión del gate) */
 
                 const container =
                     gateRoot.querySelector(
@@ -1365,9 +1549,18 @@ async function handleAction(action){
                     container.style.display === 'none'
                 ){
 
+                    const override =
+                        payIntent?.price || null;
+
                     await window.BVrosPay.startSubscription(
                         'bvPayContainer',
                         () => {
+
+                            bvWelcomeLine =
+                                payIntent?.welcome || null;
+
+                            payIntent =
+                                null;
 
                             afterAuth();
 
@@ -1378,7 +1571,8 @@ async function handleAction(action){
                                 'Error de pago: ' +
                                 (error?.message || 'intenta de nuevo');
 
-                        }
+                        },
+                        override
                     );
 
                     container.style.display =
@@ -1400,6 +1594,80 @@ async function handleAction(action){
             break;
 
         }
+
+
+        case 'google-sub': {
+
+            if(!payPlan){
+                ui.errPay.textContent =
+                    'Elige primero un nivel.';
+                return;
+            }
+
+            if(window.BVrosAuth?.isAuthenticated()){
+                handleAction('do-pay');
+                return;
+            }
+
+            if(payPlan === 'nivel3'){
+                showView('blocked');
+                return;
+            }
+
+            payIntent = {
+                plan: payPlan,
+                price: null,
+                welcome: null
+            };
+
+            await BVrosAuth.signInWithGoogle();
+
+            break;
+
+        }
+
+
+        case 'apply-promo': {
+
+            const code =
+                val('promoCode')
+                    .trim()
+                    .toUpperCase();
+
+            if(code !== 'BVLUX170'){
+                ui.errBlocked.textContent =
+                    'Código no válido.';
+                return;
+            }
+
+            payPlan =
+                'nivel2';
+
+            payIntent = {
+                plan:
+                    'nivel2',
+
+                price:
+                    1.70,
+
+                onlyPerfil2:
+                    true,
+
+                welcome:
+                    'SUSCRIPTOR NIVEL 2 · DESCUENTO ESPECIAL $1.70 · PERFIL 2 CREADOR'
+            };
+
+            chosenType =
+                'perfil2';
+
+            fillRoles();
+
+            showView('signup');
+
+            break;
+
+        }
+
     }
 
 }
@@ -1415,43 +1683,37 @@ function afterAuth(){
         auth.profile.profile_chosen
     ){
 
-        /* Personalizar la bienvenida con el
-           nombre del usuario */
+        const okTitle =
+            gateRoot.querySelector('[data-ref="title"]');
 
         const okSub =
             gateRoot.querySelector(
                 '[data-view="ok"] .bv-gate-sub'
             );
 
-        /* Título grande del panel: ya no dice
-           "Completa tu perfil" */
+        let planLine =
+            bvWelcomeLine
+            || planBadge();
 
-        gateRoot
-            .querySelector('[data-ref="title"]')
-            .textContent =
+        if(okTitle){
+            okTitle.textContent =
                 'Bienvenido a BVros';
+        }
 
-        gateRoot
-            .querySelector('[data-ref="sub"]')
-            .textContent =
-                'Nivel 2 activo ✔:tu perfil determina tus beneficios y precios.';
+        if(okSub){
+            okSub.textContent =
+                `${planLine}. Disfruta de muchos beneficios al pertenecer al mundo BVros: podrás disfrutar, aprender, trabajar y darle un nuevo camino a tu marca personal. Deseo disfrutes de los beneficios y de la música de alta calidad, hecha con pasión por el arte.`;
+        }
 
         showView('ok');
 
-        /* Cierre automático a 12 segundos:
-           lectura cómoda. El usuario puede
-           cerrar antes con ENTRAR o ×. */
-
-        clearTimeout(
-            afterAuth._timer
-        );
+        clearTimeout(afterAuth._timer);
 
         afterAuth._timer =
             setTimeout(() => {
-
+                bvWelcomeLine = null;
                 closeGate(true);
-
-            }, 12000);
+            }, 60000);
 
     }else{
 
@@ -1526,34 +1788,32 @@ function openGate(context = null){
     const auth =
         window.BVrosAuth;
 
+    /* Precio de la pasarela según contexto.
+       BV_PASS_INFO lo define BVLUX cuando se
+       abre desde una compra de producto. */
+
+    const priceEl =
+        gateRoot.querySelector('[data-ref="price"]');
+
+    const priceLabelEl =
+        gateRoot.querySelector('[data-ref="priceLabel"]');
+
     if(
-        auth?.isAuthenticated() &&
-        auth.profile
+        context === 'suscripcion' &&
+        window.BV_PASS_INFO
     ){
 
-        const p =
-            auth.profile.profile_type;
+        if(priceEl){
+            priceEl.textContent =
+                window.BV_PASS_INFO.price;
+        }
 
-        gateRoot._ui.price.textContent =
-            p === 'perfil2'
-                ? '$3.00'
-                : '$3.99';
-
-        gateRoot._ui.priceLabel.textContent =
-            p === 'perfil2'
-                ? 'Suscripción profesional — Perfil 2'
-                : 'Suscripción estándar — Perfil 1';
-
-    }else{
-
-        gateRoot._ui.price.textContent =
-            '$3.99';
-
-        gateRoot._ui.priceLabel.textContent =
-            'Suscripción estándar — Perfil 1 (con Perfil 2 verificado: $3.00)';
+        if(priceLabelEl){
+            priceLabelEl.textContent =
+                window.BV_PASS_INFO.label;
+        }
 
     }
-
 
     if(
         auth?.isAuthenticated() &&
@@ -1722,9 +1982,7 @@ function syncNavAuth(){
                             ${auth.user.email}
                         </div>
                         <span class="m-plan">
-                            ${auth.profile?.plan === 'premium'
-                                ? 'SUSCRIPTOR'
-                                : 'GRATUITO'}
+                ${planBadge()}
                         </span>
                     </div>
 
@@ -1796,15 +2054,7 @@ function syncNavAuth(){
                     <label>Estado</label>
                     <input
                         type="text"
-                        value="${
-                            auth.profile?.plan === 'premium'
-                                ? 'Suscriptor'
-                                : 'Gratuito'
-                        } — ${
-                            auth.profile?.profile_type === 'perfil2'
-                                ? 'Perfil 2 · Creador'
-                                : 'Perfil 1 · Escucha'
-                        }"
+                value="${planBadge()}"
                         readonly
                         style="opacity:.6;"
                     >

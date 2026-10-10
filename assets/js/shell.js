@@ -126,11 +126,31 @@ function showBar(){
 
     routerBar.style.width = '60%';
 
+        const tp =
+        document.getElementById('topProgress');
+
+    if(tp){
+        tp.style.opacity = '1';
+        tp.style.width = '35%';
+    }
+
+    clearTimeout(showBar._wd);
+    showBar._wd =
+        setTimeout(() => hideBar(), 5000);
+
 }
 
 function hideBar(){
 
     routerBar.style.width = '100%';
+
+        const tp =
+        document.getElementById('topProgress');
+
+    if(tp){
+        tp.style.opacity = '0';
+        setTimeout(() => { tp.style.width = '0%'; }, 300);
+    }
 
     setTimeout(() => {
 

@@ -1715,11 +1715,27 @@ class BVrosGlobalPlayer {
 
         if(audio.paused){
 
+            const track =
+                this.currentTrack();
+
+            const isExcl =
+                track?.exclusive &&
+                window.BVrosAuth?.profile?.plan !== 'premium';
+
+            if(isExcl && this._demoDone){
+                this.showPayAnnouncement();
+                return;
+            }
+
             const ok =
                 await safePlay(
                     audio,
                     'toggle'
                 );
+
+            if(ok && isExcl){
+                this.startDemoWatch(this.currentSlug);
+            }
 
             if(!ok){
                 this.showToast(
@@ -2189,13 +2205,65 @@ class BVrosGlobalPlayer {
         const track =
             this.currentTrack();
 
-        if(!track?.exclusive) return;
+        if(!track) return;
 
-        const isPremium =
-            window.BVrosAuth?.profile?.plan === 'premium';
+        const auth =
+            window.BVrosAuth;
 
-        if(isPremium) return;
+        const plan =
+            auth?.profile?.plan;
 
+        const authed =
+            !!auth?.isAuthenticated();
+
+        if(plan === 'premium') return;
+
+        if(track.exclusive){
+
+            /* Invitado: ¿compró ya desde este
+               navegador? (localStorage BVLUX) */
+
+            if(!authed){
+
+                const guestOk =
+                    window.BVLUX
+                        ?.hasGuestPurchase(
+                            track.id
+                            || trackIdFor(slug)
+                        );
+
+                if(guestOk) return;
+
+                this.scheduleDemo(slug, 'lux');
+                return;
+
+            }
+
+
+            /* Registrado: ¿compró o tiene plan? */
+
+            if(plan === 'premium') return;
+
+            window.BVrosPay
+                .hasPurchased(track.id || trackIdFor(slug))
+                .then(ok => {
+
+                    if(!ok){
+                        this.scheduleDemo(slug, 'lux');
+                    }
+
+                });
+
+            return;
+        }
+
+        if(track.locked && !authed){
+            this.scheduleDemo(slug, 'gate');
+        }
+
+    }
+
+    scheduleDemo(slug, mode){
 
         this.demoTimer =
             setTimeout(() => {
@@ -2204,31 +2272,48 @@ class BVrosGlobalPlayer {
 
                 this.audio.pause();
 
+                if(mode === 'lux'){
+
+                this._demoDone =
+                        true;
+                }
+
                 this.audio.currentTime = 0;
 
-                this.showPayAnnouncement();
+                if(mode === 'gate'){
+                    window.BVrosGate.open('stream');
+                }else{
+                    this.showPayAnnouncement();
+                }
 
-            }, 20000);
+            }, 15000);
 
     }
 
-
-    /* ANUNCIO: cinta dorada sobre el player
-       con flecha y llamada a la pasarela */
-
     showPayAnnouncement(){
 
-        /* Botón COMPRAR → dorado brillante */
-
-        this.ui.buy.classList.add(
-            'bvg-buy-gold'
-        );
-
-
-        /* Anuncio existente: no duplicar */
+        this.ui.buy.classList.add('bvg-buy-gold');
 
         if(document.getElementById('bvgPayAnn')) return;
 
+        const auth =
+            window.BVrosAuth;
+
+        const registered =
+            auth?.isAuthenticated();
+
+        const track =
+            this.currentTrack() || {};
+
+        const price =
+            registered
+                ? (track.discount_price || 0.70)
+                : (track.listen_price || 1.15);
+
+        const listenTitle =
+            registered
+                ? `Escucha 50% dscto. · $${price.toFixed(2)}`
+                : `Escucha · $${price.toFixed(2)}`;
 
         const ann =
             document.createElement('div');
@@ -2242,34 +2327,47 @@ class BVrosGlobalPlayer {
 
             <div class="bvg-pay-ann-text">
                 <b>Suscríbete al plan</b>
-                <small>La pista completa es exclusiva
-                · $3.99 o $3.00 según tu perfil
-                · single: $2.99</small>
+                <small>Pista exclusiva · $${price.toFixed(2)}
+                · suscripción $3.99/$3.00</small>
             </div>
 
             <button
                 class="bvg-pay-ann-btn"
+                data-ann="listen"
                 type="button"
-            >ABRIR PASARELA</button>
+            >${listenTitle}</button>
+
+            <button
+                class="bvg-pay-ann-btn"
+                data-ann="sub"
+                type="button"
+            >Suscríbete $3.99</button>
 
             <button
                 class="bvg-pay-ann-close"
                 type="button"
-                title="Cerrar anuncio"
             >×</button>
 
         `;
 
-
-        ann.querySelector('.bvg-pay-ann-btn')
+        ann.querySelector('[data-ann="listen"]')
             .addEventListener(
                 'click',
                 () => {
-
                     this.removePayAnnouncement();
+                    window.BVLUX.openListen(
+                        track,
+                        registered
+                    );
+                }
+            );
 
+        ann.querySelector('[data-ann="sub"]')
+            .addEventListener(
+                'click',
+                () => {
+                    this.removePayAnnouncement();
                     window.BVrosGate.open('suscripcion');
-
                 }
             );
 
@@ -2285,13 +2383,9 @@ class BVrosGlobalPlayer {
 
     removePayAnnouncement(){
 
-        document
-            .getElementById('bvgPayAnn')
-            ?.remove();
+        document.getElementById('bvgPayAnn')?.remove();
 
-        this.ui.buy.classList.remove(
-            'bvg-buy-gold'
-        );
+        this.ui.buy.classList.remove('bvg-buy-gold');
 
     }
 

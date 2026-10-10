@@ -95,39 +95,39 @@ async function createPendingPayment({
     const auth =
         window.BVrosAuth;
 
-    if(!auth?.user){
-        throw new Error(
-            'Inicia sesión para suscribirte.'
-        );
-    }
 
+    /*
+       USUARIO INVITADO (BVLUX):
+       la compra sin sesión se registra con
+       user_id NULL. La RLS lo permite porque
+       la política de insert usa with check.
+    */
+
+    const insertData = {
+        billing_type:
+            billingType,
+
+        plan_type:
+            'invitado',
+
+        payment_provider:
+            PAYMENT_PROVIDER,
+
+        amount,
+
+        status:
+            'pending'
+    };
+
+    if(auth?.user){
+        insertData.user_id =
+            auth.user.id;
+    }
 
     const { data, error } =
         await supabase
             .from('subscriptions')
-            .insert({
-                user_id:
-                    auth.user.id,
-
-                plan:
-                    'free',
-
-                plan_type:
-                    auth.profile?.profile_type
-                        || 'perfil1',
-
-                billing_type:
-                    billingType,
-
-                payment_provider:
-                    PAYMENT_PROVIDER,
-
-                amount,
-
-                status:
-                    'pending'
-            })
-
+            .insert(insertData)
             .select()
             .single();
 
@@ -155,6 +155,8 @@ async function activatePayment(subscriptionId, reference){
         await supabase
             .from('subscriptions')
             .update({
+                plan:
+                 'premium',
                 status:
                     'active',
 
@@ -176,20 +178,27 @@ async function activatePayment(subscriptionId, reference){
     if(subError) throw subError;
 
 
-    const { error: profError } =
-        await supabase
-            .from('profiles')
-            .update({
-                plan:
-                    'premium'
-            })
+    /* Solo si hay sesión: el plan premium
+       pertenece a una cuenta. La compra de
+       invitado queda registrada sin plan. */
 
-            .eq('id', window.BVrosAuth.user.id);
+    if(window.BVrosAuth?.user){
 
-    if(profError) throw profError;
+        const { error: profError } =
+            await supabase
+                .from('profiles')
+                .update({
+                    plan:
+                        'premium'
+                })
 
+                .eq('id', window.BVrosAuth.user.id);
 
-    await window.BVrosAuth.refreshProfile();
+        if(profError) throw profError;
+
+        await window.BVrosAuth.refreshProfile();
+
+    }
 
 }
 
@@ -197,11 +206,7 @@ async function activatePayment(subscriptionId, reference){
 /* Montar botones PayPal en un contenedor */
 
 async function mountPayPalButtons({
-    containerId,
-    billingType,
-    amount,
-    onSuccess,
-    onError
+    containerId, billingType, amount, description, onSuccess, onError
 }){
 
     const container =
@@ -242,7 +247,7 @@ async function mountPayPalButtons({
                             amount.toFixed(2)
                     },
                     description:
-                        `BVros — ${billingType}`
+                        description || `BVros — ${billingType}`
                 }]
             });
 
@@ -297,8 +302,7 @@ window.BVrosPay = {
     /* La pestaña SUSCRIBIRSE llama a esto.
        El precio lo decide el perfil del usuario. */
 
-    async startSubscription(containerId, onSuccess, onError){
-
+async startSubscription(containerId, onSuccess, onError, overridePrice){
         const auth =
             window.BVrosAuth;
 
@@ -312,9 +316,13 @@ window.BVrosPay = {
         if(PAYMENT_PROVIDER === 'paypal'){
 
             const price =
-                auth.profile?.profile_type === 'perfil2'
-                    ? PRICING.mensual.perfil2
-                    : PRICING.mensual.perfil1;
+                overridePrice
+                    ? Number(overridePrice)
+                    : (
+                        auth.profile?.profile_type === 'perfil2'
+                            ? PRICING.mensual.perfil2
+                            : PRICING.mensual.perfil1
+                      );
 
             return mountPayPalButtons({
                 containerId,
@@ -337,19 +345,25 @@ window.BVrosPay = {
 
     /* Compra única — la usará 2B.3 (catálogo cassett) */
 
-    async buyOnce(containerId, billingType, onSuccess, onError){
+    async buyOnce(containerId, billingType, onSuccess, onError, opts = {}){
 
         const amount =
-            billingType === 'album_unico'
-                ? PRICING.album_unico
-                : billingType === 'single'
-                    ? PRICING.single
-                    : PRICING.album_exclusivo;
+            opts.amount
+                ? Number(opts.amount)
+                : (
+                    billingType === 'album_unico'
+                        ? PRICING.album_unico
+                        : billingType === 'single'
+                            ? PRICING.single
+                            : PRICING.album_exclusivo
+                  );
 
         return mountPayPalButtons({
             containerId,
             billingType,
             amount,
+            description:
+                opts.description || billingType,
             onSuccess,
             onError
         });
@@ -383,6 +397,58 @@ window.BVrosPay = {
         }
 
         return new Date(data.expires_at) > new Date();
+
+    },
+
+    async recordPurchase(trackId, amount, reference, productType = 'single'){
+
+        const auth =
+            window.BVrosAuth;
+
+        if(!auth?.user){
+            throw new Error('Inicia sesión.');
+        }
+
+        const { error } =
+            await supabase
+                .from('purchases')
+                .insert({
+                    user_id:
+                        auth.user.id,
+                    track_id:
+                        trackId,
+                    product_type:
+                        productType,
+                    amount,
+                    reference,
+                    status:
+                        'active'
+                });
+
+        if(error) throw error;
+
+    },
+
+    async hasPurchased(trackId){
+
+        const auth =
+            window.BVrosAuth;
+
+        if(!auth?.user){
+            return false;
+        }
+
+        const { data } =
+            await supabase
+                .from('purchases')
+                .select('id')
+                .eq('user_id', auth.user.id)
+                .eq('track_id', trackId)
+                .eq('status', 'active')
+                .limit(1)
+                .maybeSingle();
+
+        return !!data;
 
     }
 
