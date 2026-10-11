@@ -681,7 +681,7 @@ function buildGate(){
             </h3>
 
             <p class="bv-gate-sub" data-ref="sub">
-                Nivel 1 · acceso de espectador externo
+                Acceso de espectador externo
             </p>
 
 
@@ -712,10 +712,9 @@ function buildGate(){
 
             <div data-view="login">
 
-                <button
+                <a
                     class="bv-gate-google"
-                    data-act="google"
-                    type="button"
+                    href="https://udbwjixdwoahonzezbqj.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fbvros-music-network.onrender.com"
                 >
                     <svg width="16" height="16" viewBox="0 0 48 48">
                         <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/>
@@ -724,7 +723,7 @@ function buildGate(){
                         <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.4-5.5l-7.5-5.8c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/>
                     </svg>
                     Ingresar con Google
-                </button>
+                </a>
 
                 <div class="bv-gate-div">O CON TU CORREO</div>
 
@@ -808,7 +807,6 @@ function buildGate(){
                             <li class="no">Sin perfil de artista
                                 ni tienda propia</li>
                             <li class="no">No sube música</li>
-                            <li>Suscripción: $3.99/mes</li>
                         </ul>
                     </button>
 
@@ -817,16 +815,18 @@ function buildGate(){
                         data-type="perfil2"
                         class="bv-gate-pcard"
                     >
-                        <h4>PERFIL 2 · CREADOR</h4>
+                        <h4>PERFIL 2 · CREA</h4>
                         <ul>
-                            <li class="ok">Todo lo del Perfil 1</li>
+                            <li class="ok">Streaming de catálogo
+                                desbloqueado</li>
+                            <li class="ok">Plays y likes activos</li>
+                            <li class="ok">50% dscto. en productos
                             <li class="ok">Perfil de artista
                                 público</li>
                             <li class="ok">Tienda: merch y
                                 servicios</li>
                             <li class="ok">Distribución con BVros
                                 Music Network (verificación)</li>
-                            <li class="ok">Suscripción: $3.00/mes</li>
                         </ul>
                     </button>
 
@@ -840,7 +840,20 @@ function buildGate(){
                     class="bv-gate-submit"
                     data-act="do-signup"
                     type="button"
-                >CREAR CUENTA GRATIS — NIVEL 2</button>
+                >CREAR CUENTA GRATIS</button>
+
+                <a
+                    class="bv-gate-google"
+                    href="https://udbwjixdwoahonzezbqj.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fbvros-music-network.onrender.com"
+                >
+                    <svg width="16" height="16" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
+                        <path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.8-6.1z"/>
+                        <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.4-5.5l-7.5-5.8c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/>
+                    </svg>
+                    Ingresar con Google
+                </a>                
 
                 <div class="bv-gate-err" data-ref="errSignup"></div>
 
@@ -882,6 +895,7 @@ function buildGate(){
                     >
                         <h4>PERFIL 1 · ESCUCHA</h4>
                         <ul>
+                        <ul>
                             <li class="ok">Streaming de catálogo
                                 desbloqueado</li>
                             <li class="ok">Plays y likes activos</li>
@@ -891,7 +905,6 @@ function buildGate(){
                             <li class="no">Sin perfil de artista
                                 ni tienda propia</li>
                             <li class="no">No sube música</li>
-                            <li>Suscripción: $3.99/mes</li>
                         </ul>
                     </button>
 
@@ -900,16 +913,18 @@ function buildGate(){
                         data-type="perfil2"
                         class="bv-gate-pcard"
                     >
-                        <h4>PERFIL 2 · CREADOR</h4>
+                        <h4>PERFIL 2 · CREA</h4>
                         <ul>
-                            <li class="ok">Todo lo del Perfil 1</li>
+                            <li class="ok">Streaming de catálogo
+                                desbloqueado</li>
+                            <li class="ok">Plays y likes activos</li>
+                            <li class="ok">50% dscto. en productos
                             <li class="ok">Perfil de artista
                                 público</li>
                             <li class="ok">Tienda: merch y
                                 servicios</li>
                             <li class="ok">Distribución con BVros
                                 Music Network (verificación)</li>
-                            <li class="ok">Suscripción: $3.00/mes</li>
                         </ul>
                     </button>
 
@@ -923,7 +938,7 @@ function buildGate(){
                     class="bv-gate-submit"
                     data-act="do-complete"
                     type="button"
-                >GUARDAR Y ENTRAR — NIVEL 2</button>
+                >GUARDAR Y ENTRAR</button>
 
                 <div class="bv-gate-err" data-ref="errComplete"></div>
 
@@ -954,10 +969,10 @@ function buildGate(){
                         <span class="lv-tag">NIVEL 1 · ESPECTADOR</span>
                         <span class="lv-price">GRATUITO</span>
                         <ul>
-                            <li>Navega todos los módulos</li>
-                            <li>Catálogo por álbumes y sencillos</li>
-                            <li>Compra productos en la tienda</li>
-                            <li>Escucha con limitaciones</li>
+                            <li class="ok">Navega todos los módulos</li>
+                            <li class="ok">Catálogo por álbumes y sencillos</li>
+                            <li class="ok">Compra productos en la tienda</li>
+                            <li class="ok">Escucha con limitaciones</li>
                             <li class="no">Sin previsualizaciones</li>
                         </ul>
                     </button>
@@ -966,11 +981,12 @@ function buildGate(){
                         <span class="lv-tag">NIVEL 2 · OYENTE</span>
                         <span class="lv-price">$3.99<small>/mes</small></span>
                         <ul>
-                            <li>Streaming indefinido</li>
-                            <li>Previsualizaciones de ebooks,
+
+                            <li class="ok">Streaming indefinido</li>
+                            <li class="ok">Previsualizaciones de ebooks,
                                 videos y pistas</li>
-                            <li>50% dscto. en productos</li>
-                            <li>Acceso a la Escuela</li>
+                            <li class="ok">50% dscto. en productos</li>
+                            <li class="ok">Acceso a la Escuela</li>
                             <li class="no">Sin distribución ni perfil
                                 de artista</li>
                         </ul>
@@ -980,12 +996,12 @@ function buildGate(){
                         <span class="lv-tag">NIVEL 3 · CREADOR</span>
                         <span class="lv-price">$4.75<small>/mes</small></span>
                         <ul>
-                            <li>Todo lo del Nivel 2</li>
-                            <li>Perfil de artista público</li>
-                            <li>Distribución BVros Music Network
+                            <li class="ok">Todo lo del Nivel 2</li>
+                            <li class="ok">Perfil de artista público</li>
+                            <li class="ok">Distribución BVros Music Network
                                 (verificación)</li>
-                            <li>Vende merch, cursos y servicios</li>
-                            <li class="no">Verificación: 2 semanas</li>
+                            <li class="ok">Vende merch, cursos y servicios</li>
+                            <li class="ok">Verificación: 2 semanas</li>
                         </ul>
                     </button>
 
@@ -1016,10 +1032,10 @@ function buildGate(){
                     verificación dentro de dos semanas.
                 </p>
 
-                <button
+                <a
                     class="bv-gate-google"
-                    data-act="google-sub"
-                    type="button"
+                    id="bvGoogleSubLink"
+                    href="https://udbwjixdwoahonzezbqj.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fbvros-music-network.onrender.com"
                 >
                     <svg width="16" height="16" viewBox="0 0 48 48">
                         <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/>
@@ -1028,8 +1044,8 @@ function buildGate(){
                         <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.4-5.5l-7.5-5.8c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/>
                     </svg>
                     <span data-ref="googleSubLabel">Continuar con Google</span>
-                </button>
-
+                </a>
+                
                 <button
                     class="bv-gate-link"
                     data-act="go-signup"
@@ -1057,7 +1073,7 @@ function buildGate(){
                     class="bv-gate-submit"
                     data-act="close"
                     type="button"
-                >ENTRAR AL ECOSISTEMA</button>
+                >ENTRAR A BVROS NETWORK</button>
 
             </div>
 
@@ -1073,7 +1089,7 @@ function buildGate(){
                 <p class="bv-gate-sub">
                     Te enviamos un enlace de confirmación.
                     Al confirmarlo, inicia sesión para
-                    activar tu nivel 2.
+                    activar tu cuenta.
                 </p>
 
                 <button
