@@ -304,20 +304,20 @@ class BVrosAuthClass {
 
     async signInWithGoogle(){
 
+        /* SIN redirectTo: Supabase redirige al
+           Site URL configurado en el dashboard
+           (bvros-music-network.onrender.com).
+           El redirectTo manual apuntaba a
+           127.0.0.1 y era rechazado en
+           producción — por eso Google no
+           abría ninguna ventana. */
+
         const { error } =
             await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo:
-                        window.location.origin +
-                        window.location.pathname
-                }
+                provider: 'google'
             });
 
         if(error) throw error;
-
-        /* la sesión llega por redirect;
-           onAuthStateChange la toma */
 
     }
 

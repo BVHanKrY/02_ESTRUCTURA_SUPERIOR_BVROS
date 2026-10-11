@@ -670,6 +670,11 @@ function buildGate(){
                 BVROS · ACCESO
             </div>
 
+            <div
+                class="bv-gate-err"
+                data-ref="errGlobal"
+            ></div>
+
             <h3 class="bv-gate-title" data-ref="title">
                 Para acceder al catálogo
                 inicia sesión o suscríbete
@@ -1223,6 +1228,27 @@ function buildGate(){
         });
 
     }
+function gateError(msg){
+
+    if(!gateRoot || !msg) return;
+
+    const el =
+        gateRoot.querySelector(
+            '[data-ref="errGlobal"]'
+        );
+
+    if(el){
+        el.textContent =
+            '⚠ ' + msg;
+    }
+
+    console.error(
+        '[BVros Gate]',
+        msg
+    );
+
+}
+
 function val(name){
 
     const el =
@@ -1620,7 +1646,15 @@ async function handleAction(action){
                 welcome: null
             };
 
-            await BVrosAuth.signInWithGoogle();
+            try{
+
+                await BVrosAuth.signInWithGoogle();
+
+            }catch(error){
+
+                gateError(error.message);
+
+            }
 
             break;
 
