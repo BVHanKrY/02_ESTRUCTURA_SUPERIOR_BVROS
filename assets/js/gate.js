@@ -1,18 +1,19 @@
 /* =========================================================
-   BVROS GATE — FASE 2B.1 (versión completa ensamblada)
-   - Interfaz de acceso (login / crear cuenta / suscribirse)
-   - Interfaz secundaria de perfil: Perfil 1 vs Perfil 2
-     con sus implicaciones visibles (limitaciones/beneficios)
-   - Detección automática post-Google: si el perfil está
-     incompleto o no existe, el formulario se abre solo
-   - Botón INICIO + chip de sesión en el nav
+   BVROS GATE — 2B.1 + 2B.2 (FINAL ensamblado)
+   - Acceso: login / crear cuenta / suscribirse (3 niveles)
+   - Google como ENLACE directo (no depende de JS)
+   - Perfiles 1/2 con implicaciones visibles
+   - Pasarela PayPal/tarjeta con precio por nivel
+   - Nivel 3 bloqueado en fase de prueba (código BVLUX170)
+   - Menú de usuario: perfil, editar, suscríbete,
+     soporte, salir, legal
+   - Bienvenida personalizada 60 s
    ========================================================= */
 
 import {
     BVrosAuth,
     supabase,
-    PROFILE_ROLES,
-    PRICING
+    PROFILE_ROLES
 } from './services/auth-service.js';
 
 import './services/payments-service.js';
@@ -90,6 +91,13 @@ STYLE.textContent = `
     line-height:1.5;
 }
 
+.bv-gate-err{
+    margin-top:10px;
+    color:#F87171;
+    font-size:.7rem;
+    min-height:1em;
+}
+
 .bv-gate-tabs{
     display:flex;
     gap:6px;
@@ -125,6 +133,7 @@ STYLE.textContent = `
     justify-content:center;
     gap:8px;
     margin-bottom:14px;
+    text-decoration:none;
 }
 .bv-gate-google:hover{
     border-color:var(--accent,#F97316);
@@ -172,8 +181,6 @@ STYLE.textContent = `
     outline:none;
     border-color:var(--accent,#F97316);
 }
-
-/* --- TARJETAS DE PERFIL 1 / PERFIL 2 --- */
 
 .bv-gate-pcards{
     display:flex;
@@ -267,13 +274,6 @@ STYLE.textContent = `
     cursor:wait;
 }
 
-.bv-gate-err{
-    margin-top:10px;
-    color:#F87171;
-    font-size:.7rem;
-    min-height:1em;
-}
-
 .bv-gate-link{
     display:block;
     margin-top:14px;
@@ -331,6 +331,52 @@ STYLE.textContent = `
     line-height:1.5;
 }
 
+/* Niveles de suscripción */
+
+.bv-levels{
+    display:flex;
+    gap:8px;
+    margin:6px 0 4px;
+}
+.bv-level{
+    flex:1;
+    padding:10px 8px;
+    border:1px solid var(--border,#2A2119);
+    background:none;
+    color:var(--text,#F2EDE4);
+    cursor:pointer;
+    text-align:left;
+}
+.bv-level.on{
+    border-color:var(--accent,#F97316);
+}
+.bv-level .lv-tag{
+    display:block;
+    font-family:'Orbitron',sans-serif;
+    font-size:.5rem;
+    color:var(--text-muted,#9A8D7D);
+    margin-bottom:4px;
+}
+.bv-level.on .lv-tag{
+    color:var(--accent,#F97316);
+}
+.bv-level .lv-price{
+    display:block;
+    font-weight:800;
+    font-size:.8rem;
+    margin-bottom:6px;
+}
+.bv-level ul{
+    margin:0;
+    padding:0;
+    list-style:none;
+}
+.bv-level li{
+    font-size:.55rem;
+    line-height:1.45;
+    color:var(--text-muted,#9A8D7D);
+}
+
 /* Chip de sesión + menú de usuario */
 
 .bv-auth-chip{
@@ -383,8 +429,6 @@ STYLE.textContent = `
     white-space:nowrap;
 }
 
-/* Menú desplegable */
-
 .bv-auth-menu{
     position:absolute;
     top:calc(100% + 8px);
@@ -436,20 +480,16 @@ STYLE.textContent = `
     color:var(--text,#F2EDE4);
     font-size:.68rem;
     cursor:pointer;
+    text-decoration:none;
 }
 .bv-auth-menu .m-item:hover{
     background:rgba(249,115,22,.08);
     color:var(--accent,#F97316);
 }
 
-/* Formularios dentro del menú */
-
 .bv-menu-panel{
     padding:14px;
     display:none;
-}
-.bv-menu-panel.open{
-    display:block;
 }
 
 .bv-menu-panel label{
@@ -528,8 +568,6 @@ button.bv-auth-login:hover{
     color:#000;
 }
 
-/* Subida de avatar */
-
 .bv-avatar-upload{
     display:flex;
     align-items:center;
@@ -558,57 +596,13 @@ button.bv-auth-login:hover{
     color:var(--accent,#F97316);
 }
 
-.bv-levels{
-    display:flex;
-    gap:8px;
-    margin:6px 0 4px;
-}
-.bv-level{
-    flex:1;
-    padding:10px 8px;
-    border:1px solid var(--border,#2A2119);
-    background:none;
-    color:var(--text,#F2EDE4);
-    cursor:pointer;
-    text-align:left;
-}
-.bv-level.on{
-    border-color:var(--accent,#F97316);
-}
-.bv-level .lv-tag{
-    display:block;
-    font-family:'Orbitron',sans-serif;
-    font-size:.5rem;
-    color:var(--text-muted,#9A8D7D);
-    margin-bottom:4px;
-}
-.bv-level.on .lv-tag{
-    color:var(--accent,#F97316);
-}
-.bv-level .lv-price{
-    display:block;
-    font-weight:800;
-    font-size:.8rem;
-    margin-bottom:6px;
-}
-.bv-level ul{
-    margin:0;
-    padding:0;
-    list-style:none;
-}
-.bv-level li{
-    font-size:.55rem;
-    line-height:1.45;
-    color:var(--text-muted,#9A8D7D);
-}
-
 `;
 
 document.head.appendChild(STYLE);
 
 
 /* =========================================================
-   CONSTRUCCIÓN DE LA INTERFAZ
+   ESTADO
 ========================================================= */
 
 let gateRoot =
@@ -617,7 +611,8 @@ let gateRoot =
 let chosenType =
     'perfil1';
 
-let resolveGate = null;
+let resolveGate =
+    null;
 
 let payPlan =
     null;
@@ -627,6 +622,7 @@ let payIntent =
 
 let bvWelcomeLine =
     null;
+
 
 function planBadge(){
 
@@ -645,6 +641,10 @@ function planBadge(){
 
 }
 
+
+/* =========================================================
+   CONSTRUCCIÓN DE LA INTERFAZ
+========================================================= */
 
 function buildGate(){
 
@@ -681,7 +681,7 @@ function buildGate(){
             </h3>
 
             <p class="bv-gate-sub" data-ref="sub">
-                Acceso de espectador externo
+                Nivel 1 · acceso de espectador externo
             </p>
 
 
@@ -708,7 +708,7 @@ function buildGate(){
             </div>
 
 
-            <!-- VISTA: INICIAR SESIÓN -->
+            <!-- LOGIN -->
 
             <div data-view="login">
 
@@ -760,9 +760,24 @@ function buildGate(){
             </div>
 
 
-            <!-- VISTA: CREAR CUENTA -->
+            <!-- CREAR CUENTA -->
 
             <div data-view="signup" hidden>
+
+                <a
+                    class="bv-gate-google"
+                    href="https://udbwjixdwoahonzezbqj.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fbvros-music-network.onrender.com"
+                >
+                    <svg width="16" height="16" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
+                        <path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.8-6.1z"/>
+                        <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.4-5.5l-7.5-5.8c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/>
+                    </svg>
+                    Continuar con Google
+                </a>
+
+                <div class="bv-gate-div">O REGÍSTRATE CON TU CORREO</div>
 
                 <label>Nombre de usuario</label>
                 <input
@@ -798,11 +813,9 @@ function buildGate(){
                     >
                         <h4>PERFIL 1 · ESCUCHA</h4>
                         <ul>
-                            <li class="ok">Streaming de catálogo
-                                desbloqueado</li>
+                            <li class="ok">Streaming de catálogo</li>
                             <li class="ok">Plays y likes activos</li>
-                            <li class="ok">50% dscto. en productos
-                                seleccionados</li>
+                            <li class="ok">50% dscto. al suscribirte</li>
                             <li class="no">Sin distribución</li>
                             <li class="no">Sin perfil de artista
                                 ni tienda propia</li>
@@ -815,18 +828,15 @@ function buildGate(){
                         data-type="perfil2"
                         class="bv-gate-pcard"
                     >
-                        <h4>PERFIL 2 · CREA</h4>
+                        <h4>PERFIL 2 · CREADOR</h4>
                         <ul>
-                            <li class="ok">Streaming de catálogo
-                                desbloqueado</li>
-                            <li class="ok">Plays y likes activos</li>
-                            <li class="ok">50% dscto. en productos
+                            <li class="ok">Todo lo del Perfil 1</li>
                             <li class="ok">Perfil de artista
                                 público</li>
                             <li class="ok">Tienda: merch y
                                 servicios</li>
-                            <li class="ok">Distribución con BVros
-                                Music Network (verificación)</li>
+                            <li class="ok">Distribución BVros Music
+                                Network (verificación)</li>
                         </ul>
                     </button>
 
@@ -840,20 +850,7 @@ function buildGate(){
                     class="bv-gate-submit"
                     data-act="do-signup"
                     type="button"
-                >CREAR CUENTA GRATIS</button>
-
-                <a
-                    class="bv-gate-google"
-                    href="https://udbwjixdwoahonzezbqj.supabase.co/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fbvros-music-network.onrender.com"
-                >
-                    <svg width="16" height="16" viewBox="0 0 48 48">
-                        <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.7 9.5 24 9.5z"/>
-                        <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
-                        <path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.8-6.1z"/>
-                        <path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.4-5.5l-7.5-5.8c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.7-3.7-13.6-9l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/>
-                    </svg>
-                    Ingresar con Google
-                </a>                
+                >CREAR CUENTA GRATIS — NIVEL 2</button>
 
                 <div class="bv-gate-err" data-ref="errSignup"></div>
 
@@ -866,7 +863,7 @@ function buildGate(){
             </div>
 
 
-            <!-- VISTA: COMPLETAR PERFIL (tras Google) -->
+            <!-- COMPLETAR PERFIL (tras Google) -->
 
             <div data-view="complete" hidden>
 
@@ -895,12 +892,9 @@ function buildGate(){
                     >
                         <h4>PERFIL 1 · ESCUCHA</h4>
                         <ul>
-                        <ul>
-                            <li class="ok">Streaming de catálogo
-                                desbloqueado</li>
+                            <li class="ok">Streaming de catálogo</li>
                             <li class="ok">Plays y likes activos</li>
-                            <li class="ok">50% dscto. en productos
-                                seleccionados</li>
+                            <li class="ok">50% dscto. al suscribirte</li>
                             <li class="no">Sin distribución</li>
                             <li class="no">Sin perfil de artista
                                 ni tienda propia</li>
@@ -913,18 +907,15 @@ function buildGate(){
                         data-type="perfil2"
                         class="bv-gate-pcard"
                     >
-                        <h4>PERFIL 2 · CREA</h4>
+                        <h4>PERFIL 2 · CREADOR</h4>
                         <ul>
-                            <li class="ok">Streaming de catálogo
-                                desbloqueado</li>
-                            <li class="ok">Plays y likes activos</li>
-                            <li class="ok">50% dscto. en productos
+                            <li class="ok">Todo lo del Perfil 1</li>
                             <li class="ok">Perfil de artista
                                 público</li>
                             <li class="ok">Tienda: merch y
                                 servicios</li>
-                            <li class="ok">Distribución con BVros
-                                Music Network (verificación)</li>
+                            <li class="ok">Distribución BVros Music
+                                Network (verificación)</li>
                         </ul>
                     </button>
 
@@ -938,7 +929,7 @@ function buildGate(){
                     class="bv-gate-submit"
                     data-act="do-complete"
                     type="button"
-                >GUARDAR Y ENTRAR</button>
+                >GUARDAR Y ENTRAR — NIVEL 2</button>
 
                 <div class="bv-gate-err" data-ref="errComplete"></div>
 
@@ -955,7 +946,7 @@ function buildGate(){
             </div>
 
 
-            <!-- VISTA: SUSCRIBIRSE -->
+            <!-- SUSCRIBIRSE (3 NIVELES) -->
 
             <div data-view="suscribe" hidden>
 
@@ -969,11 +960,13 @@ function buildGate(){
                         <span class="lv-tag">NIVEL 1 · ESPECTADOR</span>
                         <span class="lv-price">GRATUITO</span>
                         <ul>
-                            <li class="ok">Navega todos los módulos</li>
-                            <li class="ok">Catálogo por álbumes y sencillos</li>
-                            <li class="ok">Compra productos en la tienda</li>
-                            <li class="ok">Escucha con limitaciones</li>
+                            <li>Navega todos los módulos</li>
+                            <li>Catálogo por álbumes y sencillos</li>
+                            <li>Compra productos en la tienda</li>
+                            <li>Escucha con limitaciones</li>
                             <li class="no">Sin previsualizaciones</li>
+                            <li class="no">Sin distribución, sin perfil
+                                de artista, sin tienda propia</li>
                         </ul>
                     </button>
 
@@ -981,14 +974,15 @@ function buildGate(){
                         <span class="lv-tag">NIVEL 2 · OYENTE</span>
                         <span class="lv-price">$3.99<small>/mes</small></span>
                         <ul>
-
-                            <li class="ok">Streaming indefinido</li>
-                            <li class="ok">Previsualizaciones de ebooks,
-                                videos y pistas</li>
-                            <li class="ok">50% dscto. en productos</li>
-                            <li class="ok">Acceso a la Escuela</li>
+                            <li>Streaming indefinido del catálogo
+                                desbloqueado</li>
+                            <li>Previsualizaciones: ebooks, videos,
+                                pistas exclusivas</li>
+                            <li>50% dscto. en productos</li>
+                            <li>Acceso a la Escuela</li>
                             <li class="no">Sin distribución ni perfil
-                                de artista</li>
+                                de artista (requieren verificación
+                                y se activan según mérito)</li>
                         </ul>
                     </button>
 
@@ -996,12 +990,13 @@ function buildGate(){
                         <span class="lv-tag">NIVEL 3 · CREADOR</span>
                         <span class="lv-price">$4.75<small>/mes</small></span>
                         <ul>
-                            <li class="ok">Todo lo del Nivel 2</li>
-                            <li class="ok">Perfil de artista público</li>
-                            <li class="ok">Distribución BVros Music Network
-                                (verificación)</li>
-                            <li class="ok">Vende merch, cursos y servicios</li>
-                            <li class="ok">Verificación: 2 semanas</li>
+                            <li>Todo lo del Nivel 2</li>
+                            <li>Perfil de artista público</li>
+                            <li>Distribución BVros Music Network
+                                (verificación 2 semanas)</li>
+                            <li>Vende merch, cursos y servicios</li>
+                            <li>70% artista / 30% plataforma ·
+                                pagos vía PayPal desde $20</li>
                         </ul>
                     </button>
 
@@ -1013,24 +1008,6 @@ function buildGate(){
                     id="bvPayContainer"
                     style="display:none; margin-top:14px; min-height:60px;"
                 ></div>
-
-                <p class="bv-gate-note">
-                    Pasarela: PayPal y tarjeta de débito o
-                    crédito. Stripe en integración. Tus datos
-                    están protegidos contra fraude en estricto
-                    régimen de leyes nacionales e
-                    internacionales; son de uso exclusivo y tú
-                    respondes por su veracidad. BVros se
-                    responsabiliza por la seguridad dentro del
-                    entorno. La suscripción se renueva cada mes,
-                    un día antes contando desde la adquisición.
-                    Reembolsos y disputas: primero de forma
-                    administrativa; no se aceptan reclamos
-                    después de 30 días. Los beneficios se
-                    activan eligiendo Perfil 1 (oyente) o
-                    Perfil 2 (creador), este último con
-                    verificación dentro de dos semanas.
-                </p>
 
                 <a
                     class="bv-gate-google"
@@ -1045,17 +1022,88 @@ function buildGate(){
                     </svg>
                     <span data-ref="googleSubLabel">Continuar con Google</span>
                 </a>
-                
+
                 <button
                     class="bv-gate-link"
                     data-act="go-signup"
                     type="button"
                 >Prefiero registrarme con mi correo</button>
 
+                <p class="bv-gate-note">
+                    Pasarela: PayPal y tarjeta de débito o
+                    crédito. Stripe en integración. Tus datos
+                    están protegidos contra fraude en estricto
+                    régimen de leyes nacionales e
+                    internacionales; son de uso exclusivo y tú
+                    respondes por su veracidad. BVros se
+                    responsabiliza por la seguridad dentro del
+                    entorno. La suscripción se renueva cada mes,
+                    un día antes contando desde la adquisición.
+                    Reembolsos y disputas: primero de forma
+                    administrativa; no se aceptan reclamos
+                    después de 30 días. Los beneficios del
+                    Nivel 3 se activan eligiendo Perfil 2
+                    (creador) con verificación dentro de dos
+                    semanas.
+                </p>
+
             </div>
 
 
-            <!-- VISTA: ÉXITO -->
+            <!-- BLOQUEADO (nivel 3 en fase de prueba) -->
+
+            <div data-view="blocked" hidden>
+
+                <h3 class="bv-gate-title"
+                    style="color:#F87171;">
+                    Lamentamos este inconveniente
+                </h3>
+
+                <p class="bv-gate-sub">
+                    BVros se encuentra en fase de
+                    experimentación y los beneficios a los
+                    que quieres acceder están interrumpidos
+                    o en fase de creación por el momento.
+                    Apreciamos tu entusiasmo y queremos
+                    darte la bienvenida a nuestra plataforma
+                    con los brazos abiertos.
+                </p>
+
+                <p class="bv-gate-sub">
+                    <b style="color:var(--accent);">
+                    Sigue estos pasos:</b> ingresa el código
+                    de descuento que se encuentra debajo de
+                    este mensaje. Al colocarlo entrarás
+                    directo al Nivel 2 con un descuento
+                    exclusivo por haber llegado hasta aquí.
+                    El costo del Nivel 2 es de $3.99, pero
+                    por tu interés te regalamos el 30% de
+                    descuento: el precio actual con este
+                    código es de <b style="color:var(--accent);">$1.70</b>.
+                    Activa tu perfil como creador. Estoy
+                    encantado de recibirte y espero
+                    disfrutes de esta experiencia musical.
+                </p>
+
+                <label>Código de descuento</label>
+                <input
+                    data-f="promoCode"
+                    type="text"
+                    placeholder="BVLUX170"
+                >
+
+                <button
+                    class="bv-gate-submit"
+                    data-act="apply-promo"
+                    type="button"
+                >APLICAR CÓDIGO Y CONTINUAR</button>
+
+                <div class="bv-gate-err" data-ref="errBlocked"></div>
+
+            </div>
+
+
+            <!-- ÉXITO -->
 
             <div data-view="ok" hidden>
 
@@ -1073,12 +1121,12 @@ function buildGate(){
                     class="bv-gate-submit"
                     data-act="close"
                     type="button"
-                >ENTRAR A BVROS NETWORK</button>
+                >ENTRAR AL ECOSISTEMA</button>
 
             </div>
 
 
-            <!-- VISTA: CONFIRMAR CORREO -->
+            <!-- CONFIRMAR CORREO -->
 
             <div data-view="confirm" hidden>
 
@@ -1089,7 +1137,7 @@ function buildGate(){
                 <p class="bv-gate-sub">
                     Te enviamos un enlace de confirmación.
                     Al confirmarlo, inicia sesión para
-                    activar tu cuenta.
+                    activar tu nivel 2.
                 </p>
 
                 <button
@@ -1130,26 +1178,22 @@ function buildGate(){
         errPay:
             q('[data-ref="errPay"]'),
 
-        price:
-            q('[data-ref="price"]'),
+        errBlocked:
+            q('[data-ref="errBlocked"]'),
 
-        priceLabel:
-            q('[data-ref="priceLabel"]'),
+        googleSubLabel:
+            q('[data-ref="googleSubLabel"]'),
 
         roleSelect:
             q('[data-f="role"]'),
 
         roleSelect2:
-            q('[data-f="role2"]'),
-
-        errBlocked:
-            q('[data-ref="errBlocked"]'),
-
-        googleSubLabel:
-            q('[data-ref="googleSubLabel"]')
+            q('[data-f="role2"]')
 
     };
 
+
+    /* Tabs */
 
     gateRoot
         .querySelectorAll('.bv-gate-tab')
@@ -1165,8 +1209,7 @@ function buildGate(){
         });
 
 
-    /* Selección de perfil (tarjetas + botones simples:
-       todos usan data-type y se sincronizan entre sí) */
+    /* Selección de perfil */
 
     gateRoot
         .querySelectorAll('[data-type]')
@@ -1198,25 +1241,8 @@ function buildGate(){
         });
 
 
-    gateRoot.addEventListener(
-        'click',
-        event => {
-
-            if(
-                event.target === gateRoot
-            ){
-                closeGate();
-            }
-
-        }
-    );
-
-    q('.bv-gate-close')
-        .addEventListener(
-            'click',
-            () => closeGate()
-        );
-
+    /* Selección de nivel + reset del contenedor
+       de pago (para remontar con el nuevo precio) */
 
     gateRoot
         .querySelectorAll('.bv-level')
@@ -1238,12 +1264,73 @@ function buildGate(){
                             )
                         );
 
+                    /* Si los botones de PayPal ya
+                       estaban montados para otro nivel,
+                       limpiarlos */
+
+                    const payC =
+                        gateRoot.querySelector(
+                            '#bvPayContainer'
+                        );
+
+                    if(payC){
+                        payC.style.display =
+                            'none';
+
+                        payC.innerHTML =
+                            '';
+                    }
+
                 }
             );
 
         });
 
-    }
+
+    /* Cerrar: fondo y × */
+
+    gateRoot.addEventListener(
+        'click',
+        event => {
+
+            if(
+                event.target === gateRoot
+            ){
+                closeGate();
+            }
+
+        }
+    );
+
+    q('.bv-gate-close')
+        .addEventListener(
+            'click',
+            () => closeGate()
+        );
+
+
+    /* Botones de acción */
+
+    gateRoot
+        .querySelectorAll('[data-act]')
+        .forEach(btn => {
+
+            btn.addEventListener(
+                'click',
+                () => handleAction(
+                    btn.dataset.act
+                )
+            );
+
+        });
+
+}
+
+
+/* =========================================================
+   UTILIDADES DEL GATE
+========================================================= */
+
 function gateError(msg){
 
     if(!gateRoot || !msg) return;
@@ -1264,6 +1351,7 @@ function gateError(msg){
     );
 
 }
+
 
 function val(name){
 
@@ -1302,7 +1390,10 @@ function fillRoles(){
 
 function showView(name){
 
-        if(
+    /* Vista de completar perfil: si hay
+       intención de pago promo, solo Perfil 2 */
+
+    if(
         gateRoot &&
         name === 'complete'
     ){
@@ -1324,23 +1415,9 @@ function showView(name){
                 'perfil2';
         }
 
-        if(
-            payIntent?.plan === 'nivel2' &&
-            payIntent.price
-        ){
-            const gl =
-                gateRoot.querySelector(
-                    '[data-ref="googleSubLabel"]'
-                );
-
-            if(gl){
-                gl.textContent =
-                    'Continuar con Google — $' +
-                    payIntent.price.toFixed(2);
-            }
-        }
-
     }
+
+
     gateRoot
         .querySelectorAll('[data-view]')
         .forEach(v => {
@@ -1385,6 +1462,10 @@ function setBusy(act, busy){
 
 }
 
+
+/* =========================================================
+   ACCIONES
+========================================================= */
 
 async function handleAction(action){
 
@@ -1523,23 +1604,29 @@ async function handleAction(action){
                     gateRoot._ui.roleSelect2.value
                 );
 
-                if(
-                    payIntent &&
-                    payIntent.plan !== 'nivel1'
-                ){
+                /* Nivel 1 elegido: bienvenida
+                   directa (gratuito, sin pago) */
 
+                if(payPlan === 'nivel1'){
+                    bvWelcomeLine =
+                        'MIEMBRO GRATUITO';
+                    afterAuth();
+                    return;
+                }
+
+                /* Niveles 2/3: soltar la pasarela
+                   de pago inmediatamente */
+
+                if(payPlan){
                     showView('suscribe');
-
                     setTimeout(
                         () => handleAction('do-pay'),
                         200
                     );
-
-                }else{
-
-                    afterAuth();
-
+                    return;
                 }
+
+                afterAuth();
 
             }catch(error){
 
@@ -1564,6 +1651,16 @@ async function handleAction(action){
 
         case 'do-pay': {
 
+            /* Nivel 1: gratuito, sin pago */
+
+            if(payPlan === 'nivel1'){
+                bvWelcomeLine =
+                    'MIEMBRO GRATUITO';
+                afterAuth();
+                return;
+            }
+
+
             if(!payPlan){
                 ui.errPay.textContent =
                     'Elige primero un nivel.';
@@ -1581,6 +1678,18 @@ async function handleAction(action){
 
             try{
 
+                /* Precio: promo ($1.70) o el del
+                   nivel ($3.99 / $4.75) */
+
+                const override =
+                    payIntent?.price
+                        ? Number(payIntent.price)
+                        : (
+                            payPlan === 'nivel3'
+                                ? 4.75
+                                : 3.99
+                          );
+
                 const container =
                     gateRoot.querySelector(
                         '#bvPayContainer'
@@ -1591,15 +1700,17 @@ async function handleAction(action){
                     container.style.display === 'none'
                 ){
 
-                    const override =
-                        payIntent?.price || null;
-
                     await window.BVrosPay.startSubscription(
                         'bvPayContainer',
                         () => {
 
                             bvWelcomeLine =
-                                payIntent?.welcome || null;
+                                payIntent?.welcome
+                                || (
+                                    payPlan === 'nivel3'
+                                        ? 'SUSCRIPTOR NIVEL 3 · $4.75'
+                                        : 'SUSCRIPTOR NIVEL 2 · $3.99'
+                                );
 
                             payIntent =
                                 null;
@@ -1630,45 +1741,6 @@ async function handleAction(action){
             }finally{
 
                 setBusy(action, false);
-
-            }
-
-            break;
-
-        }
-
-
-        case 'google-sub': {
-
-            if(!payPlan){
-                ui.errPay.textContent =
-                    'Elige primero un nivel.';
-                return;
-            }
-
-            if(window.BVrosAuth?.isAuthenticated()){
-                handleAction('do-pay');
-                return;
-            }
-
-            if(payPlan === 'nivel3'){
-                showView('blocked');
-                return;
-            }
-
-            payIntent = {
-                plan: payPlan,
-                price: null,
-                welcome: null
-            };
-
-            try{
-
-                await BVrosAuth.signInWithGoogle();
-
-            }catch(error){
-
-                gateError(error.message);
 
             }
 
@@ -1712,6 +1784,21 @@ async function handleAction(action){
 
             fillRoles();
 
+
+            /* Guardar la intención: si el usuario
+               continúa con Google (redirect), la
+               intención sobrevive a la recarga */
+
+            try{
+                sessionStorage.setItem(
+                    'bvros_pay_intent',
+                    JSON.stringify(payIntent)
+                );
+            }catch(error){
+                /* ignorar */
+            }
+
+
             showView('signup');
 
             break;
@@ -1723,6 +1810,10 @@ async function handleAction(action){
 }
 
 
+/* =========================================================
+   BIENVENIDA (60 s legibles)
+========================================================= */
+
 function afterAuth(){
 
     const auth =
@@ -1733,6 +1824,8 @@ function afterAuth(){
         auth.profile.profile_chosen
     ){
 
+        /* Título grande del panel */
+
         const okTitle =
             gateRoot.querySelector('[data-ref="title"]');
 
@@ -1741,7 +1834,7 @@ function afterAuth(){
                 '[data-view="ok"] .bv-gate-sub'
             );
 
-        let planLine =
+        const planLine =
             bvWelcomeLine
             || planBadge();
 
@@ -1755,14 +1848,19 @@ function afterAuth(){
                 `${planLine}. Disfruta de muchos beneficios al pertenecer al mundo BVros: podrás disfrutar, aprender, trabajar y darle un nuevo camino a tu marca personal. Deseo disfrutes de los beneficios y de la música de alta calidad, hecha con pasión por el arte.`;
         }
 
+
         showView('ok');
 
         clearTimeout(afterAuth._timer);
 
         afterAuth._timer =
             setTimeout(() => {
-                bvWelcomeLine = null;
+
+                bvWelcomeLine =
+                    null;
+
                 closeGate(true);
+
             }, 60000);
 
     }else{
@@ -1804,6 +1902,9 @@ function openGate(context = null){
         artista:
             'Para acceder a este artista inicia sesión o suscríbete',
 
+        suscripcion:
+            'Suscríbete al plan BVros',
+
         distribucion:
             'Distribución exclusiva para suscriptores verificados'
 
@@ -1812,17 +1913,13 @@ function openGate(context = null){
     title.textContent =
         titles[context] || titles.stream;
 
-    if(context === 'suscripcion'){
 
-        title.textContent =
-            'Suscríbete al plan BVros';
+    if(context === 'suscripcion'){
 
         sub.textContent =
             'Desbloquea el catálogo completo, álbumes exclusivos y 50% de descuento en productos.';
 
-    }else
-
-    if(context === 'distribucion'){
+    }else if(context === 'distribucion'){
 
         sub.textContent =
             'Distribución bajo términos de condición y solicitud previa, revisión de datos y de admisión. BVros se reserva el derecho de admisión.';
@@ -1838,32 +1935,6 @@ function openGate(context = null){
     const auth =
         window.BVrosAuth;
 
-    /* Precio de la pasarela según contexto.
-       BV_PASS_INFO lo define BVLUX cuando se
-       abre desde una compra de producto. */
-
-    const priceEl =
-        gateRoot.querySelector('[data-ref="price"]');
-
-    const priceLabelEl =
-        gateRoot.querySelector('[data-ref="priceLabel"]');
-
-    if(
-        context === 'suscripcion' &&
-        window.BV_PASS_INFO
-    ){
-
-        if(priceEl){
-            priceEl.textContent =
-                window.BV_PASS_INFO.price;
-        }
-
-        if(priceLabelEl){
-            priceLabelEl.textContent =
-                window.BV_PASS_INFO.label;
-        }
-
-    }
 
     if(
         auth?.isAuthenticated() &&
@@ -2004,6 +2075,7 @@ function syncNavAuth(){
                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
                    </svg>`;
 
+
         chip.innerHTML = `
 
             <button
@@ -2020,8 +2092,6 @@ function syncNavAuth(){
 
             <div class="bv-auth-menu">
 
-                <!-- MENÚ PRINCIPAL -->
-
                 <div class="bv-menu-view" data-view="main">
 
                     <div class="bv-auth-menu-head">
@@ -2032,7 +2102,7 @@ function syncNavAuth(){
                             ${auth.user.email}
                         </div>
                         <span class="m-plan">
-                ${planBadge()}
+                            ${planBadge()}
                         </span>
                     </div>
 
@@ -2075,8 +2145,6 @@ function syncNavAuth(){
                 </div>
 
 
-                <!-- PERFIL -->
-
                 <div class="bv-menu-panel" data-view="perfil">
 
                     <button
@@ -2104,15 +2172,13 @@ function syncNavAuth(){
                     <label>Estado</label>
                     <input
                         type="text"
-                value="${planBadge()}"
+                        value="${planBadge()}"
                         readonly
                         style="opacity:.6;"
                     >
 
                 </div>
 
-
-                <!-- EDITAR -->
 
                 <div class="bv-menu-panel" data-view="editar">
 
@@ -2141,7 +2207,7 @@ function syncNavAuth(){
                             data-act="pick-avatar"
                             type="button"
                         >Subir foto</button>
-                        
+
                         <button
                             class="bv-avatar-btn"
                             data-act="remove-avatar"
@@ -2204,8 +2270,6 @@ function syncNavAuth(){
                 </div>
 
 
-                <!-- SOPORTE -->
-
                 <div class="bv-menu-panel" data-view="soporte">
 
                     <button
@@ -2258,7 +2322,6 @@ function syncNavAuth(){
 
                 </div>
 
-                                <!-- LEGAL -->
 
                 <div class="bv-menu-panel" data-view="legal">
 
@@ -2291,8 +2354,6 @@ function syncNavAuth(){
             chip.querySelector('.bv-auth-menu');
 
 
-        /* Abrir/cerrar con el trigger */
-
         chip.querySelector('.bv-auth-trigger')
             .addEventListener(
                 'click',
@@ -2304,8 +2365,6 @@ function syncNavAuth(){
 
                 }
             );
-
-        /* Cerrar al hacer click fuera */
 
         document.addEventListener(
             'click',
@@ -2321,8 +2380,6 @@ function syncNavAuth(){
         );
 
 
-        /* Navegación entre vistas del menú */
-
         chip
             .querySelectorAll('[data-menu]')
             .forEach(btn => {
@@ -2336,33 +2393,20 @@ function syncNavAuth(){
 
 
                         if(target === 'salir'){
-
-                            /* SALIR funcional:
-                               cierra sesión real */
-
                             auth.logout();
-
                             return;
-
                         }
+
 
                         if(target === 'suscribir'){
-
-                            /* Cerrar el menú y abrir
-                               la pasarela directamente */
-
                             menu.classList.remove('open');
-
                             openGate('suscripcion');
-
                             return;
-
                         }
 
+
                         menu
-                            .querySelectorAll(
-                                '[data-view]'
-                            )
+                            .querySelectorAll('[data-view]')
                             .forEach(v => {
 
                                 v.style.display =
@@ -2378,8 +2422,6 @@ function syncNavAuth(){
             });
 
 
-        /* Vista inicial del menú: principal */
-
         menu
             .querySelector('[data-view="main"]')
             .style.display =
@@ -2388,24 +2430,7 @@ function syncNavAuth(){
 
         /* Guardar edición de perfil */
 
-        /* SUBIDA DIRECTA DE FOTO:
-           abre el explorador de archivos y al
-           elegir imagen la sube a Storage y la
-           aplica al instante. */
-
-        chip.querySelector('[data-act="pick-avatar"]')
-            .addEventListener(
-                'click',
-                () => {
-
-            chip.querySelector(
-            '[data-ref="avatarFile"]'
-                    ).click();
-
-                }
-            );
-
-            chip.querySelector('[data-act="remove-avatar"]')
+        chip.querySelector('[data-act="save-edit"]')
             .addEventListener(
                 'click',
                 async () => {
@@ -2416,57 +2441,58 @@ function syncNavAuth(){
                     const errEl =
                         chip.querySelector('[data-ref="errEdit"]');
 
+                    okEl.textContent = '';
+
+                    errEl.textContent = '';
+
                     try{
 
-        /* Borrar archivos del usuario
-        en el bucket (por si quedaron) */
-
-                    const { data: files } =
+                        const { error } =
                             await supabase
-                                .storage
-                                .from('Avatars')
-                                .list(auth.user.id);
+                                .from('profiles')
+                                .update({
+                                    artist_name:
+                                        chip.querySelector(
+                                            '[data-edit="artist_name"]'
+                                        ).value.trim(),
 
-                        if(
-                            files &&
-                            files.length
-                        ){
+                                    main_instrument:
+                                        chip.querySelector(
+                                            '[data-edit="main_instrument"]'
+                                        ).value
+                                })
 
-                            await supabase
-                                .storage
-                                .from('Avatars')
-                                .remove(
-                                    files.map(
-                                        f =>
-                                            `${auth.user.id}/${f.name}`
-                                    )
+                                .eq(
+                                    'id',
+                                    auth.user.id
                                 );
 
-                        }
-
-
-            /* Quitar del perfil */
-
-                        await supabase
-                            .from('profiles')
-                            .update(
-                                { avatar_url: null }
-                            )
-                            .eq('id', auth.user.id);
-
-
-                        await window.BVrosAuth.refreshProfile();
+                        if(error) throw error;
 
                         okEl.textContent =
-                            'Foto eliminada ✔';
+                            'Cambios guardados ✔';
 
                     }catch(error){
 
                         errEl.textContent =
-                            'No se pudo eliminar: ' +
                             error.message;
 
                     }
+
+                }
+            );
+
+
+        /* Subida directa de foto */
+
+        chip.querySelector('[data-act="pick-avatar"]')
+            .addEventListener(
+                'click',
+                () => {
+
+                    chip.querySelector(
+                        '[data-ref="avatarFile"]'
+                    ).click();
 
                 }
             );
@@ -2479,25 +2505,18 @@ function syncNavAuth(){
                     const file =
                         event.target.files[0];
 
-                    if(!file){
-                        return;
-                    }
+                    if(!file) return;
 
-                    const okEl =
-                        chip.querySelector('[data-ref="okEdit"]');
 
                     const errEl =
                         chip.querySelector('[data-ref="errEdit"]');
 
-                    okEl.textContent = '';
-
                     errEl.textContent = '';
 
-         /* Validaciones amables */
 
                     if(file.size > 2 * 1024 * 1024){
                         errEl.textContent =
-                            'La imagen supera 2 MB. Elige una más ligera.';
+                            'La imagen supera 2 MB.';
                         return;
                     }
 
@@ -2509,9 +2528,6 @@ function syncNavAuth(){
 
                         const path =
                             `${auth.user.id}/avatar`;
-
-
-                        /* Subida al bucket */
 
                         const { error: upError } =
                             await supabase
@@ -2532,45 +2548,26 @@ function syncNavAuth(){
                         if(upError) throw upError;
 
 
-                        /* URL pública */
-
                         const { data: urlData } =
                             supabase
                                 .storage
-                                .from('avatars')
+                                .from('Avatars')
                                 .getPublicUrl(path);
 
-                        const publicUrl =
-                            urlData.publicUrl;
-
-
-                        /* Guardar en el perfil */
 
                         await supabase
                             .from('profiles')
-                            .update(
-                                { avatar_url: publicUrl }
-                            )
-                            .eq(
-                                'id',
-                                auth.user.id
-                            );
+                            .update({
+                                avatar_url:
+                                    urlData.publicUrl
+                            })
 
+                            .eq('id', auth.user.id);
 
-                        /* Refrescar TODO: avatar del nav
-                           incluido */
 
                         await window.BVrosAuth.refreshProfile();
 
-                        okEl.textContent =
-                            'Foto actualizada ✔';
-
                     }catch(error){
-
-                        console.error(
-                            '[BVros Gate] Error subiendo avatar:',
-                            error
-                        );
 
                         errEl.textContent =
                             'No se pudo subir: ' +
@@ -2581,49 +2578,55 @@ function syncNavAuth(){
                 }
             );
 
-        chip.querySelector('[data-act="save-edit"]')
+
+        /* Quitar foto */
+
+        chip.querySelector('[data-act="remove-avatar"]')
             .addEventListener(
                 'click',
                 async () => {
 
-                    const okEl =
-                        chip.querySelector('[data-ref="okEdit"]');
-
                     const errEl =
                         chip.querySelector('[data-ref="errEdit"]');
 
-                    okEl.textContent = '';
-
-                    errEl.textContent = '';
-
                     try{
 
-                        await supabaseSafeUpdate({
-                            
-                            artist_name:
-                                chip.querySelector(
-                                    '[data-edit="artist_name"]'
-                                ).value.trim(),
+                        const { data: files } =
+                            await supabase
+                                .storage
+                                .from('Avatars')
+                                .list(auth.user.id);
 
-                            main_instrument:
-                                chip.querySelector(
-                                    '[data-edit="main_instrument"]'
-                                ).value
-                        });
+                        if(files?.length){
 
-                        okEl.textContent =
-                            'Cambios guardados ✔';
+                            await supabase
+                                .storage
+                                .from('Avatars')
+                                .remove(
+                                    files.map(
+                                        f =>
+                                            `${auth.user.id}/${f.name}`
+                                    )
+                                );
 
-                        /* Refrescar avatar/nombre */
+                        }
 
-                        setTimeout(
-                            () => syncNavAuth(),
-                            800
-                        );
+                        await supabase
+                            .from('profiles')
+                            .update({
+                                avatar_url:
+                                    null
+                            })
+
+                            .eq('id', auth.user.id);
+
+
+                        await window.BVrosAuth.refreshProfile();
 
                     }catch(error){
 
                         errEl.textContent =
+                            'No se pudo eliminar: ' +
                             error.message;
 
                     }
@@ -2651,32 +2654,30 @@ function syncNavAuth(){
 
                     try{
 
-                        await saveSupportTicket({
-                            subject:
-                                chip.querySelector(
-                                    '[data-sup="subject"]'
-                                ).value,
+                        const { error } =
+                            await supabase
+                                .from('support_tickets')
+                                .insert({
+                                    user_id:
+                                        auth.user.id,
 
-                            details:
-                                chip.querySelector(
-                                    '[data-sup="details"]'
-                                ).value,
+                                    email:
+                                        chip.querySelector('[data-sup="email"]').value,
 
-                            phone:
-                                chip.querySelector(
-                                    '[data-sup="phone"]'
-                                ).value,
+                                    subject:
+                                        chip.querySelector('[data-sup="subject"]').value,
 
-                            email:
-                                chip.querySelector(
-                                    '[data-sup="email"]'
-                                ).value,
+                                    details:
+                                        chip.querySelector('[data-sup="details"]').value,
 
-                            notes:
-                                chip.querySelector(
-                                    '[data-sup="notes"]'
-                                ).value
-                        });
+                                    phone:
+                                        chip.querySelector('[data-sup="phone"]').value,
+
+                                    notes:
+                                        chip.querySelector('[data-sup="notes"]').value
+                                });
+
+                        if(error) throw error;
 
                         okEl.textContent =
                             'Enviado ✔ Soporte te responderá al correo.';
@@ -2724,59 +2725,9 @@ function syncNavAuth(){
 }
 
 
-/* Utilidad: update de perfil con manejo de errores
-   (supabase se importa en gate.js arriba) */
-
-async function supabaseSafeUpdate(fields){
-
-    const { error } =
-        await supabase
-            .from('profiles')
-            .update(fields)
-
-            .eq('id', window.BVrosAuth.user.id);
-
-    if(error) throw error;
-
-}
-
-
-/* Tabla de soporte (se crea en el SQL del paso D) */
-
-async function saveSupportTicket(data){
-
-    const { error } =
-        await supabase
-            .from('support_tickets')
-            .insert({
-                user_id:
-                    window.BVrosAuth.user.id,
-
-                email:
-                    data.email,
-
-                subject:
-                    data.subject,
-
-                details:
-                    data.details,
-
-                phone:
-                    data.phone,
-
-                notes:
-                    data.notes
-            });
-
-    if(error) throw error;
-
-}
-
-
 /* =========================================================
-   DETECTOR AUTOMÁTICO DE PERFIL INCOMPLETO
-   Cubre: redirect de Google, ficha borrada,
-   registro nuevo. El formulario se abre SOLO.
+   DETECTOR AUTOMÁTICO (sesión, Google redirect,
+   intención de pago pendiente)
 ========================================================= */
 
 syncNavAuth();
@@ -2798,18 +2749,76 @@ window.addEventListener(
         if(!auth) return;
 
 
-        /* CASO 1: autenticado SIN ficha o con
-           ficha incompleta → formulario solo */
+        const authed =
+            auth.isAuthenticated();
 
-        const needsSetup =
-            auth.isAuthenticated() &&
-            (
-                !auth.profile ||
-                !auth.profile.profile_chosen
-            );
+        const profileOK =
+            authed &&
+            auth.profile?.profile_chosen;
 
 
-        if(needsSetup){
+        /* 1) Volver de Google con nivel elegido:
+             abrir pasarela lista para pagar */
+
+        const pendingLevel =
+            sessionStorage.getItem('bvros_pay_plan');
+
+        if(profileOK && pendingLevel){
+
+            payPlan =
+                pendingLevel;
+
+            sessionStorage.removeItem('bvros_pay_plan');
+
+            openGate('suscripcion');
+
+            return;
+
+        }
+
+
+        /* 2) Volver de Google con intención promo
+             (código BVLUX170): abrir pasarela */
+
+        const savedIntent =
+            sessionStorage.getItem('bvros_pay_intent');
+
+        if(profileOK && savedIntent){
+
+            try{
+
+                payIntent =
+                    JSON.parse(savedIntent);
+
+                payPlan =
+                    payIntent.plan;
+
+                sessionStorage.removeItem(
+                    'bvros_pay_intent'
+                );
+
+                openGate('suscripcion');
+
+                return;
+
+            }catch(error){
+
+                sessionStorage.removeItem(
+                    'bvros_pay_intent'
+                );
+
+            }
+
+        }
+
+
+        /* 3) Perfil incompleto o inexistente:
+             formulario solo */
+
+        if(
+            authed &&
+            (!auth.profile || !auth.profile.profile_chosen)
+        ){
 
             openGate('stream');
 
@@ -2826,32 +2835,6 @@ window.addEventListener(
             showView('complete');
 
             fillRoles();
-
-            return;
-
-        }
-
-
-        /* CASO 2: guardado exitoso mientras el
-           formulario está abierto → éxito y cierre */
-
-        if(
-            gateRoot?.classList.contains('open') &&
-            auth.isAuthenticated() &&
-            auth.profile?.profile_chosen
-        ){
-
-            const completeView =
-                gateRoot.querySelector(
-                    '[data-view="complete"]'
-                );
-
-            if(
-                completeView &&
-                !completeView.hidden
-            ){
-                afterAuth();
-            }
 
         }
 
