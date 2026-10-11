@@ -1240,8 +1240,7 @@ body::after{
             1;
     }
 
-    /* Fila 1: chip (avatar + nombre) a la derecha,
-       a la misma altura que BVros */
+    /* Chip: fila 1, derecha, a la altura de BVros */
 
     .bv-auth-chip{
         grid-column:
@@ -1259,7 +1258,6 @@ body::after{
         margin:
             0;
     }
-
     /* Fila 2: enlaces centrados, más grandes,
        con el conmutador cerrando a la derecha */
 
@@ -1302,22 +1300,6 @@ body::after{
 
     }
 
-    /* El chip pasa a su propia fila,
-       alineado a la izquierda */
-
-    .bv-auth-chip{
-        grid-column:
-            1 / -1;
-
-        grid-row:
-            1;
-
-        justify-self:
-            flex-start;
-
-        margin-left:
-            100px;
-    }
 
     /* Los enlaces pasan a la fila 3 */
 

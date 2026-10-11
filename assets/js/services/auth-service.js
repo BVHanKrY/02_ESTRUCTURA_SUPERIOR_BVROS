@@ -232,16 +232,6 @@ class BVrosAuthClass {
         profileRole
     }){
 
-        const taken =
-            await this.usernameAvailable(username);
-
-        if(taken){
-            throw new Error(
-                'Ese nombre de usuario ya existe. Elige otro.'
-            );
-        }
-
-
         const { data, error } =
             await supabase.auth.signUp({
                 email,
@@ -251,8 +241,20 @@ class BVrosAuthClass {
                 }
             });
 
-        if(error) throw error;
+        if(error){
 
+            if(
+                (error.message || '').toLowerCase().includes('already registered') ||
+                (error.message || '').toLowerCase().includes('already exists')
+            ){
+                throw new Error(
+                    'Ese correo ya tiene cuenta. Usa "Iniciar sesión".'
+                );
+            }
+
+            throw error;
+
+        }
 
         /* Si la confirmación de email está activa,
            no hay sesión inmediata */
