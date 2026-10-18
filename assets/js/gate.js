@@ -1,15 +1,20 @@
 /* =========================================================
-   BVROS GATE — 2B.3 · SECUENCIA CORREGIDA
-   1) SELECCIONA marca el nivel (sobrevive al redirect)
-   2) "Ingresar con Google" crea la cuenta CONSERVANDO
-      el nivel (si no hay nivel, avisa y NO redirige)
-   3) Pasarela PayPal del nivel elegido
-   4) Bienvenida MIEMBRO PREMIUM (60 s) + "Elige tu perfil"
-   5) Completa tu perfil → Guardar y entrar
+   BVROS GATE — 2B.4 · INTERFAZ Y PASTILLA CORREGIDAS
+   · Título compuesto + pestañas SOLO en las interfaces
+     de acceso (login / crear cuenta / suscribirse)
+   · Bienvenida: 3 minutos (antes 60 s)
+   · Pastilla con la suscripción correcta:
+       Nivel 1 → MIEMBRO GRATUITO
+       Nivel 2 → SUSCRIPCIÓN OYENTE EXPERTO · $3.99/MES
+       Nivel 3 → SUSCRIPCIÓN CREADOR AVANZADO · $4.75/MES
+       Promo   → PROMOCIÓN CREADOR AVANZADO · $1.70/MES
+   · Perfil: username editable + perfil asignado visible
+   · Artista: bloqueado (gratuito), SOLICITAR (Nivel 2),
+     desbloqueado (promoción y Nivel 3)
    REGLA: cuenta ANTES del pago · perfil DESPUÉS del pago
    ========================================================= */
 
-console.log("[BVros Gate] versión 2B.3 activa");
+console.log("[BVros Gate] versión 2B.4 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -102,6 +107,12 @@ STYLE.textContent = `
         1.35;
 }
 
+/* TAMAÑO DE LETRA DEL TÍTULO COMPUESTO (configúralo aquí):
+     · "Regístrate Gratis y"   → .bv-compound .c-plain
+     · "accede a beneficios"   → .bv-compound .c-big
+     · "o suscríbete"          → .bv-compound .c-big.second
+   Sube o baja el font-size de cada bloque. */
+
 .bv-compound .c-plain{
     font-family:
         'Orbitron', sans-serif;
@@ -110,7 +121,7 @@ STYLE.textContent = `
         #FFFFFF;
 
     font-size:
-        .85rem;
+        1.05rem;
 
     font-weight:
         500;
@@ -140,6 +151,12 @@ STYLE.textContent = `
 }
 
 .bv-compound .c-big.second{
+    font-size:
+        .9rem;
+
+    color:
+        var(--text-muted,#9A8D7D);
+
     margin:
         0;
 }
@@ -1148,6 +1165,22 @@ button.bv-auth-login:hover{
     color:var(--accent,#F97316);
 }
 
+.bv-art-lock{
+    margin:0 0 12px;
+    padding:10px 12px;
+    border:1px solid var(--border,#2A2119);
+    border-left:3px solid var(--accent,#F97316);
+    color:var(--text-muted,#9A8D7D);
+    font-size:.62rem;
+    line-height:1.6;
+}
+
+.bv-menu-panel input:disabled,
+.bv-menu-panel select:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
+
 `;
 
 document.head.appendChild(STYLE);
@@ -1175,10 +1208,28 @@ function planBadge() {
 
   if (!auth?.profile) return "";
 
-  if (auth.profile.plan === "premium") {
-    return auth.profile.profile_type === "perfil2"
-      ? "SUSCRIPTOR CREADOR AVANZADO"
-      : "SUSCRIPTOR OYENTE EXPERTO";
+  /* Nivel real guardado en profiles.subscription_tier.
+       Cuentas premium antiguas (sin tier): se deduce
+       del perfil asignado. */
+
+  const tier =
+    auth.profile.subscription_tier ||
+    (auth.profile.plan === "premium"
+      ? auth.profile.profile_type === "perfil2"
+        ? "nivel3"
+        : "nivel2"
+      : "nivel1");
+
+  if (tier === "nivel3") {
+    return "SUSCRIPCIÓN CREADOR AVANZADO · $4.75/MES";
+  }
+
+  if (tier === "nivel2_promo") {
+    return "PROMOCIÓN CREADOR AVANZADO · $1.70/MES";
+  }
+
+  if (tier === "nivel2") {
+    return "SUSCRIPCIÓN OYENTE EXPERTO · $3.99/MES";
   }
 
   return "MIEMBRO GRATUITO";
@@ -1371,7 +1422,7 @@ function buildGate() {
                         Define tu identidad en BVros: tu perfil
                         determina el acceso a distribución,
                         perfil de artista, partner o socio
-                        de negocios.
+                        y beneficios.
                     </p>
 
                 </div>
@@ -2216,6 +2267,34 @@ function fillRoles() {
 }
 
 function showView(name) {
+  /* Cabecera de acceso (título compuesto + pestañas +
+       subtítulo) SOLO en las interfaces de acceso:
+       iniciar sesión, crear cuenta y suscribirse.
+       En pago, perfil, bienvenida y código promocional
+       se ocultan: cada interfaz muestra únicamente
+       su propio título. */
+
+  const esAcceso =
+    name === "login" || name === "signup" || name === "suscribe";
+
+  const compoundEl = gateRoot.querySelector('[data-ref="compoundTitle"]');
+
+  const tabsEl = gateRoot.querySelector('[data-ref="tabs"]');
+
+  const subEl = gateRoot.querySelector('[data-ref="sub"]');
+
+  if (compoundEl) {
+    compoundEl.style.display = esAcceso ? "" : "none";
+  }
+
+  if (tabsEl) {
+    tabsEl.style.display = esAcceso ? "flex" : "none";
+  }
+
+  if (subEl) {
+    subEl.style.display = esAcceso ? "" : "none";
+  }
+
   if (gateRoot._ui?.panel) {
     gateRoot._ui.panel.classList.toggle("suscribe-mode", name === "suscribe");
   }
@@ -2327,8 +2406,9 @@ function openLevelView(plan) {
       "bvPayN2",
       price,
       promoActive
-        ? "SUSCRIPTOR NIVEL 2 · DESCUENTO ESPECIAL $1.70 · PERFIL 2 CREADOR"
-        : "SUSCRIPTOR OYENTE EXPERTO · $3.99/MES",
+        ? "PROMOCIÓN CREADOR AVANZADO · $1.70/MES"
+        : "SUSCRIPCIÓN OYENTE EXPERTO · $3.99/MES",
+      promoActive ? "nivel2_promo" : "nivel2",
     );
 
     return;
@@ -2358,16 +2438,38 @@ function openLevelView(plan) {
     mountLevelPay(
       "bvPayN2",
       1.7,
-      "SUSCRIPTOR NIVEL 2 · DESCUENTO ESPECIAL $1.70 · PERFIL 2 CREADOR",
+      "PROMOCIÓN CREADOR AVANZADO · $1.70/MES",
+      "nivel2_promo",
     );
 
     return;
   }
 }
 
+/* Guardar el nivel REAL de la suscripción en profiles
+     (alimenta la pastilla). Requiere la columna
+     subscription_tier: ver bvlux-columna-tier.sql */
+
+async function guardarTier(tier) {
+  const auth = window.BVrosAuth;
+
+  if (!tier || !auth?.user) return;
+
+  try {
+    await supabase
+      .from("profiles")
+      .update({ subscription_tier: tier })
+      .eq("id", auth.user.id);
+
+    await auth.refreshProfile();
+  } catch (error) {
+    console.warn("[BVros Gate] Nivel no guardado:", error);
+  }
+}
+
 /* Montar PayPal en la vista individual */
 
-function mountLevelPay(containerId, price, welcome) {
+function mountLevelPay(containerId, price, welcome, tier) {
   const container = gateRoot.querySelector(`#${containerId}`);
 
   if (!container) return;
@@ -2388,6 +2490,8 @@ function mountLevelPay(containerId, price, welcome) {
       payIntent = null;
 
       sessionStorage.removeItem("bvros_pay_plan");
+
+      guardarTier(tier);
 
       afterAuth();
     },
@@ -2602,6 +2706,8 @@ async function handleAction(action) {
 
       bvWelcomeLine = "MIEMBRO GRATUITO";
 
+      guardarTier("nivel1");
+
       afterAuth();
 
       break;
@@ -2656,8 +2762,7 @@ async function handleAction(action) {
 
         onlyPerfil2: true,
 
-        welcome:
-          "SUSCRIPTOR NIVEL 2 · DESCUENTO ESPECIAL $1.70 · PERFIL 2 CREADOR",
+        welcome: "PROMOCIÓN CREADOR AVANZADO · $1.70/MES",
       };
 
       chosenType = "perfil2";
@@ -2750,11 +2855,13 @@ function afterAuth() {
 
   clearTimeout(afterAuth._timer);
 
+  /* 3 minutos para leer; si no toca nada, se cierra solo */
+
   afterAuth._timer = setTimeout(() => {
     bvWelcomeLine = null;
 
     closeGate(true);
-  }, 60000);
+  }, 180000);
 }
 
 function openGate(context = null) {
@@ -2892,6 +2999,23 @@ function syncNavAuth() {
 
     const displayName = auth.profile?.username || auth.user.email;
 
+    /* Nivel real de la suscripción (para la pestaña
+         Artista): nivel1 → bloqueado · nivel2 → bloqueado
+         + SOLICITAR · nivel2_promo / nivel3 → desbloqueado.
+         Cuentas premium antiguas: se deduce del perfil. */
+
+    const tierActual =
+      auth.profile?.subscription_tier ||
+      (auth.profile?.plan === "premium"
+        ? auth.profile?.profile_type === "perfil2"
+          ? "nivel3"
+          : "nivel2"
+        : "nivel1");
+
+    const artistaLock = tierActual === "nivel1";
+
+    const artistaSolicitar = tierActual === "nivel2";
+
     const avatarHtml = auth.profile?.avatar_url
       ? `<img src="${auth.profile.avatar_url}" alt="">`
       : `<svg viewBox="0 0 24 24" fill="currentColor">
@@ -2938,7 +3062,7 @@ function syncNavAuth() {
                         class="m-item"
                         data-menu="editar"
                         type="button"
-                    >Editar</button>
+                    >Artista</button>
 
                     <button
                         class="m-item"
@@ -2978,7 +3102,20 @@ function syncNavAuth() {
                     <label>Nombre de usuario</label>
                     <input
                         type="text"
+                        data-edit="username"
+                        maxlength="24"
                         value="${auth.profile?.username || ""}"
+                        placeholder="tu_nombre"
+                    >
+
+                    <label>Perfil asignado</label>
+                    <input
+                        type="text"
+                        value="${
+                          auth.profile?.profile_type === "perfil2"
+                            ? "Perfil 2 · Creador"
+                            : "Perfil 1 · Escucha"
+                        }"
                         readonly
                         style="opacity:.6;"
                     >
@@ -2991,13 +3128,22 @@ function syncNavAuth() {
                         style="opacity:.6;"
                     >
 
-                    <label>Estado</label>
+                    <label>Suscripción</label>
                     <input
                         type="text"
                         value="${planBadge()}"
                         readonly
                         style="opacity:.6;"
                     >
+
+                    <button
+                        class="bv-menu-save"
+                        data-act="save-username"
+                        type="button"
+                    >GUARDAR NOMBRE</button>
+
+                    <div class="bv-menu-ok" data-ref="okPerfil"></div>
+                    <div class="bv-menu-err" data-ref="errPerfil"></div>
 
                 </div>
 
@@ -3009,6 +3155,21 @@ function syncNavAuth() {
                         data-menu="main"
                         type="button"
                     >← Volver</button>
+
+                    ${
+                      artistaLock || artistaSolicitar
+                        ? `<div class="bv-art-lock">
+                               El perfil de Artista se activa con la
+                               Suscripción Creador Avanzado ($4.75/mes)
+                               o con la Promoción Creador ($1.70/mes).
+                               ${
+                                 artistaSolicitar
+                                   ? "Como suscriptor Oyente Experto puedes solicitar acceso con el botón de abajo."
+                                   : "Activa tu suscripción Creador para desbloquear esta sección."
+                               }
+                           </div>`
+                        : ""
+                    }
 
                     <label>Foto de perfil</label>
                     <div class="bv-avatar-upload">
@@ -3028,12 +3189,14 @@ function syncNavAuth() {
                             class="bv-avatar-btn"
                             data-act="pick-avatar"
                             type="button"
+                            ${artistaLock || artistaSolicitar ? "disabled" : ""}
                         >Subir foto</button>
 
                         <button
                             class="bv-avatar-btn"
                             data-act="remove-avatar"
                             type="button"
+                            ${artistaLock || artistaSolicitar ? "disabled" : ""}
                         >Quitar</button>
 
                         <input
@@ -3051,10 +3214,13 @@ function syncNavAuth() {
                         data-edit="artist_name"
                         value="${auth.profile?.artist_name || ""}"
                         placeholder="Tu nombre artístico"
+                        ${artistaLock || artistaSolicitar ? "disabled" : ""}
                     >
 
                     <label>Instrumento principal</label>
-                    <select data-edit="main_instrument">
+                    <select data-edit="main_instrument" ${
+                      artistaLock || artistaSolicitar ? "disabled" : ""
+                    }>
 
                         ${[
                           "",
@@ -3079,10 +3245,25 @@ function syncNavAuth() {
 
                     </select>
 
+                    ${
+                      artistaSolicitar
+                        ? `<button
+                              class="bv-menu-save"
+                              data-act="solicitar-artista"
+                              type="button"
+                          >SOLICITAR</button>`
+                        : ""
+                    }
+
                     <button
                         class="bv-menu-save"
                         data-act="save-edit"
                         type="button"
+                        ${
+                          artistaLock || artistaSolicitar
+                            ? 'style="display:none;"'
+                            : ""
+                        }
                     >GUARDAR CAMBIOS</button>
 
                     <div class="bv-menu-ok" data-ref="okEdit"></div>
@@ -3206,6 +3387,72 @@ function syncNavAuth() {
     });
 
     menu.querySelector('[data-view="main"]').style.display = "block";
+
+    /* PERFIL: guardar el nombre de usuario (único campo
+         editable; perfil, correo y suscripción son de
+         solo lectura) */
+
+    const saveUserBtn = chip.querySelector('[data-act="save-username"]');
+
+    if (saveUserBtn) {
+      saveUserBtn.addEventListener("click", async () => {
+        const okEl = chip.querySelector('[data-ref="okPerfil"]');
+
+        const errEl = chip.querySelector('[data-ref="errPerfil"]');
+
+        okEl.textContent = "";
+
+        errEl.textContent = "";
+
+        const nuevo = chip
+          .querySelector('[data-edit="username"]')
+          .value.trim();
+
+        if (!nuevo) {
+          errEl.textContent = "El nombre no puede quedar vacío.";
+          return;
+        }
+
+        try {
+          const { error } = await supabase
+            .from("profiles")
+            .update({ username: nuevo })
+            .eq("id", auth.user.id);
+
+          if (error) throw error;
+
+          await window.BVrosAuth.refreshProfile();
+
+          okEl.textContent = "Nombre guardado ✔";
+
+          setTimeout(() => syncNavAuth(), 900);
+        } catch (error) {
+          errEl.textContent =
+            error.code === "23505"
+              ? "Ese nombre de usuario ya existe. Elige otro."
+              : error.message;
+        }
+      });
+    }
+
+    /* ARTISTA: botón SOLICITAR (visible solo en Nivel 2).
+         Abre el panel de soporte con el asunto preparado. */
+
+    const solBtn = chip.querySelector('[data-act="solicitar-artista"]');
+
+    if (solBtn) {
+      solBtn.addEventListener("click", () => {
+        const subjectEl = chip.querySelector('[data-sup="subject"]');
+
+        menu.querySelectorAll("[data-view]").forEach((v) => {
+          v.style.display = v.dataset.view === "soporte" ? "block" : "none";
+        });
+
+        if (subjectEl && !subjectEl.value) {
+          subjectEl.value = "Solicitud de perfil Artista · Nivel 2";
+        }
+      });
+    }
 
     chip
       .querySelector('[data-act="save-edit"]')
