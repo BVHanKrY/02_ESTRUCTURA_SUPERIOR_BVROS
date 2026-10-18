@@ -1,8 +1,39 @@
 /* =========================================================
-   BVROS AUTH SERVICE — FASE 2B.1
-   Núcleo de cuentas: registro email+clave, acceso
-   Google, perfiles 1/2 con roles, sesión persistente.
-   Expone window.BVrosAuth y eventos 'bvros:authstate'.
+   BVROS AUTH SERVICE — FASE 2B.1 (CORREGIDO · BVLUX)
+   Correcciones aplicadas sobre la versión anterior:
+
+   1. usernameAvailable: si el RPC falla devuelve true
+      (no bloquea el registro — la UNIQUE de la base
+      decide al guardar, tal como decía el comentario
+      original pero la función hacía lo contrario).
+   2. Autocreación de perfil: usa el username guardado
+      en user_metadata (el que eligió el usuario en el
+      formulario) y registra errores de RLS.
+   3. saveProfileChoice:
+      · Pre-check EXACTO con .maybeSingle() — el falso
+        "Ese nombre de usuario ya existe" venía de
+        confiar en verificaciones que fallaban en silencio.
+      · onConflict explícito en el upsert.
+      · ⚠️ YA NO RESETEA plan a 'free': la versión anterior
+        escribía plan:'free' en CADA guardado, así que un
+        usuario premium perdía su etiqueta al editar su
+        perfil. Ahora se conserva 'premium'.
+      · Traducción clara de errores RLS (42501).
+   4. signInWithEmail: mensajes claros en español
+      ("Invalid login credentials", correo sin confirmar).
+   5. PRICING alineado a BVLUXpasarela 1.1.1:
+      Nivel 2 $3.99 · Nivel 3 $4.75 · promo $1.70.
+      (El precio 3.00 antiguo queda eliminado.)
+
+   Requisito en Supabase (SQL Editor) — políticas RLS:
+      alter table public.profiles enable row level security;
+      create policy if not exists "perfil select propio"
+        on public.profiles for select using (auth.uid() = id);
+      create policy if not exists "perfil insert propio"
+        on public.profiles for insert with check (auth.uid() = id);
+      create policy if not exists "perfil update propio"
+        on public.profiles for update using (auth.uid() = id)
+        with check (auth.uid() = id);
    ========================================================= */
 
 import { createClient }
@@ -57,19 +88,21 @@ export const PROFILE_ROLES = {
 
 };
 
-/* Precios por perfil (los consume la pasarela 2B.2) */
+/* Precios BVLUXpasarela 1.1.1.
+   El gate SIEMPRE pasa overridePrice; estos valores
+   son el respaldo coherente con la nueva estructura
+   (ya no existe el cobro de $3.00). */
 
 export const PRICING = {
 
-    perfil1: {
-        mensual: 3.99,
-        etiqueta: 'Suscripción estándar'
+    mensual: {
+        perfil1: 3.99,
+        perfil2: 3.99
     },
 
-    perfil2: {
-        mensual: 3.00,
-        etiqueta: 'Suscripción profesional'
-    },
+    nivel3: 4.75,
+
+    promoNivel2: 1.70,
 
     albumUnico: 5.00,
     singleExclusivo: 2.99,
@@ -99,7 +132,6 @@ class BVrosAuthClass {
         if(this.user){
             await this.loadProfile();
         }
-
 
         supabase.auth.onAuthStateChange(
             async (event, session) => {
@@ -132,45 +164,62 @@ class BVrosAuthClass {
 
         if(!this.user) return;
 
-        const { data } =
+        const { data, error } =
             await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', this.user.id)
                 .maybeSingle();
 
+        if(error){
+            console.error(
+                '[BVros Auth] Error leyendo perfil (revisa políticas RLS de SELECT):',
+                error
+            );
+        }
 
         /* AUTOCREACIÓN:
            si el usuario existe en Authentication pero
            su ficha no (ej: borrada a mano, o creada
            antes del trigger), se crea aquí mismo.
-           Así nunca queda un usuario "huérfano". */
+           Así nunca queda un usuario "huérfano".
+           CORRECCIÓN: se conserva el username que el
+           usuario escribió en el formulario (queda en
+           user_metadata) en lugar de forzar user_xxxx. */
 
         if(!data){
 
             const autoName =
+                this.user.user_metadata?.username ||
                 'user_' +
-                this.user.id.substr(0, 8);
+                String(this.user.id).substr(0, 8);
 
-            await supabase
-                .from('profiles')
-                .upsert({
-                    id:
-                        this.user.id,
+            const { error: autoError } =
+                await supabase
+                    .from('profiles')
+                    .upsert({
+                        id:
+                            this.user.id,
 
-                    username:
-                        autoName,
+                        username:
+                            autoName,
 
-                    profile_type:
-                        'perfil1',
+                        profile_type:
+                            'perfil1',
 
-                    profile_chosen:
-                        false,
+                        profile_chosen:
+                            false,
 
-                    plan:
-                        'free'
-                });
+                        plan:
+                            'free'
+                    });
 
+            if(autoError){
+                console.error(
+                    '[BVros Auth] Autocreación de perfil falló (revisa la política RLS de INSERT en profiles):',
+                    autoError
+                );
+            }
 
             const recheck =
                 await supabase
@@ -209,15 +258,16 @@ class BVrosAuthClass {
 
         if(error){
             console.warn(
-                '[BVros Auth] No se pudo verificar el nombre.',
+                '[BVros Auth] No se pudo verificar el nombre — la restricción UNIQUE decidirá al guardar.',
                 error
             );
 
-        /* Si la verificación falla, NO bloqueamos:
-        la restricción UNIQUE de la base decide
-        l guardar. */
+        /* CORRECCIÓN: antes devolvía false (= "ocupado")
+           cuando el RPC fallaba y BLOQUEABA el registro.
+           Devuelve true: no bloqueamos; la UNIQUE de la
+           base es el árbitro final. */
 
-            return false;
+            return true;
         }
 
         return !data;
@@ -243,12 +293,21 @@ class BVrosAuthClass {
 
         if(error){
 
+            const msg =
+                (error.message || '').toLowerCase();
+
             if(
-                (error.message || '').toLowerCase().includes('already registered') ||
-                (error.message || '').toLowerCase().includes('already exists')
+                msg.includes('already registered') ||
+                msg.includes('already exists')
             ){
                 throw new Error(
                     'Ese correo ya tiene cuenta. Usa "Iniciar sesión".'
+                );
+            }
+
+            if(msg.includes('password')){
+                throw new Error(
+                    'La contraseña debe tener al menos 6 caracteres.'
                 );
             }
 
@@ -257,7 +316,9 @@ class BVrosAuthClass {
         }
 
         /* Si la confirmación de email está activa,
-           no hay sesión inmediata */
+           no hay sesión inmediata. El username elegido
+           queda en user_metadata y loadProfile lo
+           recuperará en el primer ingreso. */
 
         if(!data.session){
             return {
@@ -265,10 +326,8 @@ class BVrosAuthClass {
             };
         }
 
-
         this.user =
             data.user;
-
 
         /* Completar el perfil con la elección
            del formulario */
@@ -293,7 +352,32 @@ class BVrosAuthClass {
                 password
             });
 
-        if(error) throw error;
+        if(error){
+
+            const msg =
+                (error.message || '').toLowerCase();
+
+            if(msg.includes('invalid login credentials')){
+                throw new Error(
+                    'Credenciales incorrectas. Verifica tu correo y contraseña, o crea tu cuenta gratis.'
+                );
+            }
+
+            if(msg.includes('not confirmed')){
+                throw new Error(
+                    'Debes confirmar tu correo antes de ingresar. Revisa tu bandeja de entrada.'
+                );
+            }
+
+            if(msg.includes('too many') || msg.includes('rate limit')){
+                throw new Error(
+                    'Demasiados intentos. Espera un momento e inténtalo de nuevo.'
+                );
+            }
+
+            throw error;
+
+        }
 
         this.user =
             data.user;
@@ -312,7 +396,12 @@ class BVrosAuthClass {
            El redirectTo manual apuntaba a
            127.0.0.1 y era rechazado en
            producción — por eso Google no
-           abría ninguna ventana. */
+           abría ninguna ventana.
+
+           ⚠️ Verifica en Supabase Dashboard →
+           Authentication → URL Configuration:
+           Site URL = https://bvros-music-network.onrender.com
+           Redirect URLs debe incluir ese dominio. */
 
         const { error } =
             await supabase.auth.signInWithOAuth({
@@ -335,13 +424,35 @@ class BVrosAuthClass {
             );
         }
 
+        /* CORRECCIÓN CLAVE (falso "nombre ya existe"):
+           verificación EXACTA con maybeSingle —
+           no lanza error cuando no hay filas.
+           Solo bloquea si el nombre pertenece a
+           OTRO usuario (id distinto). */
 
-        /*
-           Sin check previo: la restricción UNIQUE de
-           la base de datos es el árbitro final.
-           Si el nombre existe, el upsert falla con
-           código 23505 y lo traducimos a mensaje claro.
-        */
+        const { data: taken } =
+            await supabase
+                .from('profiles')
+                .select('id')
+                .ilike('username', username)
+                .maybeSingle();
+
+        if(taken && taken.id !== this.user.id){
+            throw new Error(
+                'Ese nombre de usuario ya existe. Elige otro.'
+            );
+        }
+
+        /* CORRECCIÓN CLAVE (pérdida de premium):
+           la versión anterior escribía plan:'free'
+           SIEMPRE. Un usuario premium que re-guardaba
+           su perfil volvía a "MIEMBRO GRATUITO".
+           Ahora se conserva el plan actual. */
+
+        const planActual =
+            this.profile?.plan === 'premium'
+                ? 'premium'
+                : 'free';
 
         const { error } =
             await supabase
@@ -362,7 +473,9 @@ class BVrosAuthClass {
                         true,
 
                     plan:
-                        'free'
+                        planActual
+                }, {
+                    onConflict: 'id'
                 });
 
         if(error){
@@ -379,6 +492,15 @@ class BVrosAuthClass {
             ){
                 throw new Error(
                     'Ese nombre de usuario ya existe. Elige otro.'
+                );
+            }
+
+            if(
+                error.code === '42501' ||
+                (error.message || '').includes('row-level security')
+            ){
+                throw new Error(
+                    'Permisos de base insuficientes (RLS). Ejecuta las políticas SQL de profiles indicadas en la documentación.'
                 );
             }
 
@@ -413,7 +535,6 @@ class BVrosAuthClass {
 
         }
 
-
         /* LIMPIEZA LOCAL OBLIGATORIA:
            se ejecuta SIEMPRE */
 
@@ -422,7 +543,6 @@ class BVrosAuthClass {
 
         this.profile =
             null;
-
 
         /* Red de seguridad: purgar cualquier
            residuo de sesión de Supabase en
@@ -443,7 +563,6 @@ class BVrosAuthClass {
             /* localStorage bloqueado: ignorar */
 
         }
-
 
         this.emit();
 

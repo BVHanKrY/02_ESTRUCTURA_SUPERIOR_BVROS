@@ -1,19 +1,41 @@
 /* =========================================================
-   BVROS PAYMENTS SERVICE — FASE 2B.2
-   PayPal Smart Buttons (incluye pago con tarjeta
-   dentro del flujo de PayPal).
-   Precios: Perfil 1 $3.99 · Perfil 2 $3.00.
+   BVROS PAYMENTS SERVICE — FASE 2B.2 (CORREGIDO · BVLUX)
+   PayPal Smart Buttons (incluye pago con tarjeta dentro
+   del flujo de PayPal: enable-funding=card).
+   Precios BVLUXpasarela 1.1.1:
+     Nivel 2 $3.99 · Nivel 3 $4.75 · promo Nivel 2 $1.70.
    Compras únicas: $5.00 / $2.99 / $4.99 (2B.3).
-   Al confirmar pago: profiles.plan = 'premium'
-   + fila active en subscriptions (30 días).
-   Stripe: preparado como interruptor para cuando
-   exista entidad US (no opera como merchant EC).
+   Al confirmar pago: subscriptions active 30 días
+   + profiles.plan = 'premium'.
+
+   CORRECCIONES aplicadas:
+   1. El intento de pago se registra en la base ANTES de
+      abrir PayPal (createOrder). Antes se registraba solo
+      DESPUÉS de capturar: si el INSERT fallaba, el usuario
+      pagaba y no quedaba registrado nada.
+   2. .single() → .maybeSingle() con mensaje claro si la
+      política RLS bloquea el registro.
+   3. activatePayment avisa con mensaje claro si el pago se
+      capturó pero la activación falla (con referencia para
+      soporte).
+   4. PRICING alineado: ya no existe el cobro $3.00; el
+      respaldo por perfil es $3.99 (Nivel 2) y se exponen
+      nivel3 ($4.75) y promoNivel2 ($1.70).
+   5. hasActivePlan degrada el perfil a 'free' si la
+      suscripción expiró (antes el badge decía premium
+      para siempre).
+
+   ⚠️ SEGURIDAD (fase de prueba): la activación ocurre en
+   el cliente. Un usuario técnico podría marcar
+   profiles.plan='premium' a mano. Antes de cobrar en
+   real, migra la confirmación a un webhook de PayPal →
+   Edge Function que active el plan server-side.
    ========================================================= */
 
 import { supabase } from './auth-service.js';
 
 /*
-   ⚠️ PEGA AQUÍ TU CLIENT ID:
+   ⚠️ VERIFICA TU CLIENT ID:
    developer.paypal.com → Apps & Credentials
    → Create App → copia el Client ID.
    Empieza en SANDBOX (dinero de prueba);
@@ -34,8 +56,11 @@ const PRICING = {
 
     mensual: {
         perfil1: 3.99,
-        perfil2: 3.00
+        perfil2: 3.99
     },
+
+    nivel3: 4.75,
+    promoNivel2: 1.70,
 
     album_unico: 5.00,
     single: 2.99,
@@ -46,7 +71,10 @@ const PRICING = {
 let paypalReady = null;
 
 
-/* Carga del SDK de PayPal (una sola vez) */
+/* Carga del SDK de PayPal (una sola vez).
+   CORRECCIÓN: enable-funding=card muestra el
+   botón de tarjeta de débito/crédito además
+   de PayPal (requisito de la pasarela BVros). */
 
 function loadPayPalSDK(){
 
@@ -66,7 +94,7 @@ function loadPayPalSDK(){
                 document.createElement('script');
 
             s.src =
-                `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+                `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture&enable-funding=card`;
 
             s.onload = () => resolve();
 
@@ -85,7 +113,9 @@ function loadPayPalSDK(){
 }
 
 
-/* Registro pendiente en la base */
+/* Registro del intento en la base.
+   CORRECCIÓN: .maybeSingle() en lugar de .single()
+   y mensajes claros si la RLS bloquea el INSERT. */
 
 async function createPendingPayment({
     billingType,
@@ -95,12 +125,11 @@ async function createPendingPayment({
     const auth =
         window.BVrosAuth;
 
-
     /*
        USUARIO INVITADO (BVLUX):
        la compra sin sesión se registra con
-       user_id NULL. La RLS lo permite porque
-       la política de insert usa with check.
+       user_id NULL. Requiere política RLS:
+         with check (auth.uid() = user_id or user_id is null)
     */
 
     const insertData = {
@@ -129,16 +158,28 @@ async function createPendingPayment({
             .from('subscriptions')
             .insert(insertData)
             .select()
-            .single();
+            .maybeSingle();
 
-    if(error) throw error;
+    if(error){
+        console.error(
+            '[BVros Pay] No se pudo registrar el intento de pago:',
+            error
+        );
+
+        throw new Error(
+            'No se pudo iniciar el registro del pago (revisa la política RLS de INSERT en subscriptions).'
+        );
+    }
 
     return data;
 
 }
 
 
-/* Confirmación: activa premium 30 días */
+/* Confirmación: activa premium 30 días.
+   CORRECCIÓN: si la activación falla tras capturar
+   el pago, el error incluye la referencia para que
+   soporte pueda activarla a mano. */
 
 async function activatePayment(subscriptionId, reference){
 
@@ -150,13 +191,13 @@ async function activatePayment(subscriptionId, reference){
             now.getTime() + 30 * 24 * 60 * 60 * 1000
         );
 
-
     const { error: subError } =
         await supabase
             .from('subscriptions')
             .update({
                 plan:
-                 'premium',
+                    'premium',
+
                 status:
                     'active',
 
@@ -175,7 +216,11 @@ async function activatePayment(subscriptionId, reference){
 
             .eq('id', subscriptionId);
 
-    if(subError) throw subError;
+    if(subError){
+        throw new Error(
+            `El pago se capturó (ref: ${reference}) pero no se pudo registrar la suscripción. Contacta a soporte con esa referencia.`
+        );
+    }
 
 
     /* Solo si hay sesión: el plan premium
@@ -194,7 +239,11 @@ async function activatePayment(subscriptionId, reference){
 
                 .eq('id', window.BVrosAuth.user.id);
 
-        if(profError) throw profError;
+        if(profError){
+            throw new Error(
+                `El pago se capturó (ref: ${reference}) pero no se pudo activar tu plan. Contacta a soporte con esa referencia.`
+            );
+        }
 
         await window.BVrosAuth.refreshProfile();
 
@@ -203,7 +252,10 @@ async function activatePayment(subscriptionId, reference){
 }
 
 
-/* Montar botones PayPal en un contenedor */
+/* Montar botones PayPal en un contenedor.
+   CORRECCIÓN: el intento se registra en createOrder
+   (antes de abrir PayPal) y se reutiliza en
+   onApprove; si no existiera, se crea ahí. */
 
 async function mountPayPalButtons({
     containerId, billingType, amount, description, onSuccess, onError
@@ -218,7 +270,6 @@ async function mountPayPalButtons({
         );
     }
 
-
     await loadPayPalSDK();
 
 
@@ -227,6 +278,7 @@ async function mountPayPalButtons({
 
     container.innerHTML = '';
 
+    let pendingSub = null;
 
     window.paypal.Buttons({
 
@@ -238,7 +290,24 @@ async function mountPayPalButtons({
             height: 40
         },
 
-        createOrder: (data, actions) => {
+        createOrder: async (data, actions) => {
+
+            /* Registrar el intento ANTES del cobro.
+               Si falla, no bloqueamos el pago: el
+               registro se reintentará en onApprove. */
+
+            try{
+                pendingSub =
+                    await createPendingPayment({
+                        billingType,
+                        amount
+                    });
+            }catch(e){
+                console.warn(
+                    '[BVros Pay] Intento de pago no registrado previamente:',
+                    e
+                );
+            }
 
             return actions.order.create({
                 purchase_units: [{
@@ -247,7 +316,9 @@ async function mountPayPalButtons({
                             amount.toFixed(2)
                     },
                     description:
-                        description || `BVros — ${billingType}`
+                        description || `BVros — ${billingType}`,
+                    custom_id:
+                        pendingSub?.id || ''
                 }]
             });
 
@@ -258,14 +329,22 @@ async function mountPayPalButtons({
             const details =
                 await actions.order.capture();
 
-            const sub =
-                await createPendingPayment({
-                    billingType,
-                    amount
-                });
+            if(!pendingSub?.id){
+                pendingSub =
+                    await createPendingPayment({
+                        billingType,
+                        amount
+                    });
+            }
+
+            if(!pendingSub?.id){
+                throw new Error(
+                    `Pago capturado (ref: ${details.id}) sin registro previo. Contacta a soporte con esa referencia.`
+                );
+            }
 
             await activatePayment(
-                sub.id,
+                pendingSub.id,
                 details.id
             );
 
@@ -299,10 +378,12 @@ window.BVrosPay = {
 
     PAYMENT_PROVIDER,
 
-    /* La pestaña SUSCRIBIRSE llama a esto.
-       El precio lo decide el perfil del usuario. */
+    /* La vista individual del nivel llama a esto.
+       El precio lo decide el gate (overridePrice):
+       Nivel 2 $3.99 · Nivel 3 $4.75 · promo $1.70. */
 
-async startSubscription(containerId, onSuccess, onError, overridePrice){
+    async startSubscription(containerId, onSuccess, onError, overridePrice){
+
         const auth =
             window.BVrosAuth;
 
@@ -311,7 +392,6 @@ async startSubscription(containerId, onSuccess, onError, overridePrice){
                 'Debes crear tu cuenta gratuita antes de suscribirte.'
             );
         }
-
 
         if(PAYMENT_PROVIDER === 'paypal'){
 
@@ -328,6 +408,8 @@ async startSubscription(containerId, onSuccess, onError, overridePrice){
                 containerId,
                 billingType: 'mensual',
                 amount: price,
+                description:
+                    `BVros Music Network — Suscripción mensual`,
                 onSuccess,
                 onError
             });
@@ -343,7 +425,7 @@ async startSubscription(containerId, onSuccess, onError, overridePrice){
 
     },
 
-    /* Compra única — la usará 2B.3 (catálogo cassett) */
+    /* Compra única — la usará 2B.3 (catálogo BVLUXPRO) */
 
     async buyOnce(containerId, billingType, onSuccess, onError, opts = {}){
 
@@ -363,14 +445,17 @@ async startSubscription(containerId, onSuccess, onError, overridePrice){
             billingType,
             amount,
             description:
-                opts.description || billingType,
+                opts.description || `BVros — ${billingType} (pago único)`,
             onSuccess,
             onError
         });
 
     },
 
-    /* ¿El usuario actual tiene plan activo? */
+    /* ¿El usuario actual tiene plan activo?
+       CORRECCIÓN: si la suscripción expiró, degrada
+       profiles.plan a 'free' (antes el badge decía
+       premium para siempre). */
 
     async hasActivePlan(){
 
@@ -380,7 +465,6 @@ async startSubscription(containerId, onSuccess, onError, overridePrice){
         if(!auth?.user){
             return false;
         }
-
 
         const { data } =
             await supabase
@@ -392,11 +476,25 @@ async startSubscription(containerId, onSuccess, onError, overridePrice){
                 .limit(1)
                 .maybeSingle();
 
-        if(!data){
-            return false;
+        const vigente =
+            !!data &&
+            new Date(data.expires_at) > new Date();
+
+        if(!vigente && auth.profile?.plan === 'premium'){
+
+            const { error } =
+                await supabase
+                    .from('profiles')
+                    .update({ plan: 'free' })
+                    .eq('id', auth.user.id);
+
+            if(!error){
+                await auth.refreshProfile();
+            }
+
         }
 
-        return new Date(data.expires_at) > new Date();
+        return vigente;
 
     },
 
@@ -415,12 +513,17 @@ async startSubscription(containerId, onSuccess, onError, overridePrice){
                 .insert({
                     user_id:
                         auth.user.id,
+
                     track_id:
                         trackId,
+
                     product_type:
                         productType,
+
                     amount,
+
                     reference,
+
                     status:
                         'active'
                 });

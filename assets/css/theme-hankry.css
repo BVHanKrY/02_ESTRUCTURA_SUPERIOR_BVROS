@@ -1565,3 +1565,32 @@ body::after{
     }
 
 }
+
+/* =========================================================
+   SUSCRIPCIÓN — panel grande (responsive móvil)
+========================================================= */
+
+@media(max-width:900px){
+
+    .bv-gate-panel.suscribe-mode{
+        max-width:
+            96vw;
+
+        width:
+            96vw;
+
+        padding:
+            16px 10px;
+    }
+
+    .bv-plans-grid{
+        grid-template-columns:
+            1fr;
+    }
+
+    .bv-sus-title{
+        font-size:
+            1.15rem;
+    }
+
+}
