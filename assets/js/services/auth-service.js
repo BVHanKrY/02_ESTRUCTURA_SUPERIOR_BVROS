@@ -160,6 +160,60 @@ class BVrosAuthClass {
         return !!this.user;
     }
 
+    /* NOMBRE POR DEFECTO INTELIGENTE (adiós user_xxxxxxxx):
+       · Cuenta de Google → primer nombre de la cuenta
+         (full_name / name de user_metadata).
+       · Registro por correo → primera parte del correo
+         (lo que va antes del @).
+       Limpieza: sin acentos, minúsculas, sin espacios
+       ni símbolos, máximo 20 caracteres. */
+
+    deriveDefaultUsername(){
+
+        const m =
+            this.user?.user_metadata || {};
+
+        const fuenteNombre =
+            m.full_name ||
+            m.name ||
+            m.user_name ||
+            '';
+
+        const fuenteCorreo =
+            (m.email || this.user?.email || '')
+                .split('@')[0];
+
+        const limpiar = (texto) =>
+            String(texto || '')
+                .normalize('NFD')
+                .replace(/[^a-zA-Z0-9_]/g, '')
+                .toLowerCase()
+                .slice(0, 20);
+
+        const delNombre =
+            limpiar(fuenteNombre.split(/\s+/)[0]);
+
+        const delCorreo =
+            limpiar(fuenteCorreo);
+
+        return delNombre || delCorreo ||
+            'user_' +
+            String(this.user?.id || '')
+                .replace(/[^a-z0-9]/gi, '')
+                .slice(0, 8);
+
+    }
+
+    /* ¿El username es el autogenerado viejo
+       (patrón user_xxxxxxxx)? */
+
+    esUsernameAutomatico(username){
+
+        return /^user_[a-z0-9]{4,12}$/i
+            .test(String(username || ''));
+
+    }
+
     async loadProfile(){
 
         if(!this.user) return;
@@ -191,28 +245,61 @@ class BVrosAuthClass {
 
             const autoName =
                 this.user.user_metadata?.username ||
-                'user_' +
-                String(this.user.id).substr(0, 8);
+                this.deriveDefaultUsername();
 
-            const { error: autoError } =
+            const fichaBase = {
+
+                id:
+                    this.user.id,
+
+                username:
+                    autoName,
+
+                profile_type:
+                    'perfil1',
+
+                profile_chosen:
+                    false,
+
+                plan:
+                    'free'
+            };
+
+            let { error: autoError } =
                 await supabase
                     .from('profiles')
-                    .upsert({
-                        id:
-                            this.user.id,
+                    .upsert(fichaBase);
 
-                        username:
-                            autoName,
+            /* Si el nombre derivado ya está cogido
+               (23505), se reintenta con un sufijo
+               corto del id del usuario. */
 
-                        profile_type:
-                            'perfil1',
+            if(
+                autoError && (
+                    autoError.code === '23505' ||
+                    (autoError.message || '')
+                        .includes('duplicate')
+                )
+            ){
 
-                        profile_chosen:
-                            false,
+                const alt =
+                    autoName + '_' +
+                    String(this.user.id)
+                        .replace(/[^a-z0-9]/gi, '')
+                        .slice(0, 4);
 
-                        plan:
-                            'free'
-                    });
+                const retry =
+                    await supabase
+                        .from('profiles')
+                        .upsert({
+                            ...fichaBase,
+
+                            username: alt
+                        });
+
+                autoError = retry.error;
+
+            }
 
             if(autoError){
                 console.error(
@@ -237,6 +324,60 @@ class BVrosAuthClass {
 
         this.profile =
             data;
+
+        /* MIGRACIÓN DEL NOMBRE VIEJO: si la ficha se
+           creó con el patrón user_xxxxxxxx (por una
+           versión anterior o por un trigger) y el
+           usuario AÚN no eligió su perfil, se renombra
+           al nombre amable derivado de Google/correo.
+           Si el nombre ya está en uso, se añade un
+           sufijo corto del id. */
+
+        if(
+            data &&
+            !data.profile_chosen &&
+            this.esUsernameAutomatico(data.username)
+        ){
+
+            const base =
+                this.deriveDefaultUsername();
+
+            if(base && base !== data.username){
+
+                let finalName = base;
+
+                const { error: renError } =
+                    await supabase
+                        .from('profiles')
+                        .update({ username: finalName })
+                        .eq('id', this.user.id);
+
+                if(
+                    renError && (
+                        renError.code === '23505' ||
+                        (renError.message || '')
+                            .includes('duplicate')
+                    )
+                ){
+
+                    finalName =
+                        base + '_' +
+                        String(this.user.id)
+                            .replace(/[^a-z0-9]/gi, '')
+                            .slice(0, 4);
+
+                    await supabase
+                        .from('profiles')
+                        .update({ username: finalName })
+                        .eq('id', this.user.id);
+
+                }
+
+                data.username = finalName;
+
+            }
+
+        }
 
     }
 
@@ -511,6 +652,12 @@ class BVrosAuthClass {
         }
 
         await this.loadProfile();
+
+        /* AVISO INMEDIATO A LA INTERFAZ: sin esto la
+           pastilla y el nombre de la cabecera seguían
+           viejos hasta que el usuario recargaba. */
+
+        this.emit();
 
     }
 

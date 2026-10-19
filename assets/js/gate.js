@@ -1,30 +1,23 @@
 /* =========================================================
-   BVROS GATE — 2B.5 · PESTAÑAS OCULTAS, LAMENTAMOS
-   JUSTIFICADO Y BIENVENIDA DORADA (sobre tu 2B.4)
-   FIX 1: el div de pestañas NO tenía data-ref="tabs";
-     por eso INICIAR SESIÓN / CREAR CUENTA / SUSCRIBIRSE
-     y el título compuesto seguían saliendo en pago,
-     Completa tu perfil, bienvenida y Lamentamos.
-   FIX 2: "Lamentamos este inconveniente" con párrafos
-     justificados (renglones a la misma altura).
-   FIX 3: bienvenida única para los 4 casos, con la
-     línea de suscripción arriba y MIEMBRO en dorado
-     #FFD700, grande y centrado.
-   · Título compuesto + pestañas SOLO en las interfaces
-     de acceso (login / crear cuenta / suscribirse)
-   · Bienvenida: 3 minutos (antes 60 s)
-   · Pastilla con la suscripción correcta:
-       Nivel 1 → MIEMBRO GRATUITO
-       Nivel 2 → SUSCRIPCIÓN OYENTE EXPERTO · $3.99/MES
-       Nivel 3 → SUSCRIPCIÓN CREADOR AVANZADO · $4.75/MES
-       Promo   → PROMOCIÓN CREADOR AVANZADO · $1.70/MES
-   · Perfil: username editable + perfil asignado visible
-   · Artista: bloqueado (gratuito), SOLICITAR (Nivel 2),
-     desbloqueado (promoción y Nivel 3)
-   REGLA: cuenta ANTES del pago · perfil DESPUÉS del pago
+   BVROS GATE — 2B.6 · FLUJO SIN ESCAPES + NOMBRE REAL
+   (sobre tu 2B.5 editado — tamaños de letra respetados)
+   FIX 1 · REGLAS DE SALIDA POR INTERFAZ:
+     · Acceso (inicio/crear/suscribirse): × activa,
+       clic fuera BLOQUEADO, sin botón volver.
+     · Compra (nivel1/2/3 y Lamentamos): botón VOLVER
+       junto a la ×, × OCULTA, clic fuera BLOQUEADO.
+     · Completa tu perfil: sin ×, sin volver, clic
+       fuera BLOQUEADO — solo GUARDAR Y ENTRAR avanza.
+     · Bienvenida: × activa + volver activos,
+       clic fuera BLOQUEADO.
+   FIX 2 · El nombre ya no queda (user_xxxxxxxx):
+     el campo se prellena con el nombre real
+     (cuenta de Google o correo) y el chip de la
+     cabecera se actualiza AL INSTANTE al guardar,
+     sin recargar la página.
    ========================================================= */
 
-console.log("[BVros Gate] versión 2B.5 activa");
+console.log("[BVros Gate] versión 2B.6 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -90,6 +83,22 @@ STYLE.textContent = `
     border-color:var(--accent,#F97316);
 }
 
+.bv-gate-back{
+    position:absolute;
+    top:10px; left:12px;
+    width:30px; height:30px;
+    border:1px solid var(--border,#2A2119);
+    background:none;
+    color:var(--text-muted,#9A8D7D);
+    font-size:15px;
+    cursor:pointer;
+    z-index:2;
+}
+.bv-gate-back:hover{
+    color:var(--accent,#F97316);
+    border-color:var(--accent,#F97316);
+}
+
 .bv-gate-eyebrow{
     color:var(--accent,#F97316);
     font-family:var(--mono, monospace);
@@ -130,7 +139,7 @@ STYLE.textContent = `
         #FFFFFF;
 
     font-size:
-        1.05rem;
+        1.2rem;
 
     font-weight:
         500;
@@ -144,7 +153,7 @@ STYLE.textContent = `
         'Orbitron', sans-serif;
 
     font-size:
-        1.1rem;
+        1.00rem;
 
     font-weight:
         700;
@@ -1255,6 +1264,8 @@ let bvWelcomeLine = null;
 
 let promoActive = false;
 
+let currentView = null;
+
 function planBadge() {
   const auth = window.BVrosAuth;
 
@@ -1315,6 +1326,14 @@ function buildGate() {
   gateRoot.innerHTML = `
 
         <div class="bv-gate-panel">
+
+            <button
+                class="bv-gate-back"
+                data-act="go-back"
+                type="button"
+                title="Volver"
+                style="display:none;"
+            >←</button>
 
             <button
                 class="bv-gate-close"
@@ -2254,13 +2273,10 @@ function buildGate() {
     });
   }
 
-  /* Cerrar: fondo y × */
-
-  gateRoot.addEventListener("click", (event) => {
-    if (event.target === gateRoot) {
-      closeGate();
-    }
-  });
+  /* CLIC FUERA DEL RECUADRO: BLOQUEADO en TODAS las
+       interfaces. La única salida es la × (cuando está
+       visible) o el botón VOLVER — así no se corta el
+       proceso de admisión ni el pago por accidente. */
 
   q(".bv-gate-close").addEventListener("click", () => closeGate());
 
@@ -2338,6 +2354,59 @@ function showView(name) {
 
   if (gateRoot._ui?.panel) {
     gateRoot._ui.panel.classList.toggle("suscribe-mode", name === "suscribe");
+  }
+
+  /* REGLAS DE SALIDA POR INTERFAZ:
+       · acceso (login/signup/suscribe/confirm):
+           × visible · volver oculto · clic fuera BLOQUEADO.
+       · compra (nivel1/nivel2/nivel3/blocked):
+           × OCULTO · volver visible · clic fuera BLOQUEADO.
+       · perfil (complete):
+           × OCULTO · volver OCULTO · clic fuera BLOQUEADO
+           (solo "GUARDAR Y ENTRAR" avanza).
+       · bienvenida (ok):
+           × visible · volver visible · clic fuera BLOQUEADO. */
+
+  currentView = name;
+
+  const closeBtn = gateRoot.querySelector(".bv-gate-close");
+
+  const backBtn = gateRoot.querySelector(".bv-gate-back");
+
+  const grupo =
+    name === "ok"
+      ? "bienvenida"
+      : name === "complete"
+        ? "perfil"
+        : name === "nivel1" ||
+          name === "nivel2" ||
+          name === "nivel3" ||
+          name === "blocked"
+          ? "compra"
+          : "acceso";
+
+  if (closeBtn) {
+    closeBtn.style.display =
+      grupo === "compra" || grupo === "perfil" ? "none" : "";
+  }
+
+  if (backBtn) {
+    backBtn.style.display =
+      grupo === "compra" || grupo === "bienvenida" ? "" : "none";
+  }
+
+  /* Prellenar el nombre en "Completa tu perfil" con el
+       username real (cuenta de Google o correo) — ya no
+       aparece vacío ni el patrón user_xxxxxxxx. */
+
+  if (name === "complete") {
+    const u3 = gateRoot.querySelector('[data-f="username3"]');
+
+    const prof = window.BVrosAuth?.profile;
+
+    if (u3 && prof?.username && !u3.value) {
+      u3.value = prof.username;
+    }
   }
 
   if (name === "complete" && payIntent?.onlyPerfil2) {
@@ -2563,6 +2632,21 @@ async function handleAction(action) {
       closeGate();
       break;
 
+    case "go-back":
+      /* VOLVER: en bienvenida regresa a "Completa tu
+           perfil" para revisar datos; en las interfaces
+           de compra regresa a la parrilla de planes. */
+
+      if (currentView === "ok") {
+        showView("complete");
+
+        fillRoles();
+      } else {
+        showView("suscribe");
+      }
+
+      break;
+
     case "go-perfil":
       bvWelcomeLine = null;
 
@@ -2685,6 +2769,11 @@ async function handleAction(action) {
           chosenType,
           ui.roleSelect2 ? ui.roleSelect2.value : "",
         );
+
+        /* Actualizar la pastilla y el nombre de la
+             cabecera AL INSTANTE (sin recargar). */
+
+        syncNavAuth();
 
         /* CLAVE: tras el redirect de Google la página se
              recarga y la variable en memoria se pierde.
