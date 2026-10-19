@@ -1,23 +1,34 @@
 /* =========================================================
-   BVROS GATE — 2B.6 · FLUJO SIN ESCAPES + NOMBRE REAL
-   (sobre tu 2B.5 editado — tamaños de letra respetados)
-   FIX 1 · REGLAS DE SALIDA POR INTERFAZ:
-     · Acceso (inicio/crear/suscribirse): × activa,
-       clic fuera BLOQUEADO, sin botón volver.
-     · Compra (nivel1/2/3 y Lamentamos): botón VOLVER
-       junto a la ×, × OCULTA, clic fuera BLOQUEADO.
-     · Completa tu perfil: sin ×, sin volver, clic
-       fuera BLOQUEADO — solo GUARDAR Y ENTRAR avanza.
-     · Bienvenida: × activa + volver activos,
-       clic fuera BLOQUEADO.
-   FIX 2 · El nombre ya no queda (user_xxxxxxxx):
-     el campo se prellena con el nombre real
-     (cuenta de Google o correo) y el chip de la
-     cabecera se actualiza AL INSTANTE al guardar,
-     sin recargar la página.
+   BVROS GATE — 2B.8 · FIX VISUAL DEL BOTÓN VOLVER
+   (sobre tu 2B.7 — anti-persistencia, aviso rojo,
+   reglas de salida y webhook-ready intactos)
+   NUEVO EN 2B.8:
+     · El botón VOLVER (←) ya NO queda debajo del
+       texto «BVROS · ACCESO»: cuando el botón está
+       en pantalla, el texto se desplaza a la derecha
+       y la esquina queda libre y legible.
+     · Además el botón lleva fondo del panel: aunque
+       algún texto pasara cerca, el ← siempre se ve.
+   NUEVO 1 · LOS PROCESOS ABANDONADOS YA NO MOLESTAN:
+     · Al recargar con un proceso inconcluso (pago a
+       medias o perfil sin elegir), la interfaz se
+       despliega UNA SOLA VEZ más (reanudación).
+     · Si el usuario desiste otra vez, en la siguiente
+       recarga NO se abre ningún modal: aparece UNA
+       ÚNICA VEZ un aviso fijo con letras rojas
+       «COMPLETA EL PROCESO DE REGISTRO» y botones
+       directos debajo (continuar pago / completar
+       perfil).
+     · Desde ahí, SILENCIO TOTAL: nada vuelve a
+       abrirse solo en más recargas. El usuario decide
+       desde el botón INICIO o SUSCRIBIRSE.
+   NUEVO 2 · Preparado para el webhook de PayPal:
+     cuando actives WEBHOOK_ACTIVO en payments-
+     service.js, el nivel lo activa el SERVIDOR
+     (Edge Function) y no el navegador.
    ========================================================= */
 
-console.log("[BVros Gate] versión 2B.6 activa");
+console.log("[BVros Gate] versión 2B.8 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -88,7 +99,9 @@ STYLE.textContent = `
     top:10px; left:12px;
     width:30px; height:30px;
     border:1px solid var(--border,#2A2119);
-    background:none;
+    /* 2B.8: fondo del panel — el botón SIEMPRE es
+       legible, ningún texto puede atravesarlo. */
+    background:var(--surface,#14100C);
     color:var(--text-muted,#9A8D7D);
     font-size:15px;
     cursor:pointer;
@@ -97,6 +110,17 @@ STYLE.textContent = `
 .bv-gate-back:hover{
     color:var(--accent,#F97316);
     border-color:var(--accent,#F97316);
+}
+
+/* 2B.8 · ESQUINA DEL VOLVER LIBRE:
+   mientras el botón ← está en pantalla (clase
+   has-back que showView() activa/desactiva), el
+   eyebrow «BVROS · ACCESO» se desplaza a la derecha
+   para no quedar debajo del botón. 26px cubre el
+   padding del panel normal (24px) y del modo
+   suscribe (16px). */
+.bv-gate-panel.has-back .bv-gate-eyebrow{
+    padding-left:26px;
 }
 
 .bv-gate-eyebrow{
@@ -1242,6 +1266,78 @@ button.bv-auth-login:hover{
     margin:0 0 12px;
 }
 
+/* AVISO ROJO DE REGISTRO INCONCLUSO (una sola vez).
+     NO es un modal: vive FUERA del gate, abajo en
+     pantalla, no bloquea nada y no reaparece en las
+     siguientes recargas. */
+
+.bv-pending-notice{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    width:min(430px, 92vw);
+    background:#FFFFFF;
+    border:2px solid #D32F2F;
+    border-radius:14px;
+    box-shadow:0 12px 34px rgba(0,0,0,.35);
+    padding:16px 16px 14px;
+    z-index:9400;
+    text-align:center;
+}
+.bv-pending-x{
+    position:absolute;
+    top:8px; right:10px;
+    width:26px; height:26px;
+    border:1px solid #E0E0E0;
+    background:none;
+    color:#9E9E9E;
+    font-size:13px;
+    cursor:pointer;
+}
+.bv-pending-x:hover{
+    color:#D32F2F;
+    border-color:#D32F2F;
+}
+.bv-pending-title{
+    font-family:'Orbitron', sans-serif;
+    font-size:clamp(.9rem, 4vw, 1.05rem);
+    font-weight:800;
+    letter-spacing:.04em;
+    color:#D32F2F;
+    line-height:1.35;
+    margin:0 0 6px;
+}
+.bv-pending-sub{
+    color:#555555;
+    font-size:.68rem;
+    line-height:1.6;
+    margin:0 0 12px;
+}
+.bv-pending-actions{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+.bv-pending-actions button{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #111111;
+    background:#111111;
+    color:#FFFFFF;
+    font-family:'Orbitron', sans-serif;
+    font-size:.66rem;
+    letter-spacing:.08em;
+    cursor:pointer;
+}
+.bv-pending-actions button.bv-pending-primary{
+    background:#D32F2F;
+    border-color:#D32F2F;
+}
+.bv-pending-actions button:hover{
+    opacity:.88;
+}
+
 `;
 
 document.head.appendChild(STYLE);
@@ -1265,6 +1361,14 @@ let bvWelcomeLine = null;
 let promoActive = false;
 
 let currentView = null;
+
+/* Arranque de página: el PRIMER evento authstate tras
+     cargar decide si un proceso inconcluso se re-abre
+     (una sola vez) o pasa al aviso rojo (también una
+     sola vez). Los eventos siguientes de la misma
+     sesión son continuación legítima del flujo. */
+
+let bvBootAuthHandled = false;
 
 function planBadge() {
   const auth = window.BVrosAuth;
@@ -1310,6 +1414,124 @@ function setRef(ref, text, asHTML = false) {
   } else {
     el.textContent = text;
   }
+}
+
+/* =========================================================
+   PROCESO INCONCLUSO (anti-persistencia + aviso rojo)
+   La memoria vive en localStorage: sobrevive recargas
+   y cierres del navegador (sessionStorage no basta).
+     step    → qué proceso quedó a medias:
+               "pay:nivel2" | "pay:nivel3" | "complete"
+     boots   → cuántas veces se RE-desplegó solo el
+               modal en arranques de página.
+     noticed → si el aviso rojo ya se mostró (una única
+               vez por proceso).
+========================================================= */
+
+const PENDING_KEY = "bvros_pending_flow";
+
+function readPendingFlow() {
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_KEY) || "null");
+  } catch (_) {
+    return null;
+  }
+}
+
+function writePendingFlow(rec) {
+  try {
+    localStorage.setItem(PENDING_KEY, JSON.stringify(rec));
+  } catch (_) {
+    /* localStorage bloqueado: el aviso simplemente
+         no podrá recordar el proceso. Nada se rompe. */
+  }
+}
+
+function clearPendingFlow() {
+  try {
+    localStorage.removeItem(PENDING_KEY);
+  } catch (_) {}
+
+  hidePendingNotice();
+}
+
+function hidePendingNotice() {
+  document.querySelectorAll(".bv-pending-notice").forEach((n) => n.remove());
+}
+
+/* AVISO ROJO — se muestra UNA sola vez por proceso:
+     título rojo «COMPLETA EL PROCESO DE REGISTRO» +
+     botones directos debajo. Al pulsar un botón el
+     gate se abre en el paso exacto donde se quedó. */
+
+function showPendingNotice(step, tier) {
+  hidePendingNotice();
+
+  const box = document.createElement("div");
+
+  box.className = "bv-pending-notice";
+
+  box.setAttribute("role", "alert");
+
+  const subTexto =
+    step === "pay"
+      ? "Tienes un pago de tu suscripción BVLUX inconcluso. Continúalo donde lo dejaste o revisa los planes."
+      : "Tu cuenta ya fue creada. Solo falta elegir tu perfil para activar tus beneficios.";
+
+  const acciones =
+    step === "pay"
+      ? `<button type="button" class="bv-pending-primary" data-pn="seguir">CONTINUAR MI PAGO</button>
+         <button type="button" data-pn="planes">VER PLANES</button>`
+      : `<button type="button" class="bv-pending-primary" data-pn="perfil">COMPLETAR MI PERFIL</button>`;
+
+  box.innerHTML =
+    `<button type="button" class="bv-pending-x" data-pn="cerrar" aria-label="Cerrar aviso">✕</button>` +
+    `<div class="bv-pending-title">COMPLETA EL PROCESO DE REGISTRO</div>` +
+    `<div class="bv-pending-sub">${subTexto}</div>` +
+    `<div class="bv-pending-actions">${acciones}</div>`;
+
+  box.addEventListener("click", (event) => {
+    const what = event.target?.dataset?.pn;
+
+    if (!what) return;
+
+    event.preventDefault();
+
+    if (what === "cerrar") {
+      hidePendingNotice();
+
+      return;
+    }
+
+    hidePendingNotice();
+
+    if (what === "seguir" && tier) {
+      payPlan = tier;
+
+      sessionStorage.setItem("bvros_pay_plan", payPlan);
+
+      openGate("suscripcion");
+
+      openLevelView(payPlan);
+    } else if (what === "planes") {
+      openGate("suscripcion");
+    } else if (what === "perfil") {
+      openGate("stream");
+
+      setRef("title", "Selecciona tu perfil a continuación");
+
+      setRef(
+        "sub",
+        "Cuenta conectada ✓ — tu perfil determina tus beneficios y tu precio.",
+      );
+
+      showView("complete");
+
+      fillRoles();
+    }
+  });
+
+  document.body.appendChild(box);
 }
 
 /* =========================================================
@@ -2395,6 +2617,18 @@ function showView(name) {
       grupo === "compra" || grupo === "bienvenida" ? "" : "none";
   }
 
+  /* 2B.8 · ESQUINA DEL VOLVER LIBRE: con el botón
+     ← en pantalla, el eyebrow se desplaza (ver CSS
+     .bv-gate-panel.has-back). Sin volver, todo
+     vuelve a su sitio. */
+
+  if (gateRoot._ui?.panel) {
+    gateRoot._ui.panel.classList.toggle(
+      "has-back",
+      grupo === "compra" || grupo === "bienvenida",
+    );
+  }
+
   /* Prellenar el nombre en "Completa tu perfil" con el
        username real (cuenta de Google o correo) — ya no
        aparece vacío ni el patrón user_xxxxxxxx. */
@@ -2601,6 +2835,12 @@ function mountLevelPay(containerId, price, welcome, tier) {
 
       sessionStorage.removeItem("bvros_pay_plan");
 
+      /* Pago concluido: el proceso inconcluso queda
+           saldado — nada de avisos rojos ni re-aperturas
+           en futuras recargas. */
+
+      clearPendingFlow();
+
       guardarTier(tier);
 
       afterAuth();
@@ -2609,6 +2849,7 @@ function mountLevelPay(containerId, price, welcome, tier) {
       gateError("Error de pago: " + (error?.message || "intenta de nuevo"));
     },
     price,
+    tier,
   );
 }
 
@@ -2789,6 +3030,8 @@ async function handleAction(action) {
           if (BVrosAuth.profile?.plan === "premium") {
             sessionStorage.removeItem("bvros_pay_plan");
 
+            clearPendingFlow();
+
             afterAuth();
 
             return;
@@ -2798,6 +3041,11 @@ async function handleAction(action) {
 
           return;
         }
+
+        /* Perfil guardado sin pago pendiente: proceso
+             concluido — se limpia la memoria del aviso. */
+
+        clearPendingFlow();
 
         afterAuth();
       } catch (error) {
@@ -2827,6 +3075,8 @@ async function handleAction(action) {
       payPlan = null;
 
       sessionStorage.removeItem("bvros_pay_plan");
+
+      clearPendingFlow();
 
       if (!auth.profile?.profile_chosen) {
         showView("complete");
@@ -3838,7 +4088,122 @@ window.addEventListener("bvros:authstate", () => {
 
   const savedPlan = sessionStorage.getItem("bvros_pay_plan");
 
-  if (authed && savedPlan) {
+  const pendientePago = authed && !!savedPlan;
+
+  const pendientePerfil =
+    authed && (!auth.profile || !auth.profile.profile_chosen);
+
+  /* NADA PENDIENTE: el proceso concluyó (pagó, eligió
+       perfil, activó el nivel 1 o cerró sesión). Se
+       borra la memoria del proceso inconcluso y el
+       aviso rojo. Comportamiento normal. */
+
+  if (!pendientePago && !pendientePerfil) {
+    if (readPendingFlow()) {
+      clearPendingFlow();
+    }
+
+    return;
+  }
+
+  /* =========================================================
+     ANTI-PERSISTENCIA (2B.7)
+     El PRIMER evento authstate tras cargar la página es
+     el "ARRANQUE". En el arranque manda la política
+     anti-molestia; los eventos SIGUIENTES de la misma
+     sesión (inicio con correo, guardar perfil, volver
+     del redirect de Google) son continuación legítima
+     del flujo y se abren como siempre.
+  ========================================================= */
+
+  const esArranque = !bvBootAuthHandled;
+
+  bvBootAuthHandled = true;
+
+  if (esArranque) {
+    /* Clave del proceso: pay:nivel2, pay:nivel3 o
+         complete. Si cambió el proceso, se empieza
+         de cero. */
+
+    const clave = pendientePago ? "pay:" + savedPlan : "complete";
+
+    let rec = readPendingFlow();
+
+    if (!rec || rec.step !== clave) {
+      rec = {
+        step: clave,
+
+        tier: pendientePago ? savedPlan : null,
+
+        boots: 0,
+
+        noticed: false,
+      };
+    }
+
+    /* 1er ARRANQUE con el proceso inconcluso: la
+         interfaz se despliega UNA SOLA VEZ (la
+         reanudación legítima que ya conocías). */
+
+    if (rec.boots === 0) {
+      rec.boots = 1;
+
+      writePendingFlow(rec);
+
+      if (pendientePago) {
+        payPlan = savedPlan;
+
+        openGate("suscripcion");
+
+        openLevelView(payPlan);
+      } else {
+        openGate("stream");
+
+        setRef("title", "Selecciona tu perfil a continuación");
+
+        setRef(
+          "sub",
+          "Cuenta conectada ✓ — tu perfil determina tus beneficios y tu precio.",
+        );
+
+        showView("complete");
+
+        fillRoles();
+      }
+
+      return;
+    }
+
+    /* 2º ARRANQUE: YA NINGÚN MODAL. Una única vez
+         aparece el aviso rojo fijo con botones
+         directos — sin bloquear la página. */
+
+    if (!rec.noticed) {
+      rec.noticed = true;
+
+      writePendingFlow(rec);
+
+      showPendingNotice(
+        pendientePago ? "pay" : "complete",
+        pendientePago ? savedPlan : null,
+      );
+
+      return;
+    }
+
+    /* ARRANQUES SIGUIENTES: silencio total. Nada se
+         abre solo. El usuario decide con INICIO o
+         SUSCRIBIRSE (y ahí el gate funciona normal). */
+
+    return;
+  }
+
+  /* =========================================================
+     CONTINUACIÓN DENTRO DE LA MISMA SESIÓN
+     (igual que siempre — el usuario está en pleno flujo)
+  ========================================================= */
+
+  if (pendientePago) {
     payPlan = savedPlan;
 
     openGate("suscripcion");
@@ -3848,20 +4213,25 @@ window.addEventListener("bvros:authstate", () => {
     return;
   }
 
-  /* Perfil incompleto o inexistente */
+  /* Si la bienvenida está en pantalla no se la arrebata
+       al usuario: la bienvenida tiene su propio botón
+       para pasar al perfil (evita el tirón de pantalla
+       que llegaba con el refreshProfile del pago). */
 
-  if (authed && (!auth.profile || !auth.profile.profile_chosen)) {
-    openGate("stream");
-
-    setRef("title", "Selecciona tu perfil a continuación");
-
-    setRef(
-      "sub",
-      "Cuenta conectada ✓ — tu perfil determina tus beneficios y tu precio.",
-    );
-
-    showView("complete");
-
-    fillRoles();
+  if (currentView === "ok") {
+    return;
   }
+
+  openGate("stream");
+
+  setRef("title", "Selecciona tu perfil a continuación");
+
+  setRef(
+    "sub",
+    "Cuenta conectada ✓ — tu perfil determina tus beneficios y tu precio.",
+  );
+
+  showView("complete");
+
+  fillRoles();
 });

@@ -1,35 +1,35 @@
 /* =========================================================
-   BVROS PAYMENTS SERVICE — FASE 2B.2 (CORREGIDO · BVLUX)
+   BVROS PAYMENTS SERVICE — 2B.7 (WEBHOOK READY)
    PayPal Smart Buttons (incluye pago con tarjeta dentro
    del flujo de PayPal: enable-funding=card).
-   Precios BVLUXpasarela 1.1.1:
+   Precios BVLUX pasarela 1.1.1:
      Nivel 2 $3.99 · Nivel 3 $4.75 · promo Nivel 2 $1.70.
    Compras únicas: $5.00 / $2.99 / $4.99 (2B.3).
-   Al confirmar pago: subscriptions active 30 días
-   + profiles.plan = 'premium'.
 
-   CORRECCIONES aplicadas:
+   NUEVO EN 2B.7 — VALIDACIÓN SERVER-SIDE (webhook):
+   · El pedido se crea con custom_id compuesto:
+       "idSuscripcion|idUsuario|tier"
+     → la Edge Function de Supabase recibe
+       PAYMENT.CAPTURE.COMPLETED, verifica la firma de
+       PayPal y activa el nivel EN EL SERVIDOR.
+   · Con WEBHOOK_ACTIVO = true el navegador YA NO
+     activa nada: solo espera la confirmación del
+     servidor (polling del perfil, máx 36 s).
+   · Con WEBHOOK_ACTIVO = false (hoy) conserva la
+     activación client-side para que no se rompa nada
+     mientras despliegas el webhook (ver LEEME).
+
+   CORRECCIONES previas conservadas:
    1. El intento de pago se registra en la base ANTES de
-      abrir PayPal (createOrder). Antes se registraba solo
-      DESPUÉS de capturar: si el INSERT fallaba, el usuario
-      pagaba y no quedaba registrado nada.
-   2. .single() → .maybeSingle() con mensaje claro si la
-      política RLS bloquea el registro.
-   3. activatePayment avisa con mensaje claro si el pago se
-      capturó pero la activación falla (con referencia para
-      soporte).
-   4. PRICING alineado: ya no existe el cobro $3.00; el
-      respaldo por perfil es $3.99 (Nivel 2) y se exponen
-      nivel3 ($4.75) y promoNivel2 ($1.70).
+      abrir PayPal (createOrder).
+   2. .maybeSingle() con mensaje claro si la política
+      RLS bloquea el registro.
+   3. activatePayment avisa con mensaje claro si el pago
+      se capturó pero la activación falla.
+   4. PRICING alineado: $3.99 Nivel 2, $4.75 Nivel 3,
+      $1.70 promo Nivel 2.
    5. hasActivePlan degrada el perfil a 'free' si la
-      suscripción expiró (antes el badge decía premium
-      para siempre).
-
-   ⚠️ SEGURIDAD (fase de prueba): la activación ocurre en
-   el cliente. Un usuario técnico podría marcar
-   profiles.plan='premium' a mano. Antes de cobrar en
-   real, migra la confirmación a un webhook de PayPal →
-   Edge Function que active el plan server-side.
+      suscripción expiró.
    ========================================================= */
 
 import { supabase } from './auth-service.js';
@@ -51,6 +51,33 @@ const PAYPAL_CLIENT_ID =
 
 const PAYMENT_PROVIDER =
     'paypal';   // 'paypal' | 'stripe'
+
+/* =========================================================
+   INTERRUPTOR DEL WEBHOOK (seguridad server-side):
+
+   PASO 1 — Despliega la Edge Function
+            bvlux-paypal-webhook en Supabase
+            (guía en LEEME-PRIMERO.txt, sección C).
+   PASO 2 — Registra el webhook en developer.paypal.com
+            y guarda el Webhook ID en los secrets
+            (sección D).
+   PASO 3 — Haz un pago de prueba con dinero real en
+            sandbox: el nivel debe activarse solo.
+   PASO 4 — Recién aquí cambia esta bandera a true y
+            vuelve a subir el sitio.
+
+   Mientras esté en false, la activación sigue siendo
+   client-side (modo de prueba actual — NO cobres en
+   real sin activar el webhook).
+========================================================= */
+
+const WEBHOOK_ACTIVO = false;
+
+/* Espera máxima tras capturar el pago: 12 intentos
+   × 3 s = 36 s para que el webhook active el nivel. */
+
+const POLL_INTENTOS = 12;
+const POLL_PAUSA_MS = 3000;
 
 const PRICING = {
 
@@ -252,13 +279,67 @@ async function activatePayment(subscriptionId, reference){
 }
 
 
+/* Espera a que el webhook de PayPal (Edge Function de
+   Supabase) active el nivel en la base. El navegador NO
+   activa nada por su cuenta: solo consulta el perfil
+   hasta ver el tier confirmado por el servidor. */
+
+async function esperarActivacionWebhook(tier){
+
+    const auth =
+        window.BVrosAuth;
+
+    for(let i = 0; i < POLL_INTENTOS; i++){
+
+        await new Promise(
+            r => setTimeout(r, POLL_PAUSA_MS)
+        );
+
+        try{
+            await auth?.refreshProfile();
+        }catch(e){
+            /* Error de red: reintenta en la
+               siguiente vuelta. */
+        }
+
+        const t =
+            auth?.profile?.subscription_tier;
+
+        if(tier && t === tier){
+            return;
+        }
+
+        /* El webhook pudo activar premium sin tier
+           (cuentas antiguas): también es éxito. */
+
+        if(auth?.profile?.plan === 'premium'){
+            return;
+        }
+
+    }
+
+    /* El webhook suele tardar pocos segundos. Si aún
+       no llegó, la bienvenida se muestra igual: el
+       nivel queda activo cuando el webhook aterrice y
+       la próxima recarga lo lee de la base. */
+
+    console.warn(
+        '[BVros Pay] El webhook aún no confirma el pago; la activación se completará en unos segundos.'
+    );
+
+}
+
+
 /* Montar botones PayPal en un contenedor.
    CORRECCIÓN: el intento se registra en createOrder
    (antes de abrir PayPal) y se reutiliza en
-   onApprove; si no existiera, se crea ahí. */
+   onApprove; si no existiera, se crea ahí.
+   2B.7: el pedido lleva custom_id compuesto
+   "idSub|idUser|tier" para que la Edge Function
+   sepa a quién y qué nivel activar. */
 
 async function mountPayPalButtons({
-    containerId, billingType, amount, description, onSuccess, onError
+    containerId, billingType, amount, description, onSuccess, onError, tier
 }){
 
     const container =
@@ -318,7 +399,11 @@ async function mountPayPalButtons({
                     description:
                         description || `BVros — ${billingType}`,
                     custom_id:
-                        pendingSub?.id || ''
+                        [
+                            pendingSub?.id || '',
+                            window.BVrosAuth?.user?.id || '',
+                            tier || ''
+                        ].filter(Boolean).join('|')
                 }]
             });
 
@@ -336,6 +421,27 @@ async function mountPayPalButtons({
                         amount
                     });
             }
+
+            /* WEBHOOK ACTIVO (producción): el
+               navegador no activa NADA. La Edge
+               Function de Supabase recibe el evento
+               de PayPal, verifica su firma y activa
+               el nivel en la base. Aquí solo se
+               espera la confirmación. */
+
+            if (WEBHOOK_ACTIVO) {
+
+                await esperarActivacionWebhook(tier);
+
+                onSuccess?.(details);
+
+                return;
+            }
+
+            /* MODO DE PRUEBA (webhook todavía no
+               desplegado): activación client-side
+               como hasta ahora. NO cobres en real
+               con esta vía. */
 
             if(!pendingSub?.id){
                 throw new Error(
@@ -380,9 +486,11 @@ window.BVrosPay = {
 
     /* La vista individual del nivel llama a esto.
        El precio lo decide el gate (overridePrice):
-       Nivel 2 $3.99 · Nivel 3 $4.75 · promo $1.70. */
+       Nivel 2 $3.99 · Nivel 3 $4.75 · promo $1.70.
+       2B.7: tier viaja hasta custom_id para el
+       webhook (nivel2 / nivel2_promo / nivel3). */
 
-    async startSubscription(containerId, onSuccess, onError, overridePrice){
+    async startSubscription(containerId, onSuccess, onError, overridePrice, tier){
 
         const auth =
             window.BVrosAuth;
@@ -411,7 +519,8 @@ window.BVrosPay = {
                 description:
                     `BVros Music Network — Suscripción mensual`,
                 onSuccess,
-                onError
+                onError,
+                tier: tier || null
             });
 
         }
