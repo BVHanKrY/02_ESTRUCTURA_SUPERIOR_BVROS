@@ -1,5 +1,15 @@
 /* =========================================================
-   BVROS GATE — 2B.4 · INTERFAZ Y PASTILLA CORREGIDAS
+   BVROS GATE — 2B.5 · PESTAÑAS OCULTAS, LAMENTAMOS
+   JUSTIFICADO Y BIENVENIDA DORADA (sobre tu 2B.4)
+   FIX 1: el div de pestañas NO tenía data-ref="tabs";
+     por eso INICIAR SESIÓN / CREAR CUENTA / SUSCRIBIRSE
+     y el título compuesto seguían saliendo en pago,
+     Completa tu perfil, bienvenida y Lamentamos.
+   FIX 2: "Lamentamos este inconveniente" con párrafos
+     justificados (renglones a la misma altura).
+   FIX 3: bienvenida única para los 4 casos, con la
+     línea de suscripción arriba y MIEMBRO en dorado
+     #FFD700, grande y centrado.
    · Título compuesto + pestañas SOLO en las interfaces
      de acceso (login / crear cuenta / suscribirse)
    · Bienvenida: 3 minutos (antes 60 s)
@@ -14,7 +24,7 @@
    REGLA: cuenta ANTES del pago · perfil DESPUÉS del pago
    ========================================================= */
 
-console.log("[BVros Gate] versión 2B.4 activa");
+console.log("[BVros Gate] versión 2B.5 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -1180,6 +1190,49 @@ button.bv-auth-login:hover{
     cursor:not-allowed;
 }
 
+/* BIENVENIDA (vista ok): formato único para los
+     cuatro casos. Título MIEMBRO configurable aquí:
+     color dorado #FFD700, tamaño y centro. */
+
+.bv-welcome-plan{
+    text-align:center;
+    color:var(--accent,#F97316);
+    font-size:.72rem;
+    letter-spacing:.04em;
+    line-height:1.5;
+    margin:2px 0 12px;
+}
+
+.bv-welcome-member{
+    font-family:'Orbitron', sans-serif;
+    font-size:clamp(1.35rem, 6vw, 1.9rem);
+    font-weight:800;
+    color:#FFD700;
+    text-align:center;
+    letter-spacing:.03em;
+    line-height:1.25;
+    margin:0 0 16px;
+}
+
+.bv-welcome-text{
+    color:var(--text-muted,#9A8D7D);
+    font-size:.68rem;
+    line-height:1.8;
+    text-align:justify;
+    margin:0 0 8px;
+}
+
+/* PANTALLA "LAMENTAMOS": párrafos justificados,
+     todos los renglones alineados a la misma altura */
+
+.bv-block-p{
+    color:var(--text-muted,#9A8D7D);
+    font-size:.68rem;
+    line-height:1.8;
+    text-align:justify;
+    margin:0 0 12px;
+}
+
 `;
 
 document.head.appendChild(STYLE);
@@ -1293,7 +1346,7 @@ function buildGate() {
             ></h3>
 
 
-            <div class="bv-gate-tabs">
+            <div class="bv-gate-tabs" data-ref="tabs">
 
                 <button
                     class="bv-gate-tab on"
@@ -1977,11 +2030,11 @@ function buildGate() {
             <div data-view="blocked" hidden>
 
                 <h3 class="bv-gate-title"
-                    style="color:#F87171;">
+                    style="color:#F87171;text-align:center;">
                     Lamentamos este inconveniente
                 </h3>
 
-                <p class="bv-gate-sub">
+                <p class="bv-block-p">
                     BVros se encuentra en fase de
                     experimentación y los beneficios a los
                     que quieres acceder están interrumpidos
@@ -1991,7 +2044,7 @@ function buildGate() {
                     con los brazos abiertos.
                 </p>
 
-                <p class="bv-gate-sub">
+                <p class="bv-block-p">
                     <b style="color:var(--accent);">
                     Sigue estos pasos:</b> ingresa el código
                     de descuento que se encuentra debajo de
@@ -2029,7 +2082,11 @@ function buildGate() {
 
             <div data-view="ok" hidden>
 
-                <p class="bv-gate-sub" data-ref="okSub">
+                <p class="bv-welcome-plan" data-ref="okPlanLine"></p>
+
+                <div class="bv-welcome-member" data-ref="okMember"></div>
+
+                <p class="bv-welcome-text">
                     Disfruta de muchos beneficios al
                     pertenecer al mundo BVros: podrás
                     disfrutar, aprender, trabajar y darle
@@ -2088,7 +2145,7 @@ function buildGate() {
   gateRoot._ui = {
     compound: q('[data-ref="compoundTitle"]'),
 
-    tabs: q('[data-ref="tabs"]'),
+    tabs: q(".bv-gate-tabs"),
 
     sub: q('[data-ref="sub"]'),
 
@@ -2263,7 +2320,7 @@ function showView(name) {
 
   const compoundEl = gateRoot.querySelector('[data-ref="compoundTitle"]');
 
-  const tabsEl = gateRoot.querySelector('[data-ref="tabs"]');
+  const tabsEl = gateRoot.querySelector('.bv-gate-tabs');
 
   const subEl = gateRoot.querySelector('[data-ref="sub"]');
 
@@ -2763,8 +2820,68 @@ async function handleAction(action) {
 }
 
 /* =========================================================
-   BIENVENIDA (60 s)
+   BIENVENIDA (3 MIN) — formato único para los 4 casos
 ========================================================= */
+
+/* Datos de la bienvenida según el nivel real.
+     · El nivel se deduce primero de la línea de pago
+       reciente (bvWelcomeLine) porque guardarTier es
+       asíncrono y la base aún podría no estar al día.
+     · Sin pago reciente: se usa el tier del perfil. */
+
+function welcomeData() {
+  const auth = window.BVrosAuth;
+
+  const line = bvWelcomeLine || "";
+
+  let tier;
+
+  if (line === "MIEMBRO GRATUITO") {
+    tier = "nivel1";
+  } else if (line.includes("1.70")) {
+    tier = "nivel2_promo";
+  } else if (line.includes("3.99")) {
+    tier = "nivel2";
+  } else if (line.includes("4.75")) {
+    tier = "nivel3";
+  } else {
+    tier =
+      auth?.profile?.subscription_tier ||
+      (auth?.profile?.plan === "premium"
+        ? auth.profile.profile_type === "perfil2"
+          ? "nivel3"
+          : "nivel2"
+        : "nivel1");
+  }
+
+  const DATA = {
+    nivel1: {
+      member: "MIEMBRO GRATUITO",
+
+      plan: "Suscripción Expectador Nivel 1 · ✓ Cuenta conectada",
+    },
+
+    nivel2: {
+      member: "MIEMBRO PREMIUM",
+
+      plan: "Suscripción Experto $3.99/mes · Nivel 2 · ✓ Cuenta conectada",
+    },
+
+    nivel2_promo: {
+      member: "MIEMBRO PREMIUM",
+
+      plan: "Suscripción Especial $1.70/mes · ✓ Cuenta conectada",
+    },
+
+    nivel3: {
+      member: "MIEMBRO PREMIUM",
+
+      plan: "Suscripción Avanzado $4.75/mes · ✓ Cuenta conectada",
+    },
+  };
+
+  return DATA[tier] || DATA.nivel1;
+}
 
 function afterAuth() {
   const auth = window.BVrosAuth;
@@ -2775,7 +2892,7 @@ function afterAuth() {
 
   const compound = gateRoot.querySelector('[data-ref="compoundTitle"]');
 
-  const tabsEl = gateRoot.querySelector('[data-ref="tabs"]');
+  const tabsEl = gateRoot.querySelector('.bv-gate-tabs');
 
   const subEl = gateRoot.querySelector('[data-ref="sub"]');
 
@@ -2816,18 +2933,16 @@ function afterAuth() {
     return;
   }
 
-  /* Bienvenida (60 s). Si falta el perfil, debajo
-       aparece el botón "ELIGE TU PERFIL". */
+  /* Bienvenida (3 min): línea de suscripción arriba
+       + título MIEMBRO en dorado, según el nivel real.
+       Si falta el perfil, debajo aparece el botón
+       "ELIGE TU PERFIL". */
 
-  const okSub = gateRoot.querySelector('[data-view="ok"] .bv-gate-sub');
+  const wd = welcomeData();
 
-  if (okSub) {
-    if (!okSub.dataset.base) {
-      okSub.dataset.base = okSub.textContent;
-    }
+  setRef("okPlanLine", wd.plan);
 
-    okSub.textContent = `${bvWelcomeLine || planBadge()}. ${okSub.dataset.base}`;
-  }
+  setRef("okMember", wd.member);
 
   const goPerfil = gateRoot.querySelector('[data-act="go-perfil"]');
 
@@ -2853,7 +2968,7 @@ function openGate(context = null) {
 
   const compound = gateRoot.querySelector('[data-ref="compoundTitle"]');
 
-  const tabsEl = gateRoot.querySelector('[data-ref="tabs"]');
+  const tabsEl = gateRoot.querySelector('.bv-gate-tabs');
 
   const subEl = gateRoot.querySelector('[data-ref="sub"]');
 
