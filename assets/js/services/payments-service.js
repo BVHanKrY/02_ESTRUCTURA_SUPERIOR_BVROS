@@ -71,7 +71,7 @@ const PAYMENT_PROVIDER =
    real sin activar el webhook).
 ========================================================= */
 
-const WEBHOOK_ACTIVO = false;
+const WEBHOOK_ACTIVO = true;
 
 /* Espera máxima tras capturar el pago: 12 intentos
    × 3 s = 36 s para que el webhook active el nivel. */

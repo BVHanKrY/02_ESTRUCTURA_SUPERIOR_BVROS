@@ -151,8 +151,8 @@ STYLE.textContent = `
 }
 
 /* TAMAÑO DE LETRA DEL TÍTULO COMPUESTO (configúralo aquí):
-     · "Regístrate Gratis y"   → .bv-compound .c-plain
-     · "accede a beneficios"   → .bv-compound .c-big
+     · "Regístrate Gratis"   → .bv-compound .c-plain
+     · "Accede a beneficios"   → .bv-compound .c-big
    Sube o baja el font-size de cada bloque. */
 
 .bv-compound .c-plain{
