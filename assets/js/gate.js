@@ -1573,8 +1573,8 @@ function buildGate() {
             ></div>
 
             <h3 class="bv-compound" data-ref="compoundTitle">
-                <span class="c-plain">Regístrate Gratis y</span>
-                <span class="c-big">accede a beneficios</span>
+                <span class="c-plain">Regístrate Gratis</span>
+                <span class="c-big">Accede a Beneficios</span>
             </h3>
 
             <p class="bv-gate-sub" data-ref="sub">
