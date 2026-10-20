@@ -28,6 +28,15 @@
      el webhook de sandbox tarda 10–30 s y eso ya no
      lo sufre nadie.
 
+   NUEVO EN 2B.9.2 — CONFIRMACIÓN VISIBLE:
+   · Tras el cobro, el escudo cambia a modo ÉXITO
+     (✓ dorado + "¡Pago confirmado!") y permanece un
+     mínimo de 3.5 s antes de la bienvenida: el
+     comprador VE que su pago quedó registrado.
+   · Si el webhook confirma dentro de esa ventana, el
+     nivel ya aparece activo al mostrar la bienvenida;
+     si no, sigue activando en segundo plano.
+
    BASE 2B.7 — VALIDACIÓN SERVER-SIDE (webhook):
    · El pedido se crea con custom_id compuesto:
        "idSuscripcion|idUsuario|tier"
@@ -94,6 +103,12 @@ const WEBHOOK_ACTIVO = true;
 const POLL_PRIMERA_MS = 1000;
 const POLL_INTENTOS = 15;
 const POLL_PAUSA_MS = 2000;
+
+/* Ventana mínima del aviso "¡Pago confirmado!" (2B.9.2):
+   el comprador debe VER que su pago quedó registrado —
+   confianza + blindaje anti-doble-pago. */
+
+const ESCUDO_EXITO_MS = 3500;
 
 const PRICING = {
 
@@ -296,11 +311,11 @@ async function activatePayment(subscriptionId, reference){
 
 
 /* =========================================================
-   ESCUDO DE PROCESAMIENTO (2B.9)
-   Cubre TODA la pantalla mientras se confirma el pago.
-   Objetivo: que el usuario no toque "Volver", no cierre
-   la página y no intente pagar otra vez por desesperación
-   (riesgo real: doble cobro).
+   ESCUDO DE PROCESAMIENTO (2B.9 / 2B.9.2)
+   Cubre TODA la pantalla mientras se confirma el pago y
+   unos segundos más en modo ÉXITO — el comprador ve que
+   su pago quedó registrado y nadie toca nada por error
+   (Volver, cerrar, pagar dos veces).
    ========================================================= */
 
 const ESCUDO_ID = 'bvros-escudo-pago';
@@ -340,6 +355,15 @@ function escudoPago(mostrar){
                 border-top-color:#E8C15A;
                 animation:bv-escudo-giro .9s linear infinite;
             }
+            #${ESCUDO_ID} .bv-escudo-ok{
+                width:46px; height:46px;
+                border-radius:50%;
+                border:4px solid #E8C15A;
+                display:flex; align-items:center;
+                justify-content:center;
+                font-size:24px; color:#E8C15A;
+                font-weight:bold;
+            }
             #${ESCUDO_ID} h4{
                 margin:0; font-size:17px;
                 letter-spacing:.4px;
@@ -353,9 +377,11 @@ function escudoPago(mostrar){
                 to{ transform:rotate(360deg); }
             }
           </style>
-          <div class="bv-escudo-aro"></div>
-          <h4>Confirmando tu pago…</h4>
-          <p>No cierres la página ni toques Volver.<br>Estamos validando tu pago con el servidor.<br>Esto tarda solo unos segundos.</p>
+          <div class="bv-escudo-cuerpo">
+            <div class="bv-escudo-aro"></div>
+            <h4>Confirmando tu pago…</h4>
+            <p>No cierres la página ni toques Volver.<br>Estamos validando tu pago con el servidor.<br>Esto tarda solo unos segundos.</p>
+          </div>
         `;
 
         document.body.appendChild(escudo);
@@ -368,32 +394,61 @@ function escudoPago(mostrar){
 }
 
 
+/* Cambia el escudo a modo ÉXITO (2B.9.2):
+   ✓ dorado + mensaje de pago recibido.
+   Se muestra SIEMPRE que el capture de PayPal
+   respondió bien — el dinero está cobrado. */
+
+function escudoExito(){
+
+    const cuerpo =
+        document.querySelector(
+            `#${ESCUDO_ID} .bv-escudo-cuerpo`
+        );
+
+    if(!cuerpo){
+        return;
+    }
+
+    cuerpo.innerHTML = `
+      <div class="bv-escudo-ok">✓</div>
+      <h4>¡Pago confirmado!</h4>
+      <p>Tu pago fue recibido correctamente.<br>Activando tu nivel BVLUX…</p>
+    `;
+
+}
+
+
 /* Espera a que el webhook de PayPal (Edge Function de
    Supabase) active el nivel en la base. El navegador NO
    activa nada por su cuenta: solo consulta el perfil
    hasta ver el tier confirmado por el servidor.
    2B.9: primer chequeo a 1 s, luego cada 2 s. */
 
-async function esperarActivacionWebhook(tier){
+async function esperarActivacionWebhook(
+    tier,
+    intentosMax = POLL_INTENTOS
+){
 
     const auth =
         window.BVrosAuth;
 
     /* Compras únicas (sin tier): el webhook no activa
-       nada aquí — no hacer esperar al usuario. */
+       nada aquí — no hacer esperar al usuario.
+       Devuelve TRUE (nada que esperar). */
 
     if(!tier){
-        return;
+        return true;
     }
 
     /* ¿Ya es premium? (compra repetida o nivel vivo):
        no esperar. */
 
     if(auth?.profile?.plan === 'premium'){
-        return;
+        return true;
     }
 
-    for(let i = 0; i < POLL_INTENTOS; i++){
+    for(let i = 0; i < intentosMax; i++){
 
         await new Promise(
             r => setTimeout(
@@ -415,26 +470,23 @@ async function esperarActivacionWebhook(tier){
             auth?.profile?.subscription_tier;
 
         if(tier && t === tier){
-            return;
+            return true;
         }
 
         /* El webhook pudo activar premium sin tier
            (cuentas antiguas): también es éxito. */
 
         if(auth?.profile?.plan === 'premium'){
-            return;
+            return true;
         }
 
     }
 
-    /* El webhook suele tardar pocos segundos. Si aún
-       no llegó, la bienvenida se muestra igual: el
-       nivel queda activo cuando el webhook aterrice y
-       la próxima recarga lo lee de la base. */
+    /* Sin confirmación dentro de los intentos
+       dados: quien llamó decide (segundo plano
+       o aviso). */
 
-    console.warn(
-        '[BVros Pay] El webhook aún no confirma el pago; la activación se completará en unos segundos.'
-    );
+    return false;
 
 }
 
@@ -548,24 +600,58 @@ async function mountPayPalButtons({
 
                 if (WEBHOOK_ACTIVO) {
 
-                    /* 2B.9.1 — BIENVENIDA INMEDIATA:
+                    /* 2B.9.2 — CONFIRMACIÓN VISIBLE:
                        el dinero YA está cobrado (capture
                        OK, confirmado por PayPal). Mostrar
-                       la bienvenida al instante y dejar
-                       que el webhook active el nivel en
-                       segundo plano. Nadie espera mirando
-                       una pantalla. */
+                       el ✓ de éxito unos segundos y dejar
+                       que el webhook active el nivel (si
+                       confirma dentro de la ventana, la
+                       bienvenida ya sale con el nivel
+                       activo; si no, sigue en segundo
+                       plano sin bloquear a nadie). */
+
+                    escudoExito();
+
+                    const inicio =
+                        Date.now();
+
+                    const confirmado =
+                        await esperarActivacionWebhook(
+                            tier,
+                            2          /* ~3 s dentro del escudo */
+                        );
+
+                    const restante =
+                        ESCUDO_EXITO_MS
+                            - (Date.now() - inicio);
+
+                    if(restante > 0){
+                        await new Promise(
+                            r => setTimeout(r, restante)
+                        );
+                    }
 
                     escudoPago(false);
 
                     onSuccess?.(details);
 
-                    esperarActivacionWebhook(tier)
-                        .then(() =>
-                            window.BVrosAuth
-                                ?.refreshProfile?.()
-                        )
-                        .catch(() => {});
+                    if(!confirmado){
+
+                        /* Segundo plano: nada bloqueado.
+                           El nivel aparece solo cuando el
+                           webhook aterrice. */
+
+                        console.info(
+                            '[BVros Pay] Pago cobrado; el nivel se activará en segundos (webhook en camino).'
+                        );
+
+                        esperarActivacionWebhook(tier)
+                            .then(() =>
+                                window.BVrosAuth
+                                    ?.refreshProfile?.()
+                            )
+                            .catch(() => {});
+                    }
 
                     return;
                 }
@@ -813,7 +899,7 @@ window.BVrosPay = {
 };
 
 console.info(
-    '[BVros Pay] Listo (2B.9.1) — proveedor:',
+    '[BVros Pay] Listo (2B.9.2) — proveedor:',
     PAYMENT_PROVIDER,
     '· webhook:',
     WEBHOOK_ACTIVO ? 'ACTIVO' : 'apagado'
