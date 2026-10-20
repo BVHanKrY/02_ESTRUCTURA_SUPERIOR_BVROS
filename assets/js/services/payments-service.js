@@ -1,12 +1,25 @@
 /* =========================================================
-   BVROS PAYMENTS SERVICE — 2B.7 (WEBHOOK READY)
+   BVROS PAYMENTS SERVICE — 2B.9 (WEBHOOK ACTIVO + ESCUDO
+   ANTI-DOBLE-PAGO)
    PayPal Smart Buttons (incluye pago con tarjeta dentro
    del flujo de PayPal: enable-funding=card).
    Precios BVLUX pasarela 1.1.1:
      Nivel 2 $3.99 · Nivel 3 $4.75 · promo Nivel 2 $1.70.
    Compras únicas: $5.00 / $2.99 / $4.99 (2B.3).
 
-   NUEVO EN 2B.7 — VALIDACIÓN SERVER-SIDE (webhook):
+   NUEVO EN 2B.9:
+   · ESCUDO DE PROCESAMIENTO: al aprobar el pago la
+     pantalla se cubre con un aviso que BLOQUEA todo
+     ("Confirmando tu pago… no cierres ni toques Volver")
+     hasta que llega la confirmación. Evita que el usuario
+     desespere, toque atrás y pague dos veces.
+   · POLLING MÁS RÁPIDO: primer chequeo a 1 s y luego
+     cada 2 s (antes 3 s). Máx ~30 s.
+   · WEBHOOK_ACTIVO = true: la activación es 100%
+     server-side (probada en sandbox con el webhook
+     funcionando: firma SUCCESS + nivel activado).
+
+   BASE 2B.7 — VALIDACIÓN SERVER-SIDE (webhook):
    · El pedido se crea con custom_id compuesto:
        "idSuscripcion|idUsuario|tier"
      → la Edge Function de Supabase recibe
@@ -14,10 +27,7 @@
        PayPal y activa el nivel EN EL SERVIDOR.
    · Con WEBHOOK_ACTIVO = true el navegador YA NO
      activa nada: solo espera la confirmación del
-     servidor (polling del perfil, máx 36 s).
-   · Con WEBHOOK_ACTIVO = false (hoy) conserva la
-     activación client-side para que no se rompa nada
-     mientras despliegas el webhook (ver LEEME).
+     servidor (polling del perfil).
 
    CORRECCIONES previas conservadas:
    1. El intento de pago se registra en la base ANTES de
@@ -53,31 +63,27 @@ const PAYMENT_PROVIDER =
     'paypal';   // 'paypal' | 'stripe'
 
 /* =========================================================
-   INTERRUPTOR DEL WEBHOOK (seguridad server-side):
-
-   PASO 1 — Despliega la Edge Function
-            bvlux-paypal-webhook en Supabase
-            (guía en LEEME-PRIMERO.txt, sección C).
-   PASO 2 — Registra el webhook en developer.paypal.com
-            y guarda el Webhook ID en los secrets
-            (sección D).
-   PASO 3 — Haz un pago de prueba con dinero real en
-            sandbox: el nivel debe activarse solo.
-   PASO 4 — Recién aquí cambia esta bandera a true y
-            vuelve a subir el sitio.
-
-   Mientras esté en false, la activación sigue siendo
-   client-side (modo de prueba actual — NO cobres en
-   real sin activar el webhook).
+   INTERRUPTOR DEL WEBHOOK — ACTIVO DESDE 2B.9.
+   El webhook está probado en sandbox (firma SUCCESS y
+   nivel activado por el servidor). El navegador ya no
+   activa nada: solo el servidor puede poner premium.
+   Si algún día necesitas volver al modo de prueba
+   (activación client-side sin webhook), cambia a false.
 ========================================================= */
 
 const WEBHOOK_ACTIVO = true;
 
-/* Espera máxima tras capturar el pago: 12 intentos
-   × 3 s = 36 s para que el webhook active el nivel. */
+/* Espera tras capturar el pago (2B.9):
+   · primer chequeo a los 1 s (el webhook suele tardar
+     3–10 s),
+   · luego cada 2 s,
+   · máx 15 intentos ≈ 30 s.
+   Si aun así no llegó, la bienvenida se muestra igual y
+   el nivel queda activo cuando el webhook aterrice. */
 
-const POLL_INTENTOS = 12;
-const POLL_PAUSA_MS = 3000;
+const POLL_PRIMERA_MS = 1000;
+const POLL_INTENTOS = 15;
+const POLL_PAUSA_MS = 2000;
 
 const PRICING = {
 
@@ -279,20 +285,113 @@ async function activatePayment(subscriptionId, reference){
 }
 
 
+/* =========================================================
+   ESCUDO DE PROCESAMIENTO (2B.9)
+   Cubre TODA la pantalla mientras se confirma el pago.
+   Objetivo: que el usuario no toque "Volver", no cierre
+   la página y no intente pagar otra vez por desesperación
+   (riesgo real: doble cobro).
+   ========================================================= */
+
+const ESCUDO_ID = 'bvros-escudo-pago';
+
+function escudoPago(mostrar){
+
+    const existente =
+        document.getElementById(ESCUDO_ID);
+
+    if(mostrar){
+
+        if(existente){
+            return;   /* ya está visible */
+        }
+
+        const escudo =
+            document.createElement('div');
+
+        escudo.id = ESCUDO_ID;
+
+        escudo.innerHTML = `
+          <style>
+            #${ESCUDO_ID}{
+                position:fixed; inset:0;
+                z-index:10500;
+                background:rgba(10,8,5,.93);
+                display:flex; flex-direction:column;
+                align-items:center; justify-content:center;
+                gap:18px; text-align:center;
+                font-family:system-ui,-apple-system,sans-serif;
+                color:#F2E8D5; padding:24px;
+            }
+            #${ESCUDO_ID} .bv-escudo-aro{
+                width:46px; height:46px;
+                border-radius:50%;
+                border:4px solid rgba(242,232,213,.18);
+                border-top-color:#E8C15A;
+                animation:bv-escudo-giro .9s linear infinite;
+            }
+            #${ESCUDO_ID} h4{
+                margin:0; font-size:17px;
+                letter-spacing:.4px;
+            }
+            #${ESCUDO_ID} p{
+                margin:0; font-size:13px;
+                opacity:.78; max-width:330px;
+                line-height:1.55;
+            }
+            @keyframes bv-escudo-giro{
+                to{ transform:rotate(360deg); }
+            }
+          </style>
+          <div class="bv-escudo-aro"></div>
+          <h4>Confirmando tu pago…</h4>
+          <p>No cierres la página ni toques Volver.<br>Estamos validando tu pago con el servidor.<br>Esto tarda solo unos segundos.</p>
+        `;
+
+        document.body.appendChild(escudo);
+
+        return;
+    }
+
+    existente?.remove();
+
+}
+
+
 /* Espera a que el webhook de PayPal (Edge Function de
    Supabase) active el nivel en la base. El navegador NO
    activa nada por su cuenta: solo consulta el perfil
-   hasta ver el tier confirmado por el servidor. */
+   hasta ver el tier confirmado por el servidor.
+   2B.9: primer chequeo a 1 s, luego cada 2 s. */
 
 async function esperarActivacionWebhook(tier){
 
     const auth =
         window.BVrosAuth;
 
+    /* Compras únicas (sin tier): el webhook no activa
+       nada aquí — no hacer esperar al usuario. */
+
+    if(!tier){
+        return;
+    }
+
+    /* ¿Ya es premium? (compra repetida o nivel vivo):
+       no esperar. */
+
+    if(auth?.profile?.plan === 'premium'){
+        return;
+    }
+
     for(let i = 0; i < POLL_INTENTOS; i++){
 
         await new Promise(
-            r => setTimeout(r, POLL_PAUSA_MS)
+            r => setTimeout(
+                r,
+                i === 0
+                    ? POLL_PRIMERA_MS
+                    : POLL_PAUSA_MS
+            )
         );
 
         try{
@@ -411,54 +510,78 @@ async function mountPayPalButtons({
 
         onApprove: async (data, actions) => {
 
-            const details =
-                await actions.order.capture();
+            /* ESCUDO 2B.9: desde este momento la pantalla
+               queda bloqueada con el aviso de proceso.
+               Se quita al confirmar o al fallar. */
 
-            if(!pendingSub?.id){
-                pendingSub =
-                    await createPendingPayment({
-                        billingType,
-                        amount
-                    });
-            }
+            escudoPago(true);
 
-            /* WEBHOOK ACTIVO (producción): el
-               navegador no activa NADA. La Edge
-               Function de Supabase recibe el evento
-               de PayPal, verifica su firma y activa
-               el nivel en la base. Aquí solo se
-               espera la confirmación. */
+            try{
 
-            if (WEBHOOK_ACTIVO) {
+                const details =
+                    await actions.order.capture();
 
-                await esperarActivacionWebhook(tier);
+                if(!pendingSub?.id){
+                    pendingSub =
+                        await createPendingPayment({
+                            billingType,
+                            amount
+                        });
+                }
+
+                /* WEBHOOK ACTIVO (producción): el
+                   navegador no activa NADA. La Edge
+                   Function de Supabase recibe el evento
+                   de PayPal, verifica su firma y activa
+                   el nivel en la base. Aquí solo se
+                   espera la confirmación. */
+
+                if (WEBHOOK_ACTIVO) {
+
+                    await esperarActivacionWebhook(tier);
+
+                    escudoPago(false);
+
+                    onSuccess?.(details);
+
+                    return;
+                }
+
+                /* MODO DE PRUEBA (webhook apagado):
+                   activación client-side. NO cobres en
+                   real con esta vía. */
+
+                if(!pendingSub?.id){
+                    throw new Error(
+                        `Pago capturado (ref: ${details.id}) sin registro previo. Contacta a soporte con esa referencia.`
+                    );
+                }
+
+                await activatePayment(
+                    pendingSub.id,
+                    details.id
+                );
+
+                escudoPago(false);
 
                 onSuccess?.(details);
 
-                return;
+            }catch(error){
+
+                /* Nunca dejar el escudo pegado si
+                   algo falla: la pantalla vuelve y
+                   PayPal reporta el error. */
+
+                escudoPago(false);
+
+                throw error;
             }
-
-            /* MODO DE PRUEBA (webhook todavía no
-               desplegado): activación client-side
-               como hasta ahora. NO cobres en real
-               con esta vía. */
-
-            if(!pendingSub?.id){
-                throw new Error(
-                    `Pago capturado (ref: ${details.id}) sin registro previo. Contacta a soporte con esa referencia.`
-                );
-            }
-
-            await activatePayment(
-                pendingSub.id,
-                details.id
-            );
-
-            onSuccess?.(details);
 
         },
 
         onError: (error) => {
+
+            escudoPago(false);
 
             console.error(
                 '[BVros Pay] Error PayPal:',
@@ -667,6 +790,8 @@ window.BVrosPay = {
 };
 
 console.info(
-    '[BVros Pay] Listo — proveedor:',
-    PAYMENT_PROVIDER
+    '[BVros Pay] Listo (2B.9) — proveedor:',
+    PAYMENT_PROVIDER,
+    '· webhook:',
+    WEBHOOK_ACTIVO ? 'ACTIVO' : 'apagado'
 );
