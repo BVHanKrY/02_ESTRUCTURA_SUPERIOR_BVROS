@@ -53,6 +53,15 @@
      en segundo plano. La seguridad no cambia: el
      navegador no activa nada.
 
+   NUEVO EN 2B.9.4 — LIVE + COMPATIBILIDAD CON LA
+   CANCELACIÓN (menú Suscripción 2B.9 del gate):
+   · Client ID de la app LIVE «BVLUX LIVE».
+   · hasActivePlan ahora cuenta también las
+     suscripciones CANCELADAS no vencidas como
+     vigentes: quien cancela conserva sus beneficios
+     hasta expires_at (la caducidad la resuelve el
+     cron de la base, no el navegador).
+
    BASE 2B.7 — VALIDACIÓN SERVER-SIDE (webhook):
    · El pedido se crea con custom_id compuesto:
        "idSuscripcion|idUsuario|tier"
@@ -79,12 +88,13 @@
 import { supabase } from './auth-service.js';
 
 /*
-   ⚠️ VERIFICA TU CLIENT ID:
-   developer.paypal.com → Apps & Credentials
-   → Create App → copia el Client ID.
-   Empieza en SANDBOX (dinero de prueba);
-   para cobros reales crea la app en Live
-   y reemplaza el Client ID por el de Live.
+   CLIENT ID DE PRODUCCIÓN (LIVE):
+   App «BVLUX LIVE» (developer.paypal.com → Live).
+   El Client ID es público: viaja en el HTML igualmente.
+   El SECRET de esta app NUNCA va en código web: vive
+   en los secrets de la Edge Function de Supabase.
+   Para pruebas de sandbox usa otra app y NO la
+   subas a producción.
 */
 
 const PAYPAL_CLIENT_ID =
@@ -846,7 +856,11 @@ window.BVrosPay = {
     /* ¿El usuario actual tiene plan activo?
        CORRECCIÓN: si la suscripción expiró, degrada
        profiles.plan a 'free' (antes el badge decía
-       premium para siempre). */
+       premium para siempre).
+       2B.9.4: las CANCELADAS no vencidas también
+       cuentan como vigentes — quien cancela conserva
+       los beneficios hasta expires_at; el cron de la
+       base hace la degradación real al expirar. */
 
     async hasActivePlan(){
 
@@ -862,7 +876,7 @@ window.BVrosPay = {
                 .from('subscriptions')
                 .select('expires_at, status')
                 .eq('user_id', auth.user.id)
-                .eq('status', 'active')
+                .in('status', ['active', 'cancelled'])
                 .order('expires_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -949,7 +963,7 @@ window.BVrosPay = {
 };
 
 console.info(
-    '[BVros Pay] Listo (2B.9.3) — proveedor:',
+    '[BVros Pay] Listo (2B.9.4) — proveedor:',
     PAYMENT_PROVIDER,
     '· webhook:',
     WEBHOOK_ACTIVO ? 'ACTIVO' : 'apagado'

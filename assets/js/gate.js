@@ -26,9 +26,44 @@
      cuando actives WEBHOOK_ACTIVO en payments-
      service.js, el nivel lo activa el SERVIDOR
      (Edge Function) y no el navegador.
+
+   NUEVO EN 2B.9 · MENÚ «SUSCRIPCIÓN» (submenú con
+   dos pestañas) + CANCELACIÓN SERVER-SIDE:
+     · La pastilla del usuario renombra la sección:
+       «Suscríbete» → «SUSCRIPCIÓN ▾». Al pulsarla se
+       despliega el submenú con dos pestañas:
+       «Suscribirse» y «Cancelar suscripción».
+     · SUSCRIBIRSE (mejora de nivel): el sistema
+       DETECTA en qué suscripción está el usuario y
+       solo deja adquirir un nivel superior con el
+       mismo proceso de compra:
+         - Gratuito → puede comprar Nivel 2 y Nivel 3
+           (no puede volver a "comprar" gratuito).
+         - Nivel 2 → puede adquirir el nivel
+           promocional o el Nivel 3 (no puede
+           recomprar Nivel 2).
+         - Nivel Promocional Avanzado o Nivel 3 →
+           TOPE: ningún clic compra nada (son el
+           techo del sistema).
+         - Suscripción CANCELADA y aún vigente →
+           renovación libre de cualquier nivel de pago.
+       · La parrilla marca cada tarjeta: TU NIVEL
+         ACTUAL (verde) · NO DISPONIBLE (apagada) ·
+         SELECCIONA (mejora permitida).
+     · CANCELAR SUSCRIPCIÓN: panel de confirmación
+       — «los beneficios se mantienen hasta el final
+       de la suscripción contratada» (expires_at).
+       La cancelación es SERVER-SIDE (Edge Function
+       bvlux-cancel-subscription): marca la fila
+       status='cancelled' SIN tocar el perfil. La
+       pastilla cambia a «SUSCRIPCIÓN CANCELADA» en
+       el mismo formato, y al expirar los 30 días el
+       cron de la base (bvlux-cancel-caducidad.sql)
+       reinicia todo a Miembro Gratuito quitando
+       accesos, promociones y beneficios.
    ========================================================= */
 
-console.log("[BVros Gate] versión 2B.8 activa");
+console.log("[BVros Gate] versión 2B.9 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -1338,6 +1373,86 @@ button.bv-auth-login:hover{
     opacity:.88;
 }
 
+/* 2B.9 · SUBMENÚ DE SUSCRIPCIÓN (dos pestañas) */
+
+.bv-auth-sub{
+    display:none;
+}
+.bv-auth-sub.open{
+    display:block;
+}
+.bv-auth-menu .m-item.m-sub{
+    padding-left:28px;
+    font-size:.64rem;
+    color:var(--text-muted,#9A8D7D);
+}
+.bv-auth-menu .m-item.m-sub::before{
+    content:'▸';
+    margin-right:7px;
+    color:var(--accent,#F97316);
+}
+
+/* 2B.9 · PANEL DE CANCELACIÓN */
+
+.bv-cancel-title{
+    font-family:'Orbitron',sans-serif;
+    font-size:.78rem;
+    font-weight:800;
+    letter-spacing:.05em;
+    color:#F87171;
+    margin:4px 0 8px;
+}
+.bv-cancel-text{
+    color:var(--text-muted,#9A8D7D);
+    font-size:.66rem;
+    line-height:1.75;
+    margin:0 0 12px;
+    text-align:justify;
+}
+.bv-cancel-info{
+    color:var(--text-muted,#9A8D7D);
+    font-size:.68rem;
+    line-height:1.7;
+}
+.bv-cancel-ok{
+    color:#7CB342;
+    font-size:.66rem;
+    line-height:1.6;
+    margin-bottom:10px;
+}
+.bv-cancel-si{
+    background:#D32F2F;
+    color:#FFFFFF;
+}
+.bv-cancel-si:hover{
+    filter:brightness(1.1);
+}
+.bv-cancel-no{
+    background:none;
+    border:1px solid var(--border,#2A2119);
+    color:var(--text,#F2EDE4);
+    margin-top:8px;
+}
+
+/* 2B.9 · PARRILLA: nivel actual (verde) y tarjetas
+     no disponibles (apagadas) */
+
+.bv-plan.bv-plan-actual{
+    border-color:#7CB342;
+}
+.bv-plan.bv-plan-actual .p-select{
+    background:#7CB342;
+    color:#000;
+}
+.bv-plan.bv-plan-lock{
+    opacity:.45;
+    cursor:not-allowed;
+}
+.bv-plan.bv-plan-lock:hover{
+    transform:none;
+    box-shadow:none;
+}
+
 `;
 
 document.head.appendChild(STYLE);
@@ -1362,6 +1477,13 @@ let promoActive = false;
 
 let currentView = null;
 
+/* 2B.9 · Estado de la suscripción del usuario leído
+     de la base: { status: 'active'|'cancelled',
+     expires_at } SOLO si sigue vigente (expires_at
+     futuro). Null = gratuito / expirado / invitado. */
+
+let estadoSub = null;
+
 /* Arranque de página: el PRIMER evento authstate tras
      cargar decide si un proceso inconcluso se re-abre
      (una sola vez) o pasa al aviso rojo (también una
@@ -1375,17 +1497,35 @@ function planBadge() {
 
   if (!auth?.profile) return "";
 
+  /* 2B.9 · SUSCRIPCIÓN CANCELADA (mismo formato de
+       pastilla): la cancelación vive en
+       subscriptions.status='cancelled' y los
+       beneficios siguen hasta expires_at. */
+
+  if (
+    estadoSub?.status === "cancelled" &&
+    new Date(estadoSub.expires_at) > new Date()
+  ) {
+    return "SUSCRIPCIÓN CANCELADA";
+  }
+
+  /* 2B.9 · Sin suscripción vigente = MIEMBRO
+       GRATUITO, siempre (corrige el badge viejo que
+       mostraba un tier pagado ya expirado). */
+
+  if (auth.profile.plan !== "premium") {
+    return "MIEMBRO GRATUITO";
+  }
+
   /* Nivel real guardado en profiles.subscription_tier.
        Cuentas premium antiguas (sin tier): se deduce
        del perfil asignado. */
 
   const tier =
     auth.profile.subscription_tier ||
-    (auth.profile.plan === "premium"
-      ? auth.profile.profile_type === "perfil2"
-        ? "nivel3"
-        : "nivel2"
-      : "nivel1");
+    (auth.profile.profile_type === "perfil2"
+      ? "nivel3"
+      : "nivel2");
 
   if (tier === "nivel3") {
     return "SUSCRIPCIÓN CREADOR AVANZADO · $4.75/MES";
@@ -1400,6 +1540,278 @@ function planBadge() {
   }
 
   return "MIEMBRO GRATUITO";
+}
+
+/* =========================================================
+   2B.9 · SUSCRIPCIÓN — DETECTOR DE NIVEL, MEJORAS Y
+   CANCELACIÓN
+   · El sistema detecta en qué suscripción está el
+     usuario (profiles.plan + subscription_tier + la
+     suscripción vigente en la base).
+   · MEJORAS PERMITIDAS: nadie compra el nivel en que
+     ya está; gratuito no compra "gratuito"; el Nivel
+     Promocional y el Nivel 3 son tope (no compran
+     nada más). Cancelada y vigente: renovación libre.
+   · La CANCELACIÓN es SERVER-SIDE: Edge Function
+     bvlux-cancel-subscription (verifica la sesión y
+     marca status='cancelled' conservando expires_at).
+     Los beneficios siguen hasta el final del periodo;
+     el cron de la base (bvlux-cancel-caducidad.sql)
+     degrada a Miembro Gratuito al expirar.
+========================================================= */
+
+const MEJORAS_PERMITIDAS = {
+  nivel1: ["nivel2", "nivel3"],
+
+  nivel2: ["nivel3"],
+
+  nivel2_promo: [],
+
+  nivel3: [],
+};
+
+function tierVigente() {
+  const auth = window.BVrosAuth;
+
+  if (!auth?.profile) return "nivel1";
+
+  if (auth.profile.plan !== "premium") {
+    return "nivel1";
+  }
+
+  return (
+    auth.profile.subscription_tier ||
+    (auth.profile.profile_type === "perfil2" ? "nivel3" : "nivel2")
+  );
+}
+
+function mejorasDe(tier) {
+  /* Cancelada y aún vigente: renovación libre de
+       cualquier nivel de pago (incluido el propio). */
+
+  if (
+    estadoSub?.status === "cancelled" &&
+    new Date(estadoSub.expires_at) > new Date()
+  ) {
+    return ["nivel2", "nivel3"];
+  }
+
+  return MEJORAS_PERMITIDAS[tier] || [];
+}
+
+/* Lee la suscripción vigente del usuario (activa o
+     cancelada) y guarda { status, expires_at }. */
+
+async function cargarEstadoSub() {
+  const auth = window.BVrosAuth;
+
+  if (!auth?.user) {
+    estadoSub = null;
+
+    return;
+  }
+
+  try {
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("status, expires_at")
+      .eq("user_id", auth.user.id)
+      .in("status", ["active", "cancelled"])
+      .order("expires_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    estadoSub =
+      data && new Date(data.expires_at) > new Date() ? data : null;
+  } catch (_) {
+    estadoSub = null;
+  }
+}
+
+/* Pinta la parrilla de planes según el nivel vigente:
+     · TU NIVEL ACTUAL (verde) — no se puede recomprar.
+     · NO DISPONIBLE (apagada) — fuera de las mejoras.
+     · SELECCIONA — mejora permitida. */
+
+function pintarGridSuscripciones() {
+  if (!gateRoot) return;
+
+  const auth = window.BVrosAuth;
+
+  const authed = !!auth?.isAuthenticated();
+
+  const actual = tierVigente();
+
+  const permitidas = authed ? mejorasDe(actual) : [];
+
+  gateRoot.querySelectorAll(".bv-plan").forEach((card) => {
+    const plan = card.dataset.plan;
+
+    const sel = card.querySelector(".p-select");
+
+    if (!sel) return;
+
+    card.classList.remove("bv-plan-lock", "bv-plan-actual");
+
+    if (!authed) {
+      sel.textContent = "SELECCIONA";
+
+      return;
+    }
+
+    if (plan === actual) {
+      card.classList.add("bv-plan-actual");
+
+      sel.textContent = "TU NIVEL ACTUAL";
+    } else if (!permitidas.includes(plan)) {
+      card.classList.add("bv-plan-lock");
+
+      sel.textContent = "NO DISPONIBLE";
+    } else {
+      sel.textContent = "SELECCIONA";
+    }
+  });
+}
+
+/* ---------- CANCELACIÓN (panel del menú) ---------- */
+
+function fechaLarga(iso) {
+  try {
+    return new Date(iso).toLocaleDateString("es-ES", {
+      day: "numeric",
+
+      month: "long",
+
+      year: "numeric",
+    });
+  } catch (_) {
+    return String(iso);
+  }
+}
+
+function renderCancelPanel() {
+  const body = document.querySelector("#bvCancelBody");
+
+  if (!body) return;
+
+  const vigente =
+    estadoSub && new Date(estadoSub.expires_at) > new Date();
+
+  if (!vigente) {
+    body.innerHTML =
+      `<div class="bv-cancel-info">` +
+      `No tienes una suscripción activa para cancelar. ` +
+      `Si quieres un plan de pago, entra en «Suscribirse».` +
+      `</div>`;
+
+    return;
+  }
+
+  const fecha = fechaLarga(estadoSub.expires_at);
+
+  if (estadoSub.status === "cancelled") {
+    body.innerHTML =
+      `<div class="bv-cancel-title">SUSCRIPCIÓN CANCELADA</div>` +
+      `<p class="bv-cancel-text">Tu cancelación ya está registrada. ` +
+      `Los beneficios se mantienen hasta el final del periodo ` +
+      `contratado: <b>${fecha}</b>. Después volverás automáticamente ` +
+      `a Miembro Gratuito.</p>` +
+      `<button class="bv-menu-save" data-cancel-volver type="button">ENTENDIDO</button>`;
+  } else {
+    body.innerHTML =
+      `<div class="bv-cancel-title">¿CANCELAR TU SUSCRIPCIÓN?</div>` +
+      `<p class="bv-cancel-text">Confirma la cancelación de tu plan. ` +
+      `Los beneficios se mantendrán hasta el final de la suscripción ` +
+      `contratada: <b>${fecha}</b>. Después se reiniciará todo a ` +
+      `Miembro Gratuito y perderás los accesos, promociones y ` +
+      `beneficios.</p>` +
+      `<button class="bv-menu-save bv-cancel-si" id="bvCancelSi" type="button">SÍ, CANCELAR MI SUSCRIPCIÓN</button>` +
+      `<button class="bv-menu-save bv-cancel-no" data-cancel-volver type="button">NO, MANTENER MI PLAN</button>` +
+      `<div class="bv-menu-err" data-ref="errCancel"></div>`;
+
+    body.querySelector("#bvCancelSi").addEventListener("click", () => {
+      confirmarCancelacion();
+    });
+  }
+
+  body.querySelectorAll("[data-cancel-volver]").forEach((b) => {
+    b.addEventListener("click", () => mostrarPanelMenu("main"));
+  });
+}
+
+async function confirmarCancelacion() {
+  const body = document.querySelector("#bvCancelBody");
+
+  const errEl = body?.querySelector('[data-ref="errCancel"]');
+
+  const btn = body?.querySelector("#bvCancelSi");
+
+  if (errEl) errEl.textContent = "";
+
+  if (btn) {
+    btn.disabled = true;
+
+    btn.textContent = "CANCELANDO…";
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke(
+      "bvlux-cancel-subscription",
+    );
+
+    if (error) throw error;
+
+    if (!data?.ok) {
+      throw new Error(
+        data?.error || "No se pudo cancelar. Intenta de nuevo.",
+      );
+    }
+
+    await cargarEstadoSub();
+
+    /* La pastilla cambia AL INSTANTE a
+         SUSCRIPCIÓN CANCELADA (mismo formato). */
+
+    const badge = document.querySelector(".bv-auth-menu .m-plan");
+
+    if (badge) badge.textContent = planBadge();
+
+    if (body) {
+      body.innerHTML =
+        `<div class="bv-cancel-ok">✔ Tu suscripción fue cancelada.</div>` +
+        `<p class="bv-cancel-text">Los beneficios se mantienen hasta el ` +
+        `final del periodo contratado: <b>${fechaLarga(estadoSub?.expires_at)}</b>. ` +
+        `Después volverás automáticamente a Miembro Gratuito.</p>` +
+        `<button class="bv-menu-save" data-cancel-volver type="button">ENTENDIDO</button>`;
+
+      body.querySelectorAll("[data-cancel-volver]").forEach((b) => {
+        b.addEventListener("click", () => mostrarPanelMenu("main"));
+      });
+    }
+
+    console.info("[BVros Gate] Suscripción cancelada (servidor).");
+  } catch (e) {
+    if (errEl) errEl.textContent = e.message || "Error al cancelar.";
+
+    if (btn) {
+      btn.disabled = false;
+
+      btn.textContent = "SÍ, CANCELAR MI SUSCRIPCIÓN";
+    }
+  }
+}
+
+/* Cambia de panel dentro del menú del usuario
+     (helper compartido con los botones dinámicos). */
+
+function mostrarPanelMenu(target) {
+  const menu = document.querySelector(".bv-auth-menu");
+
+  if (!menu) return;
+
+  menu.querySelectorAll("[data-view]").forEach((v) => {
+    v.style.display = v.dataset.view === target ? "block" : "none";
+  });
 }
 
 function setRef(ref, text, asHTML = false) {
@@ -2677,6 +3089,14 @@ function showView(name) {
   gateRoot.querySelectorAll(".bv-gate-tab").forEach((t) => {
     t.classList.toggle("on", t.dataset.tab === name);
   });
+
+  /* 2B.9 · Parrilla de planes pintada según el nivel
+       vigente (TU NIVEL ACTUAL / NO DISPONIBLE /
+       SELECCIONA). */
+
+  if (name === "suscribe") {
+    pintarGridSuscripciones();
+  }
 }
 
 function setBusy(act, busy) {
@@ -2722,17 +3142,55 @@ function openLevelView(plan) {
     return;
   }
 
-  /* Ya es premium: NO volver a cobrar.
-       Se muestra su bienvenida con el estado real. */
+  /* 2B.9 · DETECTOR DE SUSCRIPCIÓN: el sistema sabe
+       en qué nivel está el usuario y decide si puede
+       adquirir este. Reglas:
+       · Nadie compra el nivel en que ya está.
+       · Gratuito no vuelve a comprar "gratuito".
+       · Nivel Promocional Avanzado y Nivel 3 son
+         tope: no compran nada más.
+       · Nivel 1 no es comprable para premium: la
+         salida es «Cancelar suscripción».
+       · Cancelada y vigente: renovación libre. */
 
-  if (auth.profile?.plan === "premium") {
-    payPlan = null;
+  if (authed) {
+    const actual = tierVigente();
 
-    sessionStorage.removeItem("bvros_pay_plan");
+    const permitidas = mejorasDe(actual);
 
-    afterAuth();
+    const bloquear = (msg) => {
+      payPlan = null;
 
-    return;
+      sessionStorage.removeItem("bvros_pay_plan");
+
+      if (hint) hint.textContent = msg;
+
+      showView("suscribe");
+
+      return true;
+    };
+
+    if (plan === actual) {
+      return bloquear(
+        actual === "nivel1"
+          ? "Ya eres Miembro Gratuito: este es tu nivel actual. Elige un nivel superior para suscribirte."
+          : "Ya tienes este nivel activo: no se puede volver a comprar. Puedes subir al nivel superior o gestionar tu plan desde el menú de usuario → Suscripción.",
+      );
+    }
+
+    if (plan === "nivel1") {
+      return bloquear(
+        "Tu nivel actual es superior al gratuito. Para volver a Miembro Gratuito usa el menú de usuario → Suscripción → Cancelar suscripción; tus beneficios siguen hasta el final del periodo contratado.",
+      );
+    }
+
+    if (!permitidas.includes(plan)) {
+      return bloquear(
+        actual === "nivel3"
+          ? "Ya tienes el nivel más alto de BVLUX: no hay otra suscripción por adquirir."
+          : "Tu Nivel Promocional Avanzado es el tope de este ciclo: no admite otra compra. Al expirar (30 días) podrás suscribirte de nuevo.",
+      );
+    }
   }
 
   if (plan === "nivel2") {
@@ -3086,7 +3544,10 @@ async function handleAction(action) {
 
       bvWelcomeLine = "MIEMBRO GRATUITO";
 
-      guardarTier("nivel1");
+      /* 2B.9: ya no se escribe tier='nivel1' desde el
+           navegador (el guardián lo bloquearía y
+           ensuciaría la auditoría). Gratuito es la
+           ausencia de tier premium. */
 
       afterAuth();
 
@@ -3504,9 +3965,25 @@ function syncNavAuth() {
 
                     <button
                         class="m-item"
-                        data-menu="suscribir"
+                        data-menu="suscripcion"
                         type="button"
-                    >Suscríbete</button>
+                    >Suscripción ▾</button>
+
+                    <div class="bv-auth-sub" data-sub="suscripcion">
+
+                        <button
+                            class="m-item m-sub"
+                            data-menu="suscribir"
+                            type="button"
+                        >Suscribirse</button>
+
+                        <button
+                            class="m-item m-sub"
+                            data-menu="cancelar"
+                            type="button"
+                        >Cancelar suscripción</button>
+
+                    </div>
 
                     <button
                         class="m-item"
@@ -3783,6 +4260,19 @@ function syncNavAuth() {
 
                 </div>
 
+
+                <div class="bv-menu-panel" data-view="cancelar">
+
+                    <button
+                        class="bv-menu-back"
+                        data-menu="main"
+                        type="button"
+                    >← Volver</button>
+
+                    <div id="bvCancelBody"></div>
+
+                </div>
+
             </div>
 
         `;
@@ -3810,6 +4300,24 @@ function syncNavAuth() {
         if (target === "salir") {
           auth.logout();
           return;
+        }
+
+        if (target === "suscripcion") {
+          /* 2B.9 · Despliega el SUBMENÚ con las dos
+               pestañas: Suscribirse / Cancelar. */
+
+          chip
+            .querySelector('[data-sub="suscripcion"]')
+            ?.classList.toggle("open");
+
+          return;
+        }
+
+        if (target === "cancelar") {
+          /* 2B.9 · Pestaña CANCELAR: renderiza la
+               confirmación antes de mostrar el panel. */
+
+          renderCancelPanel();
         }
 
         if (target === "suscribir") {
@@ -4070,10 +4578,20 @@ function syncNavAuth() {
 
 syncNavAuth();
 
+/* 2B.9 · Al cargar con sesión activa: estado de la
+     suscripción (pastilla, cancelación y mejoras). */
+
+cargarEstadoSub().then(() => syncNavAuth());
+
 window.addEventListener("bvros:navigated", () => syncNavAuth());
 
 window.addEventListener("bvros:authstate", () => {
   syncNavAuth();
+
+  /* 2B.9 · Estado de suscripción (activa/cancelada +
+       caducidad): refresca la pastilla al llegar. */
+
+  cargarEstadoSub().then(() => syncNavAuth());
 
   const auth = window.BVrosAuth;
 
