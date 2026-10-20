@@ -98,7 +98,7 @@ import { supabase } from './auth-service.js';
 */
 
 const PAYPAL_CLIENT_ID =
-    'BAACP0fbBg9l5pPPaOaZFVWtrcbBl6HincS6ZtcKsVkGFQO1PzGxqXYhAxlTnHId_xxaSlXa5GeMCOpLyk';
+    'BAAXFla6aVvDXePLDzOCwkUagGflIi-b5xuiNIHO8k20heffKL0w2nqzyGwOxwZCpgXYRcxLpU-5fP8PKc';
 
 /* Único punto de intercambio de pasarela:
    cuando actives Stripe, cambia a 'stripe'. */
