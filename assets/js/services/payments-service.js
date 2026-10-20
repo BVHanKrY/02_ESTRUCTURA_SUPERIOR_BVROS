@@ -19,6 +19,15 @@
      server-side (probada en sandbox con el webhook
      funcionando: firma SUCCESS + nivel activado).
 
+   NUEVO EN 2B.9.1 — BIENVENIDA INMEDIATA:
+   · La bienvenida aparece en cuanto PayPal confirma el
+     cobro (~2 s tras aprobar). El nivel se activa en
+     SEGUNDO PLANO cuando el webhook aterrice: el
+     navegador sigue sondeando sin bloquear a nadie.
+   · Así el usuario nunca espera mirando una pantalla:
+     el webhook de sandbox tarda 10–30 s y eso ya no
+     lo sufre nadie.
+
    BASE 2B.7 — VALIDACIÓN SERVER-SIDE (webhook):
    · El pedido se crea con custom_id compuesto:
        "idSuscripcion|idUsuario|tier"
@@ -78,8 +87,9 @@ const WEBHOOK_ACTIVO = true;
      3–10 s),
    · luego cada 2 s,
    · máx 15 intentos ≈ 30 s.
-   Si aun así no llegó, la bienvenida se muestra igual y
-   el nivel queda activo cuando el webhook aterrice. */
+   Desde 2B.9.1 esta espera corre EN SEGUNDO PLANO: la
+   bienvenida se muestra al instante y el nivel queda
+   activo cuando el webhook aterrice. */
 
 const POLL_PRIMERA_MS = 1000;
 const POLL_INTENTOS = 15;
@@ -538,11 +548,24 @@ async function mountPayPalButtons({
 
                 if (WEBHOOK_ACTIVO) {
 
-                    await esperarActivacionWebhook(tier);
+                    /* 2B.9.1 — BIENVENIDA INMEDIATA:
+                       el dinero YA está cobrado (capture
+                       OK, confirmado por PayPal). Mostrar
+                       la bienvenida al instante y dejar
+                       que el webhook active el nivel en
+                       segundo plano. Nadie espera mirando
+                       una pantalla. */
 
                     escudoPago(false);
 
                     onSuccess?.(details);
+
+                    esperarActivacionWebhook(tier)
+                        .then(() =>
+                            window.BVrosAuth
+                                ?.refreshProfile?.()
+                        )
+                        .catch(() => {});
 
                     return;
                 }
@@ -790,7 +813,7 @@ window.BVrosPay = {
 };
 
 console.info(
-    '[BVros Pay] Listo (2B.9) — proveedor:',
+    '[BVros Pay] Listo (2B.9.1) — proveedor:',
     PAYMENT_PROVIDER,
     '· webhook:',
     WEBHOOK_ACTIVO ? 'ACTIVO' : 'apagado'
