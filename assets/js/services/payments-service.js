@@ -37,6 +37,22 @@
      nivel ya aparece activo al mostrar la bienvenida;
      si no, sigue activando en segundo plano.
 
+   NUEVO EN 2B.9.3 — SECUENCIA DE CONFIRMACIÓN (10 s):
+   · Dos fases visibles SIEMPRE, 5 segundos cada una:
+     FASE 1 · CARGA — "Confirmando tu pago…" (spinner):
+       5 s visibles (incluyen el cobro de PayPal y los
+       primeros chequeos del webhook; tope
+       FASE_CARGA_MAX_MS).
+     FASE 2 · ÉXITO — "¡Pago confirmado!" (✓ dorado):
+       5 s SIEMPRE visibles (FASE_EXITO_MS), pase lo
+       que pase.
+   · Total: ~10 segundos de punta a punta.
+   · Mensaje de la fase 2 adaptable: si el webhook ya
+     activó, dice "Tu nivel BVLUX ya está activo"; si
+     aún no, dice "Activando tu nivel BVLUX…" y sigue
+     en segundo plano. La seguridad no cambia: el
+     navegador no activa nada.
+
    BASE 2B.7 — VALIDACIÓN SERVER-SIDE (webhook):
    · El pedido se crea con custom_id compuesto:
        "idSuscripcion|idUsuario|tier"
@@ -104,11 +120,17 @@ const POLL_PRIMERA_MS = 1000;
 const POLL_INTENTOS = 15;
 const POLL_PAUSA_MS = 2000;
 
-/* Ventana mínima del aviso "¡Pago confirmado!" (2B.9.2):
-   el comprador debe VER que su pago quedó registrado —
-   confianza + blindaje anti-doble-pago. */
+/* SECUENCIA DE CONFIRMACIÓN (2B.9.3) — dos fases
+   visibles, 5 segundos cada una (total ~10 s):
+   · FASE 1 (carga): "Confirmando tu pago…" — cubre el
+     cobro de PayPal + los primeros chequeos del webhook.
+   · FASE 2 (éxito): "¡Pago confirmado!" — siempre
+     visible 5 s, pase lo que pase.
+   El reloj arranca al aprobar el pago (no después del
+   cobro), así el total queda garantizado. */
 
-const ESCUDO_EXITO_MS = 3500;
+const FASE_CARGA_MAX_MS = 5000;
+const FASE_EXITO_MS = 5000;
 
 const PRICING = {
 
@@ -394,12 +416,15 @@ function escudoPago(mostrar){
 }
 
 
-/* Cambia el escudo a modo ÉXITO (2B.9.2):
+/* Cambia el escudo a modo ÉXITO (2B.9.2 / 2B.9.3):
    ✓ dorado + mensaje de pago recibido.
    Se muestra SIEMPRE que el capture de PayPal
-   respondió bien — el dinero está cobrado. */
+   respondió bien — el dinero está cobrado.
+   2B.9.3: el texto se adapta — si el webhook ya
+   activó el nivel, lo dice; si no, avisa que está
+   activando en segundos. */
 
-function escudoExito(){
+function escudoExito(nivelActivo){
 
     const cuerpo =
         document.querySelector(
@@ -413,7 +438,11 @@ function escudoExito(){
     cuerpo.innerHTML = `
       <div class="bv-escudo-ok">✓</div>
       <h4>¡Pago confirmado!</h4>
-      <p>Tu pago fue recibido correctamente.<br>Activando tu nivel BVLUX…</p>
+      <p>Tu pago fue recibido correctamente.<br>${
+          nivelActivo
+              ? 'Tu nivel BVLUX ya está activo.'
+              : 'Activando tu nivel BVLUX…'
+      }</p>
     `;
 
 }
@@ -574,9 +603,14 @@ async function mountPayPalButtons({
 
             /* ESCUDO 2B.9: desde este momento la pantalla
                queda bloqueada con el aviso de proceso.
-               Se quita al confirmar o al fallar. */
+               Se quita al confirmar o al fallar.
+               2B.9.3: el reloj de la secuencia (máx ~10 s)
+               arranca AQUÍ, con el escudo ya visible. */
 
             escudoPago(true);
+
+            const inicio =
+                Date.now();
 
             try{
 
@@ -600,36 +634,52 @@ async function mountPayPalButtons({
 
                 if (WEBHOOK_ACTIVO) {
 
-                    /* 2B.9.2 — CONFIRMACIÓN VISIBLE:
-                       el dinero YA está cobrado (capture
-                       OK, confirmado por PayPal). Mostrar
-                       el ✓ de éxito unos segundos y dejar
-                       que el webhook active el nivel (si
-                       confirma dentro de la ventana, la
-                       bienvenida ya sale con el nivel
-                       activo; si no, sigue en segundo
-                       plano sin bloquear a nadie). */
+                    /* 2B.9.3 — SECUENCIA DE CONFIRMACIÓN
+                       (5 s carga + 5 s éxito = ~10 s,
+                       reloj desde el inicio de onApprove):
 
-                    escudoExito();
+                       FASE 1 · CARGA (spinner, ya visible):
+                         el capture de PayPal + los primeros
+                         chequeos del webhook. Tope 5 s:
+                         FASE_CARGA_MAX_MS.
 
-                    const inicio =
-                        Date.now();
+                       FASE 2 · ÉXITO (✓ dorado):
+                         siempre visible 5 s
+                         (FASE_EXITO_MS).
+
+                       La seguridad NO cambia: el navegador
+                       no activa nada. Si el webhook no
+                       confirmó dentro de la secuencia,
+                       sigue activando en segundo plano y
+                       la próxima lectura del perfil ya lo
+                       muestra. */
 
                     const confirmado =
                         await esperarActivacionWebhook(
                             tier,
-                            2          /* ~3 s dentro del escudo */
+                            2          /* ~3 s de chequeos */
                         );
 
-                    const restante =
-                        ESCUDO_EXITO_MS
+                    /* Completar la FASE 1 hasta su tope
+                       (el reloj incluye el cobro). */
+
+                    const restanteCarga =
+                        FASE_CARGA_MAX_MS
                             - (Date.now() - inicio);
 
-                    if(restante > 0){
+                    if(restanteCarga > 0){
                         await new Promise(
-                            r => setTimeout(r, restante)
+                            r => setTimeout(r, restanteCarga)
                         );
                     }
+
+                    /* FASE 2 · ÉXITO — siempre visible. */
+
+                    escudoExito(confirmado);
+
+                    await new Promise(
+                        r => setTimeout(r, FASE_EXITO_MS)
+                    );
 
                     escudoPago(false);
 
@@ -899,7 +949,7 @@ window.BVrosPay = {
 };
 
 console.info(
-    '[BVros Pay] Listo (2B.9.2) — proveedor:',
+    '[BVros Pay] Listo (2B.9.3) — proveedor:',
     PAYMENT_PROVIDER,
     '· webhook:',
     WEBHOOK_ACTIVO ? 'ACTIVO' : 'apagado'
