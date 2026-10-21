@@ -61,9 +61,25 @@
        cron de la base (bvlux-cancel-caducidad.sql)
        reinicia todo a Miembro Gratuito quitando
        accesos, promociones y beneficios.
+
+   NUEVO EN 2C.1 · ACCESOS ESPECIALES DEL DUEÑO:
+     · Nueva pestaña «Canjear código» dentro del
+       submenú SUSCRIPCIÓN: el usuario pega un código
+       BVLUX-XXXX-XXXX-XXXX y el servidor (Edge Function
+       bvlux-canjear-acceso) valida y activa el nivel
+       gratis, con la duración que el dueño asignó.
+     · Un código sirve UNA sola vez, queda VINCULADO a
+       la cuenta que lo canjea (no se puede re-compartir)
+       y caduca a los 2 días si nadie lo usa.
+     · Solo acepta cuentas Miembro Gratuito (no se
+       apila sobre suscripciones pagadas).
+     · El dueño genera y revoca códigos desde su página
+       privada dueno-accesos.html (doble cerrojo: sesión
+       del dueño + clave maestra, validados 100% en el
+       servidor; nada de esto vive en el navegador).
    ========================================================= */
 
-console.log("[BVros Gate] versión 2B.9 activa");
+console.log("[BVros Gate] versión 2C.1 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -1797,6 +1813,105 @@ async function confirmarCancelacion() {
       btn.disabled = false;
 
       btn.textContent = "SÍ, CANCELAR MI SUSCRIPCIÓN";
+    }
+  }
+}
+
+/* 2C.1 · CANJEAR CÓDIGO DE ACCESO ESPECIAL
+     (regalo del dueño, un solo uso, activación
+     server-side por bvlux-canjear-acceso; el guardián
+     no se opone porque el nivel lo escribe el
+     servidor, igual que el webhook). */
+
+function renderCanjePanel() {
+  const body = document.querySelector("#bvCanjeBody");
+
+  if (!body) return;
+
+  body.innerHTML =
+    `<div class="bv-cancel-title">CÓDIGO DE ACCESO</div>` +
+    `<p class="bv-cancel-text">Si el dueño de BVros te entregó un ` +
+    `código especial, escríbelo aquí. Sirve una sola vez y queda ` +
+    `ligado a tu cuenta.</p>` +
+    `<input id="bvCanjeCodigo" type="text" ` +
+    `placeholder="BVLUX-XXXX-XXXX-XXXX" autocomplete="off" ` +
+    `style="width:100%; margin:10px 0 4px;">` +
+    `<button class="bv-menu-save" id="bvCanjeBtn" type="button">CANJEAR CÓDIGO</button>` +
+    `<div class="bv-cancel-info" data-ref="errCanje" style="margin-top:10px;"></div>`;
+
+  body.querySelector("#bvCanjeBtn").addEventListener("click", () => {
+    canjearCodigo();
+  });
+}
+
+async function canjearCodigo() {
+  const body = document.querySelector("#bvCanjeBody");
+
+  const errEl = body?.querySelector('[data-ref="errCanje"]');
+
+  const btn = body?.querySelector("#bvCanjeBtn");
+
+  const input = body?.querySelector("#bvCanjeCodigo");
+
+  const codigo = (input?.value || "").trim().toUpperCase();
+
+  if (errEl) errEl.textContent = "";
+
+  if (!codigo) {
+    if (errEl)
+      errEl.textContent = "Escribe el código que te entregó el dueño.";
+
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+
+    btn.textContent = "CANJEANDO…";
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke(
+      "bvlux-canjear-acceso",
+      { body: { codigo } },
+    );
+
+    if (error) throw error;
+
+    if (!data?.ok) {
+      throw new Error(data?.error || "No se pudo canjear el código.");
+    }
+
+    await cargarEstadoSub();
+
+    await auth.refreshProfile?.();
+
+    const badge = document.querySelector(".bv-auth-menu .m-plan");
+
+    if (badge) badge.textContent = planBadge();
+
+    if (body) {
+      body.innerHTML =
+        `<div class="bv-cancel-ok">✔ Código canjeado.</div>` +
+        `<p class="bv-cancel-text">Tu nivel <b>${data.tier}</b> está ` +
+        `activo con todos sus beneficios hasta el ` +
+        `<b>${fechaLarga(data.beneficio_hasta)}</b>. Después volverás ` +
+        `automáticamente a Miembro Gratuito.</p>` +
+        `<button class="bv-menu-save" data-cancel-volver type="button">ENTENDIDO</button>`;
+
+      body.querySelectorAll("[data-cancel-volver]").forEach((b) => {
+        b.addEventListener("click", () => mostrarPanelMenu("main"));
+      });
+    }
+
+    console.info("[BVros Gate] Código de acceso canjeado (servidor).");
+  } catch (e) {
+    if (errEl) errEl.textContent = e.message || "Error al canjear.";
+
+    if (btn) {
+      btn.disabled = false;
+
+      btn.textContent = "CANJEAR CÓDIGO";
     }
   }
 }
@@ -3983,6 +4098,12 @@ function syncNavAuth() {
                             type="button"
                         >Cancelar suscripción</button>
 
+                        <button
+                            class="m-item m-sub"
+                            data-menu="canjear"
+                            type="button"
+                        >Canjear código</button>
+
                     </div>
 
                     <button
@@ -4273,6 +4394,19 @@ function syncNavAuth() {
 
                 </div>
 
+
+                <div class="bv-menu-panel" data-view="canjear">
+
+                    <button
+                        class="bv-menu-back"
+                        data-menu="main"
+                        type="button"
+                    >← Volver</button>
+
+                    <div id="bvCanjeBody"></div>
+
+                </div>
+
             </div>
 
         `;
@@ -4318,6 +4452,13 @@ function syncNavAuth() {
                confirmación antes de mostrar el panel. */
 
           renderCancelPanel();
+        }
+
+        if (target === "canjear") {
+          /* 2C.1 · Pestaña CANJEAR CÓDIGO: acceso
+               especial del dueño, un solo uso. */
+
+          renderCanjePanel();
         }
 
         if (target === "suscribir") {

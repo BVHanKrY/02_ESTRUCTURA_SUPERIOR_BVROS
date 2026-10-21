@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>BVros · Panel del dueño</title>
+<style>
+  :root{
+    --bg:#0d0f12; --panel:#161a20; --line:#262c35;
+    --txt:#e8e6e1; --mut:#9aa3ad; --acc:#ff8a2a; --ok:#3ecf6e; --bad:#ff5a5a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:'Segoe UI', system-ui, sans-serif;
+    min-height:100vh; padding:24px 16px;
+  }
+  .wrap{max-width:960px; margin:0 auto;}
+  h1{font-size:1.25rem; letter-spacing:.12em; text-transform:uppercase;}
+  h1 span{color:var(--acc);}
+  .sub{color:var(--mut); font-size:.85rem; margin-top:6px;}
+  .card{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:20px; margin-top:18px;
+  }
+  label{display:block; font-size:.72rem; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--mut); margin:12px 0 5px;}
+  input,select{
+    width:100%; background:#0a0c0f; border:1px solid var(--line);
+    border-radius:9px; color:var(--txt); padding:10px 12px;
+    font-size:.95rem; outline:none;
+  }
+  input:focus,select:focus{border-color:var(--acc);}
+  button{
+    background:var(--acc); border:0; color:#16110a; font-weight:700;
+    border-radius:9px; padding:11px 18px; cursor:pointer;
+    letter-spacing:.06em; font-size:.85rem; margin-top:14px;
+  }
+  button.sec{background:#222832; color:var(--txt);}
+  button.mini{background:#222832; color:var(--bad); padding:6px 10px;
+    margin-top:0; font-size:.72rem;}
+  button:disabled{opacity:.5; cursor:wait;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:0 16px;}
+  @media(max-width:640px){.grid{grid-template-columns:1fr;}}
+  .msg{margin-top:12px; font-size:.88rem; min-height:1.2em;}
+  .msg.err{color:var(--bad);} .msg.ok{color:var(--ok);}
+  .codes{margin-top:14px; display:flex; flex-direction:column; gap:8px;}
+  .code{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; background:#0a0c0f; border:1px dashed var(--acc);
+    border-radius:9px; padding:10px 12px; font-family:monospace;
+    font-size:1rem; letter-spacing:.08em;
+  }
+  .code small{color:var(--mut); font-family:inherit; letter-spacing:0;}
+  table{width:100%; border-collapse:collapse; margin-top:10px; font-size:.82rem;}
+  th,td{padding:8px 6px; border-bottom:1px solid var(--line); text-align:left;
+    vertical-align:top;}
+  th{color:var(--mut); font-weight:600; font-size:.7rem;
+    text-transform:uppercase; letter-spacing:.08em;}
+  td .cod{font-family:monospace; letter-spacing:.05em;}
+  .st{display:inline-block; padding:2px 8px; border-radius:20px;
+    font-size:.68rem; font-weight:700; letter-spacing:.05em;}
+  .st.vig{background:#12351f; color:var(--ok);}
+  .st.can{background:#33240b; color:var(--acc);}
+  .st.cad{background:#2b2b2b; color:var(--mut);}
+  .st.rev{background:#3a1414; color:var(--bad);}
+  .hidden{display:none;}
+  .nota{color:var(--mut); font-size:.8rem; margin-top:10px; line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>BVros · <span>Panel del dueño</span></h1>
+  <div class="sub">Accesos especiales BVLUX — genera, comparte y controla códigos de un solo uso.</div>
+
+  <!-- CERROJO 1: sesión del dueño -->
+  <div class="card" id="cardSesion">
+    <div class="sub" id="sesionEstado">Comprobando tu sesión…</div>
+    <div class="hidden" id="bloqueClave">
+      <!-- CERROJO 2: clave maestra -->
+      <label>Clave maestra</label>
+      <input type="password" id="clave" placeholder="Tu frase secreta (solo tú la conoces)">
+      <button id="btnEntrar">ABRIR PANEL</button>
+      <div class="msg" id="msgEntrar"></div>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div class="hidden" id="panel">
+
+    <div class="card">
+      <h1 style="font-size:1rem;">Generar códigos</h1>
+      <div class="grid">
+        <div>
+          <label>Nivel que otorga</label>
+          <select id="tier">
+            <option value="nivel2">Nivel 2 · $3.99</option>
+            <option value="nivel3">Nivel 3 · $4.75</option>
+            <option value="nivel2_promo">Nivel 2 promocional · $1.70</option>
+          </select>
+        </div>
+        <div>
+          <label>Duración del beneficio</label>
+          <select id="duracion">
+            <option value="30">30 días</option>
+            <option value="90">90 días</option>
+            <option value="365">365 días</option>
+            <option value="9999">Perpetuo (solo dueño)</option>
+          </select>
+        </div>
+        <div>
+          <label>Modo</label>
+          <select id="modo">
+            <option value="libre">Libre · el primero que lo canjee</option>
+            <option value="dedicado">Dedicado · solo un correo</option>
+          </select>
+        </div>
+        <div>
+          <label>Cantidad (1–20)</label>
+          <input type="number" id="cantidad" value="1" min="1" max="20">
+        </div>
+        <div id="bloqueEmail" class="hidden">
+          <label>Correo de la persona (modo dedicado)</label>
+          <input type="email" id="email" placeholder="persona@correo.com">
+        </div>
+      </div>
+      <button id="btnGenerar">GENERAR CÓDIGOS</button>
+      <div class="msg" id="msgGen"></div>
+      <div class="codes" id="codigosNuevos"></div>
+      <div class="nota">Cada código sirve UNA sola vez y caduca si nadie lo canjea en 2 días.
+      Al canjearlo queda atado a esa cuenta para siempre: si lo comparten, ya no sirve para nadie más.</div>
+    </div>
+
+    <div class="card">
+      <h1 style="font-size:1rem;">Códigos emitidos</h1>
+      <button class="sec" id="btnListar">ACTUALIZAR LISTA</button>
+      <div class="msg" id="msgLista"></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Código</th><th>Estado</th><th>Nivel</th>
+            <th>Duración</th><th>Canjeado por</th><th>Beneficio hasta</th><th></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="nota">Estados: VIGENTE = se puede canjear aún · CADUCADO = pasaron los 2 días sin canjear ·
+      CANJEADO = ya tiene dueño · REVOCADO = anulado por ti (si estaba canjeado, el beneficio se cortó al instante).</div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* MISMO proyecto y MISMA anon key que tu web:
+   así la sesión iniciada en el sitio se reconoce aquí
+   (comparten el almacenamiento del navegador). */
+
+const supabase = createClient(
+  'https://udbwjixdwoahonzezbqj.supabase.co',
+  'sb_publishable_CERYzMSJCTQkzIVjkn7c8g_C1QAo6Hc'
+);
+
+const FUNCION = 'bvlux-accesos-dueno';
+
+let claveMaestra = '';
+
+const $ = (id) => document.getElementById(id);
+
+const fecha = (iso) => iso
+  ? new Date(iso).toLocaleDateString('es-EC', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})
+  : '—';
+
+/* ---------- CERROJO 1 · SESIÓN ---------- */
+
+const { data: sesion } = await supabase.auth.getSession();
+
+if (sesion?.session?.user) {
+  $('sesionEstado').textContent =
+    'Sesión activa: ' + sesion.session.user.email + '. Falta tu clave maestra.';
+  $('bloqueClave').classList.remove('hidden');
+} else {
+  $('sesionEstado').innerHTML =
+    'No hay sesión iniciada. Ábrete tu web en otra pestaña, <b>inicia sesión con tu cuenta de dueño</b> y vuelve a esta página.';
+}
+
+$('btnEntrar').addEventListener('click', async () => {
+  const clave = $('clave').value.trim();
+
+  if (!clave) {
+    $('msgEntrar').textContent = 'Escribe tu clave maestra.';
+    $('msgEntrar').className = 'msg err';
+    return;
+  }
+
+  /* Prueba la clave con una llamada ligera (listar). */
+
+  const res = await llamar({ accion: 'listar', clave });
+
+  if (!res.ok) {
+    $('msgEntrar').textContent = res.error || 'Clave incorrecta.';
+    $('msgEntrar').className = 'msg err';
+    return;
+  }
+
+  claveMaestra = clave;
+
+  $('cardSesion').classList.add('hidden');
+  $('panel').classList.remove('hidden');
+
+  pintarLista(res.codigos);
+});
+
+/* ---------- GENERAR ---------- */
+
+$('modo').addEventListener('change', () => {
+  $('bloqueEmail').classList.toggle('hidden', $('modo').value !== 'dedicado');
+});
+
+$('btnGenerar').addEventListener('click', async () => {
+  $('btnGenerar').disabled = true;
+  $('msgGen').textContent = '';
+  $('codigosNuevos').innerHTML = '';
+
+  const res = await llamar({
+    accion: 'generar',
+    clave: claveMaestra,
+    tier: $('tier').value,
+    duracion_dias: Number($('duracion').value),
+    modo: $('modo').value,
+    email_asignado: $('email').value.trim(),
+    cantidad: Number($('cantidad').value) || 1
+  });
+
+  $('btnGenerar').disabled = false;
+
+  if (!res.ok) {
+    $('msgGen').textContent = res.error || 'No se pudo generar.';
+    $('msgGen').className = 'msg err';
+    return;
+  }
+
+  $('msgGen').textContent =
+    'Códigos creados. Caducan para canje en ' + res.plazo_dias + ' días. Cópialos ahora:';
+  $('msgGen').className = 'msg ok';
+
+  res.codigos.forEach((c) => {
+    const div = document.createElement('div');
+    div.className = 'code';
+    div.innerHTML = '<span>' + c.codigo + '</span>' +
+      '<small>' + (c.modo === 'dedicado' ? '→ ' + c.email_asignado : 'modo libre') +
+      ' · ' + c.tier + ' · ' + c.duracion_dias + ' días</small>';
+    div.addEventListener('click', () => navigator.clipboard?.writeText(c.codigo));
+    div.title = 'Clic para copiar';
+    $('codigosNuevos').appendChild(div);
+  });
+
+  listar();
+});
+
+/* ---------- LISTAR ---------- */
+
+$('btnListar').addEventListener('click', listar);
+
+async function listar() {
+  const res = await llamar({ accion: 'listar', clave: claveMaestra });
+
+  if (!res.ok) {
+    $('msgLista').textContent = res.error || 'No se pudo listar.';
+    $('msgLista').className = 'msg err';
+    return;
+  }
+
+  pintarLista(res.codigos);
+}
+
+function estadoDe(c) {
+  if (!c.activo) return ['REVOCADO', 'rev'];
+  if (c.canjeado_por) return ['CANJEADO', 'can'];
+  if (new Date(c.canjable_hasta) < new Date()) return ['CADUCADO', 'cad'];
+  return ['VIGENTE', 'vig'];
+}
+
+function pintarLista(codigos) {
+  $('msgLista').textContent = codigos.length + ' código(s) registrados.';
+  $('msgLista').className = 'msg';
+
+  const tbody = $('tbody');
+  tbody.innerHTML = '';
+
+  codigos.forEach((c) => {
+    const [txt, cls] = estadoDe(c);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><span class="cod">' + c.codigo + '</span><br>' +
+      '<small style="color:var(--mut)">' + (c.modo === 'dedicado' ? 'dedicado → ' + c.email_asignado : 'libre') + '</small></td>' +
+      '<td><span class="st ' + cls + '">' + txt + '</span></td>' +
+      '<td>' + c.tier + '</td>' +
+      '<td>' + c.duracion_dias + ' d</td>' +
+      '<td>' + (c.canjeado_email || '—') + '<br><small style="color:var(--mut)">' + fecha(c.canjeado_en) + '</small></td>' +
+      '<td>' + (c.beneficio_hasta ? fecha(c.beneficio_hasta) : '—') + '</td>' +
+      '<td></td>';
+
+    if (c.activo) {
+      const btn = document.createElement('button');
+      btn.className = 'mini';
+      btn.textContent = 'REVOCAR';
+      btn.addEventListener('click', () => revocar(c, btn));
+      tr.lastElementChild.appendChild(btn);
+    }
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function revocar(c, btn) {
+  if (!confirm('¿Anular el código ' + c.codigo + '? Si ya fue canjeado, el beneficio se corta al instante.')) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'revocar', clave: claveMaestra, id: c.id });
+
+  if (!res.ok) alert(res.error || 'No se pudo revocar.');
+
+  listar();
+}
+
+/* ---------- LLAMADA A LA FUNCIÓN ---------- */
+
+async function llamar(cuerpo) {
+  const { data: ses } = await supabase.auth.getSession();
+
+  if (!ses?.session?.access_token) {
+    return { ok: false, error: 'Sin sesión. Inicia sesión en tu web y recarga esta página.' };
+  }
+
+  const res = await fetch(
+    supabase.supabaseUrl + '/functions/v1/' + FUNCION,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + ses.session.access_token
+      },
+      body: JSON.stringify(cuerpo)
+    }
+  );
+
+  return await res.json();
+}
+</script>
+</body>
+</html>
