@@ -77,13 +77,53 @@
        privada dueno-accesos.html (doble cerrojo: sesión
        del dueño + clave maestra, validados 100% en el
        servidor; nada de esto vive en el navegador).
+
+   NUEVO EN 2C.2 · ACCESO DIRECTO SOLO PARA EL DUEÑO:
+     · El gate detecta la sesión: si el correo del
+       usuario conectado es EXACTAMENTE el correo del
+       dueño (constante EMAIL_DUENO_PANEL, al inicio de
+       este archivo), en su menú (pastilla de usuario)
+       aparece UN ítem más: «Panel del dueño ★» que abre
+       dueno-accesos.html en pestaña nueva.
+     · En CUALQUIER otra cuenta ese ítem NO existe:
+       ellos solo ven «Canjear código» dentro del submenú
+       SUSCRIPCIÓN (igual que en 2C.1). El panel sigue
+       siendo inaccesible por enlaces: quien no sea el
+       dueño solo llega tecleando la URL, y aun así el
+       servidor le exige sesión de dueño + clave maestra.
+     · El correo se compara en minúsculas: mayúsculas/
+       minúsculas no afectan. Si tu correo de dueño fuera
+       otro, cambia SOLO la constante EMAIL_DUENO_PANEL.
    ========================================================= */
 
-console.log("[BVros Gate] versión 2C.1 activa");
+console.log("[BVros Gate] versión 2C.2 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
 import "./services/payments-service.js";
+
+/* =========================================================
+   2C.2 · CORREO DEL DUEÑO
+   El ítem «Panel del dueño ★» del menú SOLO aparece si la
+   cuenta conectada tiene este correo (sin importar
+   mayúsculas/minúsculas). Cámbialo aquí si usas otra
+   cuenta de dueño. Debe ser el mismo correo que guardaste
+   en el secret BVLUX_DUENO_EMAIL.
+========================================================= */
+
+const EMAIL_DUENO_PANEL = "bvrosmusic@gmail.com";
+
+function esSesionDueno() {
+  try {
+    const correo = String(window.BVrosAuth?.user?.email || "")
+      .trim()
+      .toLowerCase();
+
+    return !!correo && correo === EMAIL_DUENO_PANEL;
+  } catch (_) {
+    return false;
+  }
+}
 
 /* =========================================================
    ESTILOS
@@ -1144,6 +1184,15 @@ STYLE.textContent = `
     cursor:pointer;
     text-decoration:none;
 }
+
+/* 2C.2 · Ítem del dueño: mismo estilo del menú, con el
+   acento naranja para que lo reconozcas al instante. */
+
+.bv-auth-menu .bv-menu-dueno{
+    color:var(--accent,#F97316);
+    font-weight:600;
+}
+
 .bv-auth-menu .m-item:hover{
     background:rgba(249,115,22,.08);
     color:var(--accent,#F97316);
@@ -4105,6 +4154,17 @@ function syncNavAuth() {
                         >Canjear código</button>
 
                     </div>
+
+                    ${
+                      esSesionDueno()
+                        ? `<a
+                    class="m-item bv-menu-dueno"
+                    href="/dueno-accesos.html"
+                    target="_blank"
+                    rel="noopener"
+                >Panel del dueño ★</a>`
+                        : ""
+                    }
 
                     <button
                         class="m-item"
