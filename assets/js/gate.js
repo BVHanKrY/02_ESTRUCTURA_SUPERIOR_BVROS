@@ -74,7 +74,7 @@
      · Solo acepta cuentas Miembro Gratuito (no se
        apila sobre suscripciones pagadas).
      · El dueño genera y revoca códigos desde su página
-       privada dueno-accesos.html (doble cerrojo: sesión
+       privada bvros%20control%20de%20accesos.html (doble cerrojo: sesión
        del dueño + clave maestra, validados 100% en el
        servidor; nada de esto vive en el navegador).
 
@@ -84,7 +84,7 @@
        dueño (constante EMAIL_DUENO_PANEL, al inicio de
        este archivo), en su menú (pastilla de usuario)
        aparece UN ítem más: «Panel del dueño ★» que abre
-       dueno-accesos.html en pestaña nueva.
+       bvros%20control%20de%20accesos.html en pestaña nueva.
      · En CUALQUIER otra cuenta ese ítem NO existe:
        ellos solo ven «Canjear código» dentro del submenú
        SUSCRIPCIÓN (igual que en 2C.1). El panel sigue
@@ -4159,7 +4159,7 @@ function syncNavAuth() {
                       esSesionDueno()
                         ? `<a
                     class="m-item bv-menu-dueno"
-                    href="/dueno-accesos.html"
+                    href="/bvros%20control%20de%20accesos.html"
                     target="_blank"
                     rel="noopener"
                 >Panel del dueño ★</a>`
