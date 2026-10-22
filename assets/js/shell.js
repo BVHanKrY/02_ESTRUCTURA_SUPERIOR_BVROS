@@ -1,12 +1,33 @@
 /* =========================================================
-   BVROS SHELL v3.5
+   BVROS SHELL v3.5.1
    Router SPA — intercambia el contenedor .shell COMPLETO
    (nav + título + contenido + footer juntos). Esto elimina
    los residuos de título entre módulos con estructuras
    distintas (ej: index vs stream).
    Mantiene: reproductor persistente, rutas anidadas,
    estilos por página, re-ejecución de scripts, popstate.
+
+   NOVEDADES v3.5.1 (sin tocar nada del comportamiento
+   existente — 3 correcciones quirúrgicas):
+   · FIX A — IDIOMA EN LA RAÍZ: al abrir el sitio con
+     https://bvros-music-network.onrender.com/ (sin
+     index.html), el ES/EN no traducía nada porque
+     location.pathname.pop() devolvía cadena vacía.
+     Ahora el nombre de archivo se normaliza con
+     bvCurrentFile() (vacío = index.html).
+   · FIX B — TOGGLE ES/EN ESTABLE: el botón de idioma
+     y la pastilla de usuario peleaban por la posición
+     (a veces uno antes, a veces el otro). Ahora el
+     toggle queda SIEMPRE anclado al final del nav
+     (esquina derecha) con doble seguro:
+     re-anclaje DOM + MutationObserver + CSS order.
+   · FIX C — ORTOGRAFÍA: "Musica en Línea" pasa a
+     "Música en línea" en los textos públicos ES.
    ========================================================= */
+
+console.info(
+    '[BVros Shell] v3.5.1 · fixes: idioma en raíz (/) · toggle ES/EN anclado · ortografía ES'
+);
 
 window.__BVROS_SHELL__ = true;
 
@@ -126,7 +147,7 @@ function showBar(){
 
     routerBar.style.width = '60%';
 
-        const tp =
+    const tp =
         document.getElementById('topProgress');
 
     if(tp){
@@ -144,7 +165,7 @@ function hideBar(){
 
     routerBar.style.width = '100%';
 
-        const tp =
+    const tp =
         document.getElementById('topProgress');
 
     if(tp){
@@ -351,8 +372,7 @@ function highlightNav(url){
 
 /* =========================================================
    ROUTER
-   FIX PRINCIPAL v3.5:
-   se intercambia el .shell COMPLETO de la página
+   Se intercambia el .shell COMPLETO de la página
    destino. Así ninguna pieza del módulo anterior
    (título, héroe, contenido) sobrevive al cambio,
    sin importar la anatomía interna de cada página.
@@ -650,7 +670,7 @@ document.addEventListener(
             return;
         }
 
-                /*
+        /*
            SOLO PÁGINAS DE LA RAÍZ:
            las anidadas (artist/bvhankry/..., release/...)
            tienen diseño propio y navegan de forma
@@ -701,9 +721,21 @@ window.addEventListener(
 highlightNav(location.href);
 
 /* =========================================================
-   BVROS UI-LANG v3 — ES/EN de página completa
-   Nav + encabezados + footer por módulo.
+   BVROS UI-LANG v3 (revisada en v3.5.1) — ES/EN de página
+   completa. Nav + encabezados + footer por módulo.
    Los archivos y el código siguen en inglés.
+
+   v3.5.1:
+   · bvCurrentFile(): normaliza el nombre de página.
+     En la raíz "/" (sin index.html) el antiguo
+     pathname.pop() devolvía "" y el ES/EN no
+     traducía nada. Ahora "" se interpreta como
+     index.html. (FIX A)
+   · bvEnsureToggle() re-ancla el botón de idioma al
+     final del nav en cada llamada, y un
+     MutationObserver lo mantiene allí cuando la
+     pastilla del gate aparece o se mueve. (FIX B)
+   · Textos ES con ortografía corregida. (FIX C)
 ========================================================= */
 
 console.info('[BVros Lang] v3 activo — idioma:', localStorage.getItem('bvros_lang') || 'es');
@@ -740,8 +772,8 @@ const BV_PAGE_TEXTS = {
         'index.html': [
             ['.hub-hero h1', 'Una casa para crear, aprender y publicar.'],
             ['.hub-hero .eyebrow', 'RED MUSICAL · ECUADOR'],
-            ['.hub-hero p', 'Esta es la cabeza del ecosistema. Desde aquí se accede a la plataforma musical, distribución interna, perfiles artísticos, formación y productos'],
-            ['.module-grid a:nth-child(1) h2', 'Musica en Línea'],
+            ['.hub-hero p', 'Esta es la cabeza del ecosistema. Desde aquí se accede a la plataforma musical, distribución interna, perfiles artísticos, formación y productos.'],
+            ['.module-grid a:nth-child(1) h2', 'Música en línea'],
             ['.module-grid a:nth-child(1) p', 'Catálogo y reproducción musical.'],
             ['.module-grid a:nth-child(2) h2', 'Distribución'],
             ['.module-grid a:nth-child(2) p', 'Recepción, revisión y publicación de lanzamientos.'],
@@ -754,7 +786,7 @@ const BV_PAGE_TEXTS = {
 
         'stream.html': [
             ['.page-head .eyebrow', 'CATÁLOGO GLOBAL'],
-            ['.page-head h1', 'Musica en Línea'],
+            ['.page-head h1', 'Música en línea'],
             ['.page-head p', 'Toda la música del ecosistema en un solo lugar.'],
             ['.catalog-header :nth-child(3)', 'PISTA'],
             ['.catalog-header :nth-child(4)', 'ÁLBUM'],
@@ -833,7 +865,7 @@ const BV_PAGE_TEXTS = {
             ['.page-head h1', 'Distribution'],
             ['.page-head p', 'Reception, review and publishing of releases within the BVros ecosystem.'],
             ['footer', 'html:© 2026 · BVros Music Ecuador · versión 1.1 · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a>']
-        ]       
+        ]
 
     }
 
@@ -842,6 +874,24 @@ const BV_PAGE_TEXTS = {
 
 function bvCurrentLang(){
     return localStorage.getItem('bvros_lang') || 'es';
+}
+
+
+/* FIX A (v3.5.1) — nombre de página normalizado:
+   en la raíz "/" el último segmento del pathname es
+   cadena vacía; se interpreta como index.html.
+   Antes: bvApplyLang/bvSnapshotLegal/bvApplyLegal
+   buscaban el mapa del idioma bajo "" y no
+   encontraban nada (por eso el título
+   "Una casa para crear…" no cambiaba con la URL
+   https://bvros-music-network.onrender.com/). */
+
+function bvCurrentFile(){
+
+    return (
+        location.pathname.split('/').pop() || 'index.html'
+    ).toLowerCase();
+
 }
 
 
@@ -905,7 +955,7 @@ function bvApplyLang(){
     /* 2) TEXTOS DE LA PÁGINA ACTUAL */
 
     const file =
-        location.pathname.split('/').pop().toLowerCase();
+        bvCurrentFile();
 
     const map =
         (BV_PAGE_TEXTS[lang] || {})[file];
@@ -945,48 +995,114 @@ function bvApplyLang(){
 }
 
 
+/* FIX B (v3.5.1) — ancla estable del botón ES/EN:
+   · Si no existe, se crea al final del nav.
+   · Si ya existe, se RE-ANCLA al final (appendChild
+     mueve el nodo sin recrearlo ni perder su evento).
+   · Un MutationObserver lo devuelve al final cada
+     vez que la pastilla del gate (u otro nodo)
+     entra o se mueve dentro del nav.
+   Resultado: [enlaces · pastilla usuario · ES/EN]
+   SIEMPRE en ese orden, sin parpadeos ni peleas. */
+
 function bvEnsureToggle(){
 
     const nav =
         document.querySelector('.hub-links');
 
-    if(
-        !nav ||
-        nav.querySelector('#bvLangToggle')
-    ){
+    if(!nav){
         return;
     }
 
+    let toggle =
+        nav.querySelector('#bvLangToggle');
 
-    const toggle =
-        document.createElement('button');
+    if(!toggle){
 
-    toggle.id =
-        'bvLangToggle';
+        toggle =
+            document.createElement('button');
 
-    toggle.type =
-        'button';
+        toggle.id =
+            'bvLangToggle';
 
-    toggle.textContent =
-        bvCurrentLang() === 'es' ? 'EN' : 'ES';
+        toggle.type =
+            'button';
 
-    toggle.addEventListener(
-        'click',
-        () => {
+        toggle.textContent =
+            bvCurrentLang() === 'es' ? 'EN' : 'ES';
 
-            localStorage.setItem(
-                'bvros_lang',
-                bvCurrentLang() === 'es'
-                    ? 'en'
-                    : 'es'
-            );
+        toggle.addEventListener(
+            'click',
+            () => {
 
-            bvApplyLang();
+                localStorage.setItem(
+                    'bvros_lang',
+                    bvCurrentLang() === 'es'
+                        ? 'en'
+                        : 'es'
+                );
 
-        }
+                bvApplyLang();
+
+            }
+        );
+
+        nav.appendChild(toggle);
+
+        return;
+
+    }
+
+    /* Re-anclaje: el toggle siempre último. */
+
+    if(nav.lastElementChild !== toggle){
+        nav.appendChild(toggle);
+    }
+
+}
+
+
+/* Observador del nav: cuando la pastilla del gate
+   se inserta o se mueve, el toggle vuelve al final.
+   appendChild del toggle también dispara el observer,
+   pero en esa vuelta lastElementChild YA es el toggle
+   → no hay bucle. */
+
+let bvNavObserver = null;
+
+function bvWatchNav(){
+
+    if(bvNavObserver){
+        bvNavObserver.disconnect();
+        bvNavObserver = null;
+    }
+
+    const nav =
+        document.querySelector('.hub-links');
+
+    if(!nav){
+        return;
+    }
+
+    bvNavObserver =
+        new MutationObserver(() => {
+
+            const toggle =
+                nav.querySelector('#bvLangToggle');
+
+            if(
+                toggle &&
+                nav.lastElementChild !== toggle
+            ){
+                nav.appendChild(toggle);
+            }
+
+        });
+
+    bvNavObserver.observe(
+        nav,
+        { childList: true }
     );
-
-    nav.appendChild(toggle);
 
 }
 
@@ -1005,6 +1121,11 @@ bvLangStyle.textContent = `
     letter-spacing:.1em;
     padding:5px 9px;
     cursor:pointer;
+    /* FIX B: si .hub-links es flex, el toggle
+       queda SIEMPRE al final (doble seguro junto
+       al re-anclaje DOM). Si no es flex, no
+       tiene ningún efecto. */
+    order:999;
 }
 #bvLangToggle:hover{
     border-color:var(--accent,#F97316);
@@ -1145,7 +1266,7 @@ let bvLegalSnapshot = null;
 function bvSnapshotLegal(){
 
     const file =
-        location.pathname.split('/').pop().toLowerCase();
+        bvCurrentFile();
 
     if(
         file !== 'privacy.html' &&
@@ -1190,7 +1311,7 @@ function bvSnapshotLegal(){
 function bvApplyLegal(){
 
     const file =
-        location.pathname.split('/').pop().toLowerCase();
+        bvCurrentFile();
 
     const doc =
         BV_LEGAL_EN[file];
@@ -1326,6 +1447,8 @@ function bvApplyLegal(){
 
 bvEnsureToggle();
 
+bvWatchNav();
+
 bvSnapshotLegal();
 
 bvApplyLang();
@@ -1335,6 +1458,7 @@ window.addEventListener(
     () => {
         bvSnapshotLegal();
         bvEnsureToggle();
+        bvWatchNav();
         bvApplyLang();
         bvApplyLegal();
     }

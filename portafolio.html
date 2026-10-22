@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<!-- =========================================================
+  BVHanKrY · PORTAFOLIO DE ARTISTA · v1 (FASE PCD)
+  Archivo autocontenido: NO depende del CSS ni del JS del
+  hub. Se navega de forma tradicional (el shell SPA solo
+  enruta páginas de la raíz), así que no rompe nada.
+
+  UBICACIÓN DESTINO:  artist/bvhankry/portafolio.html
+
+  Conexión futura al «Panel del dueño ★»:
+  cada sección editable lleva data-pcd="nombre" y un
+  comentario EDITAR. En la fase PCD-PORTAFOLIO esos
+  puntos leerán su contenido desde la base (panel).
+========================================================= -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070605">
+<title>BVHanKrY — Portafolio de artista | BVros</title>
+<meta name="description" content="Portafolio oficial de BVHanKrY (Henry Villavicencio): bio, discografía, contratación, rider técnico y contacto. BVros Music Network · Quito, Ecuador.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070605;
+    --surface:#14100C;
+    --surface2:#0E0B08;
+    --border:#2A2119;
+    --text:#F2EDE4;
+    --muted:#9A8D7D;
+    --gold:#E8C15A;
+    --gold-soft:rgba(232,193,90,.14);
+    --orange:#F97316;
+    --mono:'Courier New',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    line-height:1.65;
+  }
+  a{color:var(--gold);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  /* ── NAV ── */
+  .pf-nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(7,6,5,.94);
+    border-bottom:1px solid var(--border);
+    backdrop-filter:blur(10px);
+  }
+  .pf-nav .wrap{
+    display:flex;align-items:center;gap:14px;
+    min-height:56px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px;
+  }
+  .pf-brand{
+    font-family:'Orbitron',sans-serif;font-weight:700;
+    letter-spacing:.12em;color:var(--gold);font-size:.95rem;
+    margin-right:auto;
+  }
+  .pf-nav a.nav-link{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--muted);text-transform:uppercase;padding:6px 4px;
+  }
+  .pf-nav a.nav-link:hover{color:var(--gold);text-decoration:none}
+  .pf-nav a.nav-link.ext{color:var(--orange)}
+  @media(max-width:640px){ .pf-nav a.nav-link{display:none} }
+
+  /* ── HERO ── */
+  .pf-hero{
+    padding:72px 0 54px;text-align:center;
+    background:
+      radial-gradient(700px 320px at 50% -60px, rgba(232,193,90,.10), transparent 70%),
+      radial-gradient(520px 260px at 85% 20px, rgba(249,115,22,.07), transparent 70%);
+    border-bottom:1px solid var(--border);
+  }
+  .pf-eyebrow{
+    font-family:var(--mono);font-size:.62rem;letter-spacing:.32em;
+    color:var(--orange);text-transform:uppercase;margin-bottom:18px;
+  }
+  .pf-hero h1{
+    font-family:'Orbitron',sans-serif;font-weight:900;
+    font-size:clamp(2.1rem,6vw,3.6rem);letter-spacing:.06em;
+    color:var(--gold);
+  }
+  .pf-realname{
+    margin-top:10px;font-size:clamp(1rem,2.6vw,1.3rem);
+    font-weight:600;color:var(--text);letter-spacing:.04em;
+  }
+  .pf-place{
+    margin-top:6px;font-family:var(--mono);font-size:.68rem;
+    letter-spacing:.2em;color:var(--muted);text-transform:uppercase;
+  }
+  .pf-roles{
+    margin-top:22px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+  }
+  .pf-roles span{
+    border:1px solid var(--border);border-radius:999px;
+    padding:5px 14px;font-size:.72rem;color:var(--muted);
+    background:var(--surface2);
+  }
+  .pf-roles span.hot{color:var(--gold);border-color:rgba(232,193,90,.4)}
+
+  /* ── SECCIONES ── */
+  section{padding:56px 0;border-bottom:1px solid var(--border)}
+  .sec-eyebrow{
+    font-family:var(--mono);font-size:.6rem;letter-spacing:.3em;
+    color:var(--orange);text-transform:uppercase;margin-bottom:8px;
+  }
+  section h2{
+    font-family:'Orbitron',sans-serif;font-size:clamp(1.2rem,3vw,1.6rem);
+    color:var(--text);letter-spacing:.05em;margin-bottom:22px;
+  }
+  .bio p{color:#D8CFC2;margin-bottom:16px;max-width:820px}
+  .bio strong{color:var(--gold)}
+
+  /* Timeline */
+  .timeline{list-style:none;margin-top:6px}
+  .timeline li{
+    position:relative;padding:0 0 22px 30px;
+    border-left:1px solid var(--border);margin-left:8px;
+  }
+  .timeline li:last-child{border-left-color:transparent;padding-bottom:0}
+  .timeline li::before{
+    content:'';position:absolute;left:-6px;top:4px;
+    width:11px;height:11px;border-radius:50%;
+    background:var(--gold);box-shadow:0 0 10px rgba(232,193,90,.5);
+  }
+  .timeline b{color:var(--gold);font-family:var(--mono);font-size:.8rem;letter-spacing:.08em}
+  .timeline p{color:#D8CFC2;font-size:.92rem;margin-top:3px;max-width:760px}
+
+  /* Discografía */
+  .disc-grid{
+    display:grid;gap:18px;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  }
+  .disc-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;overflow:hidden;
+    display:flex;flex-direction:column;
+    transition:transform .25s,border-color .25s;
+  }
+  .disc-card:hover{transform:translateY(-5px);border-color:var(--gold)}
+  .disc-cover{
+    aspect-ratio:1;width:100%;object-fit:cover;display:block;
+    background:linear-gradient(135deg,#241B10,#0E0B08);
+  }
+  .disc-cover.ph{
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-family:var(--mono);font-size:.6rem;
+    letter-spacing:.2em;text-align:center;padding:12px;
+  }
+  .disc-body{padding:14px 16px 18px;display:flex;flex-direction:column;gap:4px;flex:1}
+  .disc-kind{
+    font-family:var(--mono);font-size:.55rem;letter-spacing:.22em;
+    color:var(--orange);text-transform:uppercase;
+  }
+  .disc-kind.ined{color:#f59e0b}
+  .disc-title{font-weight:700;font-size:1rem;color:var(--text)}
+  .disc-meta{font-size:.78rem;color:var(--muted);flex:1}
+  .disc-btn{
+    margin-top:12px;align-self:flex-start;
+    border:1px solid var(--gold);border-radius:999px;
+    padding:7px 16px;font-family:var(--mono);font-size:.6rem;
+    letter-spacing:.14em;color:var(--gold);text-transform:uppercase;
+    transition:background .2s,color .2s;
+  }
+  .disc-btn:hover{background:var(--gold);color:#000;text-decoration:none}
+  .disc-btn.soon{border-style:dashed;color:var(--muted);border-color:var(--border);pointer-events:none}
+
+  /* Contratación */
+  .price-table{
+    width:100%;border-collapse:collapse;margin-top:4px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;overflow:hidden;font-size:.9rem;
+  }
+  .price-table th,.price-table td{
+    padding:13px 16px;text-align:left;border-bottom:1px solid var(--border);
+  }
+  .price-table th{
+    font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;
+    color:var(--orange);text-transform:uppercase;background:var(--surface2);
+  }
+  .price-table tr:last-child td{border-bottom:none}
+  .price-table td b{color:var(--gold);font-family:var(--mono);letter-spacing:.04em;white-space:nowrap}
+  .price-table td small{color:var(--muted)}
+  .price-note{margin-top:14px;font-size:.78rem;color:var(--muted)}
+
+  /* Cualidades */
+  .chip-group{margin-bottom:26px}
+  .chip-group h3{
+    font-family:var(--mono);font-size:.62rem;letter-spacing:.24em;
+    color:var(--gold);text-transform:uppercase;margin-bottom:12px;
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chips span{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:7px 13px;font-size:.78rem;color:#D8CFC2;
+  }
+  .chips span.sign{font-family:var(--mono);color:var(--gold)}
+
+  /* Galería */
+  .gal-grid{
+    display:grid;gap:16px;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  }
+  .gal-slot{
+    aspect-ratio:4/3;border:1px dashed var(--border);border-radius:14px;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+    color:var(--muted);font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;
+    background:var(--surface2);text-transform:uppercase;
+  }
+  .gal-slot video{max-width:100%}
+
+  /* Rider */
+  .rider{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:24px;margin-top:4px;
+  }
+  .rider h3{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.22em;
+    color:var(--gold);text-transform:uppercase;margin-bottom:10px;
+  }
+  .rider ul{list-style:none}
+  .rider li{padding:8px 0;border-bottom:1px solid var(--border);font-size:.9rem;color:#D8CFC2}
+  .rider li:last-child{border-bottom:none}
+  .rider li b{color:var(--text)}
+
+  /* Contacto */
+  .contact-grid{
+    display:grid;gap:16px;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  }
+  .contact-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:20px;text-align:center;
+    transition:border-color .25s;
+  }
+  .contact-card:hover{border-color:var(--gold)}
+  .contact-card .c-label{
+    font-family:var(--mono);font-size:.55rem;letter-spacing:.24em;
+    color:var(--orange);text-transform:uppercase;margin-bottom:8px;
+  }
+  .contact-card .c-value{color:var(--text);font-weight:600;font-size:.95rem;word-break:break-word}
+
+  /* Footer */
+  .pf-footer{
+    padding:44px 0 52px;text-align:center;
+  }
+  .pf-footer .rights{
+    font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;
+    color:var(--muted);text-transform:uppercase;line-height:2;
+  }
+  .pf-footer .made{
+    margin-top:10px;font-size:.85rem;color:var(--gold);
+  }
+
+  @media(max-width:560px){
+    section{padding:44px 0}
+    .price-table th,.price-table td{padding:10px 10px;font-size:.82rem}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="pf-nav">
+  <div class="wrap">
+    <span class="pf-brand">BVHanKrY</span>
+    <a class="nav-link" href="#bio">Bio</a>
+    <a class="nav-link" href="#musica">Música</a>
+    <a class="nav-link" href="#contratacion">Contratación</a>
+    <a class="nav-link" href="#cualidades">Herramientas</a>
+    <a class="nav-link" href="#galeria">Galería</a>
+    <a class="nav-link" href="#contacto">Contacto</a>
+    <a class="nav-link ext" href="../../stream.html">Stream ↗</a>
+    <a class="nav-link ext" href="../../index.html">← BVros</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="pf-hero">
+  <div class="wrap">
+    <div class="pf-eyebrow">Portafolio de artista · BVros Music Network</div>
+    <!-- data-pcd="artist-name" · conectable al Panel del dueño ★ -->
+    <h1 data-pcd="artist-name">BVHanKrY</h1>
+    <!-- data-pcd="artist-realname" -->
+    <div class="pf-realname" data-pcd="artist-realname">Henry Villavicencio</div>
+    <div class="pf-place">Quito · Ecuador</div>
+    <div class="pf-roles" data-pcd="artist-roles">
+      <span class="hot">Músico</span>
+      <span>Profesor</span>
+      <span>Intérprete</span>
+      <span>Productor</span>
+      <span>Compositor</span>
+    </div>
+  </div>
+</header>
+
+<!-- BIO -->
+<section id="bio">
+  <div class="wrap">
+    <div class="sec-eyebrow">01 · BIO</div>
+    <h2>Trayectoria y sonido</h2>
+    <div class="bio" data-pcd="bio">
+      <p>
+        Músico, profesor, intérprete, productor y compositor: ejecutante de
+        <strong>piano, guitarra y voz</strong>. Radicado en la ciudad de Quito,
+        desarrolla una música de reggae y combinaciones variadas de música popular,
+        con especial reconocimiento de las tradiciones andinas y autóctonas como el
+        <strong>yumbo</strong>, el <strong>San Juan</strong>, el <strong>albazo</strong>
+        y las <strong>tonadas</strong>. En su obra conviven la música electrónica, el
+        jazz, el blues, el rock y las músicas tropicales como la salsa, el merengue
+        y la cumbia.
+      </p>
+      <p>
+        Actualmente desarrolla varios discos y tres inéditos en los que plasma su
+        lucha social y el regocijo por la música y el arte; de ahí nacen temas como
+        «Sabe mi amor», «Apropiado de lo que más importa» y «Me portado bien». Su
+        trayectoria empieza en Quito en el año <strong>2012</strong>, integrando
+        grupos, coros, bandas, ensambles y agrupaciones pequeñas, donde desempeña
+        su papel como pianista.
+      </p>
+      <p>
+        Por otro lado, le encanta tocar la <strong>armónica blues diatónica</strong>
+        en sus ratos libres, incluyéndola también en sus arreglos y composiciones,
+        como en «Etapa de Caos», sencillos de 2020. Actualmente está terminando sus
+        estudios en la <strong>Universidad de las Artes</strong> y piensa promover
+        la música del <strong>pingullo</strong> como performance y rito musical,
+        desplegando un concierto sin precedentes que reúna su trayectoria, sus
+        logros, sus títulos y reconocimientos.
+      </p>
+    </div>
+
+    <ul class="timeline">
+      <li>
+        <b>2012 · QUITO</b>
+        <p>Inicio de trayectoria: grupos, coros, bandas, ensambles y agrupaciones
+        pequeñas, con el piano como instrumento principal.</p>
+      </li>
+      <li>
+        <b>2020 · «ETAPA DE CAOS»</b>
+        <p>Sencillos con armónica blues diatónica integrada en arreglos y
+        composiciones.</p>
+      </li>
+      <li>
+        <b>2026 · UNIVERSIDAD DE LAS ARTES</b>
+        <p>Cierre de estudios formales; varios discos en desarrollo y tres
+        inéditos con lucha social y regocijo por el arte.</p>
+      </li>
+      <li>
+        <b>EN CURSO · PROYECTO PINGULLO</b>
+        <p>Promoción del pingullo como performance y rito musical, camino a un
+        concierto sin precedentes.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- MÚSICA -->
+<section id="musica">
+  <div class="wrap">
+    <div class="sec-eyebrow">02 · MÚSICA</div>
+    <h2>Mejores temas</h2>
+
+    <div class="disc-grid" data-pcd="albumes">
+      <!-- EDITAR: reemplazar cada placeholder por la portada real
+           (recomendado: 3000×3000 px o mínimo 1400×1400 px, JPG/PNG) -->
+      <div class="disc-card">
+        <div class="disc-cover ph">PORTADA PRÓXIMAMENTE</div>
+        <div class="disc-body">
+          <span class="disc-kind">Álbum</span>
+          <span class="disc-title">Sabe</span>
+          <span class="disc-meta">Discografía BVHanKrY · BVros</span>
+          <a class="disc-btn" href="../../stream.html">Escuchar en Stream</a>
+        </div>
+      </div>
+      <div class="disc-card">
+        <img class="disc-cover"
+             src="https://raw.githubusercontent.com/BVHanKrY/bvhankry.music/refs/heads/main/fondo/portada%20pulso.png"
+             alt="Portada — Raíz de mi ser">
+        <div class="disc-body">
+          <span class="disc-kind">Álbum · Single</span>
+          <span class="disc-title">Raíz de mi ser</span>
+          <span class="disc-meta">Lanzamiento nativo BVros · máster en preparación</span>
+          <a class="disc-btn" href="../../stream.html">Escuchar en Stream</a>
+        </div>
+      </div>
+      <div class="disc-card">
+        <div class="disc-cover ph">PORTADA PRÓXIMAMENTE</div>
+        <div class="disc-body">
+          <span class="disc-kind">Álbum</span>
+          <span class="disc-title">Caos</span>
+          <span class="disc-meta">Incluye la base de «Etapa de Caos» (2020)</span>
+          <a class="disc-btn" href="../../stream.html">Escuchar en Stream</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="disc-grid" style="margin-top:18px" data-pcd="ineditos">
+      <div class="disc-card">
+        <div class="disc-cover ph">PORTADA PRÓXIMAMENTE</div>
+        <div class="disc-body">
+          <span class="disc-kind ined">Inédito</span>
+          <span class="disc-title">Apropiado de lo que más importa</span>
+          <span class="disc-meta">Material inédito · lucha social</span>
+          <span class="disc-btn soon">Próximamente</span>
+        </div>
+      </div>
+      <div class="disc-card">
+        <div class="disc-cover ph">PORTADA PRÓXIMAMENTE</div>
+        <div class="disc-body">
+          <span class="disc-kind ined">Inédito</span>
+          <span class="disc-title">Sabe mi amor</span>
+          <span class="disc-meta">Material inédito · regocijo por la música</span>
+          <span class="disc-btn soon">Próximamente</span>
+        </div>
+      </div>
+      <div class="disc-card">
+        <div class="disc-cover ph">PORTADA PRÓXIMAMENTE</div>
+        <div class="disc-body">
+          <span class="disc-kind ined">Inédito</span>
+          <span class="disc-title">Me portado bien</span>
+          <span class="disc-meta">Material inédito · trayectoria personal</span>
+          <span class="disc-btn soon">Próximamente</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTRATACIÓN -->
+<section id="contratacion">
+  <div class="wrap">
+    <div class="sec-eyebrow">03 · CONTRATACIÓN</div>
+    <h2>Servicios y tarifas</h2>
+    <!-- data-pcd="precios" · los valores se editarán desde el Panel del dueño ★ en PCD -->
+    <div class="table-scroll" data-pcd="precios">
+      <table class="price-table">
+        <thead>
+          <tr><th>Servicio</th><th>Tarifa (USD)</th><th>Detalle</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Eventos públicos</td>
+            <td><b>$100</b></td>
+            <td>Por día de contratación <small>(presentación completa)</small></td>
+          </tr>
+          <tr>
+            <td>Conciertos</td>
+            <td><b>$60</b></td>
+            <td>Por hora de concierto</td>
+          </tr>
+          <tr>
+            <td>Ensayos</td>
+            <td><b>Gratis</b></td>
+            <td>Siempre abiertos al grupo y colaboradores</td>
+          </tr>
+          <tr>
+            <td>Grabaciones</td>
+            <td><b>$20 – $30</b></td>
+            <td>Según banda o dirección de ensambles</td>
+          </tr>
+          <tr>
+            <td>Docencia · clase</td>
+            <td><b>$10 / $12 / $15</b></td>
+            <td>Por clase, según nivel y materia</td>
+          </tr>
+          <tr>
+            <td>Combos mensuales</td>
+            <td><b>desde $140</b></td>
+            <td>Dos clases a la semana · teoría y práctica</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="price-note">
+      Todas las tarifas son de referencia y se confirman por escrito al momento de
+      la contratación. Para disponibilidad y detalles, escribir por WhatsApp o
+      correo (sección Contacto).
+    </p>
+  </div>
+</section>
+
+<!-- CUALIDADES -->
+<section id="cualidades">
+  <div class="wrap">
+    <div class="sec-eyebrow">04 · CUALIDADES</div>
+    <h2>Saberes técnicos y herramientas</h2>
+
+    <div class="chip-group">
+      <h3>Sonido en vivo</h3>
+      <div class="chips">
+        <span>Consolas</span><span>Micrófonos</span><span>Cables y conectores</span>
+        <span>Interfaces de audio</span>
+      </div>
+    </div>
+
+    <div class="chip-group">
+      <h3>Software y estudio</h3>
+      <div class="chips">
+        <span>MuseScore</span><span>FL Studio</span><span>Arturia Labs</span>
+        <span>Pro Tools</span><span>Ableton</span><span>Adobe</span><span>Canva</span>
+      </div>
+    </div>
+
+    <div class="chip-group">
+      <h3>Código e inteligencia artificial</h3>
+      <div class="chips">
+        <span>AutoCAD</span><span>Microsoft</span><span>Python</span>
+        <span>VS Code</span><span>Codex</span><span>GPT</span><span>DeepSeek</span>
+        <span>Grok</span><span>NanoBanana</span><span>Suno</span>
+        <span>Agentes de IA</span>
+      </div>
+    </div>
+
+    <div class="chip-group">
+      <h3>Distribución y derechos</h3>
+      <div class="chips">
+        <span>Spotify for Artists</span><span>YouTube for Artists</span>
+        <span>Content ID</span><span>ISRC</span><span>ISWC</span><span>UPC</span>
+        <span>IPI</span><span>ISNI</span><span>IPN</span>
+      </div>
+    </div>
+
+    <div class="chip-group">
+      <h3>Signos y derechos de autor</h3>
+      <div class="chips">
+        <span class="sign">© Copyright</span>
+        <span class="sign">℗ Fonograma</span>
+        <span class="sign">® Marca registrada</span>
+        <span class="sign">™ Trademark</span>
+        <span class="sign">℠ Service Mark</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GALERÍA -->
+<section id="galeria">
+  <div class="wrap">
+    <div class="sec-eyebrow">05 · GALERÍA</div>
+    <h2>Fotos y videos</h2>
+    <!-- EDITAR: reemplazar cada slot por <img src="ruta/foto.jpg"
+         (recomendado 1200×900 px) o <video controls src="ruta/video.mp4"> -->
+    <div class="gal-grid" data-pcd="galeria">
+      <div class="gal-slot">Espacio para foto 01</div>
+      <div class="gal-slot">Espacio para foto 02</div>
+      <div class="gal-slot">Espacio para foto 03</div>
+      <div class="gal-slot">Espacio para video 01</div>
+      <div class="gal-slot">Espacio para video 02</div>
+    </div>
+
+    <!-- RIDER TÉCNICO -->
+    <div class="rider" data-pcd="rider">
+      <h3>Rider técnico (editable)</h3>
+      <ul>
+        <li><b>Teclados:</b> [especificaciones de piano/teclados utilizados en vivo]</li>
+        <li><b>Guitarras:</b> [especificaciones de guitarras: acústica, eléctrica, amplificación]</li>
+        <li><b>Armónica:</b> blues diatónica — incluida en arreglos según repertorio</li>
+        <li><b>Requerimientos de escenario:</b> [consola, canales, monitoreo, sillas, duración del set]</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO -->
+<section id="contacto" style="border-bottom:none">
+  <div class="wrap">
+    <div class="sec-eyebrow">06 · CONTACTO</div>
+    <h2>Contratación directa</h2>
+    <div class="contact-grid">
+      <div class="contact-card">
+        <div class="c-label">Artista</div>
+        <div class="c-value">Henry Villavicencio<br>BVHanKrY</div>
+      </div>
+      <div class="contact-card">
+        <div class="c-label">Correo</div>
+        <div class="c-value"><a href="mailto:henryvb92@gmail.com">henryvb92@gmail.com</a></div>
+      </div>
+      <div class="contact-card">
+        <div class="c-label">WhatsApp</div>
+        <div class="c-value"><a href="https://wa.me/593991961641" target="_blank" rel="noopener noreferrer">+593 99 196 1641</a></div>
+      </div>
+      <div class="contact-card">
+        <div class="c-label">Ubicación</div>
+        <div class="c-value">Quito — Ecuador</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="pf-footer">
+  <div class="wrap">
+    <div class="rights">
+      Derechos de Autor Henry Villavicencio B. © 2026 · Todos los derechos reservados
+    </div>
+    <div class="made">Hecho en Ecuador · Pasión por el arte</div>
+  </div>
+</footer>
+
+</body>
+</html>
