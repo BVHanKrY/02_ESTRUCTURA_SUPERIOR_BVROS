@@ -74,7 +74,7 @@
      · Solo acepta cuentas Miembro Gratuito (no se
        apila sobre suscripciones pagadas).
      · El dueño genera y revoca códigos desde su página
-       privada bvros%20control%20de%20accesos.html (doble cerrojo: sesión
+       privada dueno-accesos.html (doble cerrojo: sesión
        del dueño + clave maestra, validados 100% en el
        servidor; nada de esto vive en el navegador).
 
@@ -84,7 +84,7 @@
        dueño (constante EMAIL_DUENO_PANEL, al inicio de
        este archivo), en su menú (pastilla de usuario)
        aparece UN ítem más: «Panel del dueño ★» que abre
-       bvros%20control%20de%20accesos.html en pestaña nueva.
+       dueno-accesos.html en pestaña nueva.
      · En CUALQUIER otra cuenta ese ítem NO existe:
        ellos solo ven «Canjear código» dentro del submenú
        SUSCRIPCIÓN (igual que en 2C.1). El panel sigue
@@ -94,9 +94,49 @@
      · El correo se compara en minúsculas: mayúsculas/
        minúsculas no afectan. Si tu correo de dueño fuera
        otro, cambia SOLO la constante EMAIL_DUENO_PANEL.
+
+   NUEVO EN 2C.3 · PASTILLA «OTORGADO» + CONTROL DEL DUEÑO:
+     · PASTILLA: las cuentas que entraron con un CÓDIGO
+       DE CANJE (solo esas) muestran su pastilla de
+       suscripción en VERDE con el texto «OTORGADO ·
+       <nivel>». Las suscripciones pagadas se mantienen
+       EXACTAMENTE iguales (naranja, con precio). Si el
+       canje se cancela, la pastilla vuelve al formato
+       «SUSCRIPCIÓN CANCELADA» de siempre.
+       Detección: subscriptions.payment_provider =
+       'acceso_especial' (lo escribe bvlux-canjear-acceso).
+     · SEGUNDO ACCESO DEL DUEÑO: junto a «Panel del
+       dueño ★» aparece «Control del dueño ★» (solo en
+       su cuenta) que abre la página privada de control
+       (bvros control de accesos.html): resumen
+       general, cuentas (correo/nombre/cualidad/plan/nivel),
+       suscripciones (dar de baja / reactivar) y
+       auditoría de datos (todas las tablas de la base,
+       lectura de 50 filas).
+
+   NUEVO EN 2C.4–2C.6 · EXPANSIÓN DEL CONTROL DEL DUEÑO:
+     · ENLACE CORREGIDO: «Control del dueño ★» abre
+       ahora /bvros%20control%20de%20accesos.html (el
+       nombre REAL del archivo en tu servidor; antes
+       apuntaba a dueno-control.html y daba 404).
+     · 2C.4 SOPORTE: el panel «Contacto a soporte» de
+       aquí guarda igual que siempre en support_tickets
+       (NO cambia nada de tu web) y AÑADE «Mis
+       consultas»: el usuario ve el estado y la
+       respuesta que le diste desde el Control del
+       dueño (pestaña SOPORTE). Si configuraste el
+       SMTP de tu Gmail, además le llega el correo real.
+     · 2C.5 CORREOS: desde el Control del dueño envías
+       anuncios/promos masivos (por segmentos) y
+       correos directos a cualquier usuario con tu
+       Gmail (Edge Function bvlux-correos).
+     · 2C.6 CONTENIDO: desde el Control del dueño
+       subes/eliminas ebooks, imágenes, videos, música
+       y anuncios en un bucket privado con enlaces de
+       1 hora (Edge Function bvlux-contenido).
    ========================================================= */
 
-console.log("[BVros Gate] versión 2C.2 activa");
+console.log("[BVros Gate] versión 2C.6 activa");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -1193,6 +1233,13 @@ STYLE.textContent = `
     font-weight:600;
 }
 
+/* 2C.3 · Pastilla verde para canjes (OTORGADO). */
+
+.bv-auth-menu-head .m-plan.m-plan-otorgado{
+    border-color:#3ecf6e;
+    color:#3ecf6e;
+}
+
 .bv-auth-menu .m-item:hover{
     background:rgba(249,115,22,.08);
     color:var(--accent,#F97316);
@@ -1557,6 +1604,17 @@ let estadoSub = null;
 
 let bvBootAuthHandled = false;
 
+/* 2C.3 · ¿La suscripción vigente vino de un código de
+     canje? (solo esas muestran la pastilla verde). */
+
+function planBadgeEsOtorgado() {
+  return (
+    estadoSub?.status === "active" &&
+    estadoSub?.payment_provider === "acceso_especial" &&
+    new Date(estadoSub.expires_at) > new Date()
+  );
+}
+
 function planBadge() {
   const auth = window.BVrosAuth;
 
@@ -1591,6 +1649,25 @@ function planBadge() {
     (auth.profile.profile_type === "perfil2"
       ? "nivel3"
       : "nivel2");
+
+  /* 2C.3 · OTORGADO (verde): solo para códigos de
+       canje. Sin precio: no hubo pago. */
+
+  if (planBadgeEsOtorgado()) {
+    if (tier === "nivel3") {
+      return "OTORGADO · NIVEL 3 · CREADOR AVANZADO";
+    }
+
+    if (tier === "nivel2_promo") {
+      return "OTORGADO · NIVEL 2 PROMOCIONAL";
+    }
+
+    if (tier === "nivel2") {
+      return "OTORGADO · NIVEL 2 · OYENTE EXPERTO";
+    }
+
+    return "OTORGADO · " + String(tier).toUpperCase();
+  }
 
   if (tier === "nivel3") {
     return "SUSCRIPCIÓN CREADOR AVANZADO · $4.75/MES";
@@ -1676,10 +1753,14 @@ async function cargarEstadoSub() {
     return;
   }
 
+  /* 2C.3 · El canje sabe su origen: la fila vigente
+       trae payment_provider (solo lectura extra de la
+       MISMA fila; nada cambia en la base). */
+
   try {
     const { data } = await supabase
       .from("subscriptions")
-      .select("status, expires_at")
+      .select("status, expires_at, payment_provider")
       .eq("user_id", auth.user.id)
       .in("status", ["active", "cancelled"])
       .order("expires_at", { ascending: false })
@@ -1839,7 +1920,12 @@ async function confirmarCancelacion() {
 
     const badge = document.querySelector(".bv-auth-menu .m-plan");
 
-    if (badge) badge.textContent = planBadge();
+    if (badge) {
+      badge.textContent = planBadge();
+
+      badge.className =
+        "m-plan" + (planBadgeEsOtorgado() ? " m-plan-otorgado" : "");
+    }
 
     if (body) {
       body.innerHTML =
@@ -1937,7 +2023,12 @@ async function canjearCodigo() {
 
     const badge = document.querySelector(".bv-auth-menu .m-plan");
 
-    if (badge) badge.textContent = planBadge();
+    if (badge) {
+      badge.textContent = planBadge();
+
+      badge.className =
+        "m-plan" + (planBadgeEsOtorgado() ? " m-plan-otorgado" : "");
+    }
 
     if (body) {
       body.innerHTML =
@@ -4110,7 +4201,7 @@ function syncNavAuth() {
                         <div class="m-mail">
                             ${auth.user.email}
                         </div>
-                        <span class="m-plan">
+                        <span class="m-plan${planBadgeEsOtorgado() ? " m-plan-otorgado" : ""}">
                             ${planBadge()}
                         </span>
                     </div>
@@ -4159,10 +4250,16 @@ function syncNavAuth() {
                       esSesionDueno()
                         ? `<a
                     class="m-item bv-menu-dueno"
+                    href="/dueno-accesos.html"
+                    target="_blank"
+                    rel="noopener"
+                >Panel del dueño ★</a>
+                <a
+                    class="m-item bv-menu-dueno"
                     href="/bvros%20control%20de%20accesos.html"
                     target="_blank"
                     rel="noopener"
-                >Panel del dueño ★</a>`
+                >Control del dueño ★</a>`
                         : ""
                     }
 
@@ -4414,6 +4511,14 @@ function syncNavAuth() {
                         data-act="send-support"
                         type="button"
                     >ENVIAR A SOPORTE</button>
+
+                    <button
+                        class="bv-menu-save"
+                        data-act="load-mis-consultas"
+                        type="button"
+                    >MIS CONSULTAS ↻</button>
+
+                    <div data-ref="misConsultas"></div>
 
                     <div class="bv-menu-ok" data-ref="okSup"></div>
                     <div class="bv-menu-err" data-ref="errSup"></div>
@@ -4749,11 +4854,98 @@ function syncNavAuth() {
 
           if (error) throw error;
 
-          okEl.textContent = "Enviado ✔ Soporte te responderá al correo.";
+          okEl.textContent =
+            "Enviado ✔ Revisa MIS CONSULTAS o tu correo.";
+
+          const zonaAuto = chip.querySelector('[data-ref="misConsultas"]');
+
+          if (zonaAuto) cargarMisConsultas(zonaAuto);
         } catch (error) {
           errEl.textContent = error.message;
         }
       });
+
+    /* 2C.4 · MIS CONSULTAS: el usuario ve el estado y la
+         respuesta de sus tickets (Edge Function
+         bvlux-soporte, acción "mias" con su sesión). */
+
+    const escSup = (s) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    async function cargarMisConsultas(zona) {
+      zona.innerHTML =
+        '<div style="font-size:.78rem; opacity:.7;">Cargando…</div>';
+
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "bvlux-soporte",
+          { body: { accion: "mias" } },
+        );
+
+        if (error || !data?.ok) {
+          throw new Error(data?.error || "no se pudieron leer tus consultas");
+        }
+
+        const lista = data.consultas || [];
+
+        if (!lista.length) {
+          zona.innerHTML =
+            '<div style="font-size:.78rem; opacity:.7;">Aún no tienes consultas registradas.</div>';
+          return;
+        }
+
+        zona.innerHTML = lista
+          .map((t) => {
+            const estado = String(t.estado || "nuevo").toLowerCase();
+
+            const color =
+              estado === "respondido"
+                ? "#3ecf6e"
+                : estado === "cerrado"
+                  ? "#9aa3ad"
+                  : "#F97316";
+
+            return (
+              '<div style="font-size:.78rem; border-top:1px solid rgba(255,255,255,.08); padding:8px 0;">' +
+              "<b>" +
+              escSup(t.subject || "—") +
+              '</b><span style="color:' +
+              color +
+              '; font-weight:700;"> · ' +
+              estado.toUpperCase() +
+              "</span>" +
+              '<div style="opacity:.65;">' +
+              escSup(String(t.details || "").slice(0, 90)) +
+              "</div>" +
+              (t.respuesta
+                ? '<div style="color:#3ecf6e; margin-top:4px;">↩ ' +
+                  escSup(String(t.respuesta).slice(0, 220)) +
+                  "</div>"
+                : "") +
+              "</div>"
+            );
+          })
+          .join("");
+      } catch (e) {
+        zona.innerHTML =
+          '<div style="font-size:.78rem; color:#ff5a5a;">' +
+          escSup(e?.message || "No se pudieron cargar tus consultas.") +
+          "</div>";
+      }
+    }
+
+    const mcBtn = chip.querySelector('[data-act="load-mis-consultas"]');
+
+    if (mcBtn) {
+      mcBtn.addEventListener("click", () => {
+        const zona = chip.querySelector('[data-ref="misConsultas"]');
+
+        if (zona) cargarMisConsultas(zona);
+      });
+    }
 
     links.appendChild(chip);
   } else {

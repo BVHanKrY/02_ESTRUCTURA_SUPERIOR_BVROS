@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>BVros · Panel del dueño</title>
+<title>BVros · Control del dueño</title>
 <style>
   :root{
     --bg:#0d0f12; --panel:#161a20; --line:#262c35;
@@ -16,7 +16,7 @@
     font-family:'Segoe UI', system-ui, sans-serif;
     min-height:100vh; padding:24px 16px;
   }
-  .wrap{max-width:960px; margin:0 auto;}
+  .wrap{max-width:1080px; margin:0 auto;}
   h1{font-size:1.25rem; letter-spacing:.12em; text-transform:uppercase;}
   h1 span{color:var(--acc);}
   .sub{color:var(--mut); font-size:.85rem; margin-top:6px;}
@@ -26,53 +26,77 @@
   }
   label{display:block; font-size:.72rem; letter-spacing:.08em;
     text-transform:uppercase; color:var(--mut); margin:12px 0 5px;}
-  input,select{
+  input,select,textarea{
     width:100%; background:#0a0c0f; border:1px solid var(--line);
     border-radius:9px; color:var(--txt); padding:10px 12px;
-    font-size:.95rem; outline:none;
+    font-size:.95rem; outline:none; font-family:inherit;
   }
-  input:focus,select:focus{border-color:var(--acc);}
+  input:focus,select:focus,textarea:focus{border-color:var(--acc);}
+  textarea{resize:vertical;}
   button{
     background:var(--acc); border:0; color:#16110a; font-weight:700;
     border-radius:9px; padding:11px 18px; cursor:pointer;
     letter-spacing:.06em; font-size:.85rem; margin-top:14px;
   }
   button.sec{background:#222832; color:var(--txt);}
-  button.mini{background:#222832; color:var(--bad); padding:6px 10px;
-    margin-top:0; font-size:.72rem;}
+  button.mini{background:#222832; padding:6px 10px;
+    margin-top:0; font-size:.7rem;}
+  button.mini.baja{color:var(--bad);}
+  button.mini.reac{color:var(--ok);}
+  button.mini.env{color:var(--acc);}
   button:disabled{opacity:.5; cursor:wait;}
-  .grid{display:grid; grid-template-columns:1fr 1fr; gap:0 16px;}
-  @media(max-width:640px){.grid{grid-template-columns:1fr;}}
   .msg{margin-top:12px; font-size:.88rem; min-height:1.2em;}
   .msg.err{color:var(--bad);} .msg.ok{color:var(--ok);}
-  .codes{margin-top:14px; display:flex; flex-direction:column; gap:8px;}
-  .code{
-    display:flex; justify-content:space-between; align-items:center;
-    gap:10px; background:#0a0c0f; border:1px dashed var(--acc);
-    border-radius:9px; padding:10px 12px; font-family:monospace;
-    font-size:1rem; letter-spacing:.08em;
-  }
-  .code small{color:var(--mut); font-family:inherit; letter-spacing:0;}
-  table{width:100%; border-collapse:collapse; margin-top:10px; font-size:.82rem;}
-  th,td{padding:8px 6px; border-bottom:1px solid var(--line); text-align:left;
-    vertical-align:top;}
-  th{color:var(--mut); font-weight:600; font-size:.7rem;
-    text-transform:uppercase; letter-spacing:.08em;}
-  td .cod{font-family:monospace; letter-spacing:.05em;}
-  .st{display:inline-block; padding:2px 8px; border-radius:20px;
-    font-size:.68rem; font-weight:700; letter-spacing:.05em;}
-  .st.vig{background:#12351f; color:var(--ok);}
-  .st.can{background:#33240b; color:var(--acc);}
-  .st.cad{background:#2b2b2b; color:var(--mut);}
-  .st.rev{background:#3a1414; color:var(--bad);}
   .hidden{display:none;}
-  .nota{color:var(--mut); font-size:.8rem; margin-top:10px; line-height:1.5;}
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:6px;}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{
+    background:#0a0c0f; border:1px solid var(--line);
+    border-radius:11px; padding:14px; text-align:center;
+  }
+  .stat b{display:block; font-size:1.5rem; color:var(--acc);}
+  .stat small{color:var(--mut); font-size:.68rem; letter-spacing:.08em;
+    text-transform:uppercase;}
+  .stat.verde b{color:var(--ok);}
+  .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;}
+  .tab{
+    background:#0a0c0f; border:1px solid var(--line); color:var(--mut);
+    border-radius:9px; padding:9px 14px; cursor:pointer;
+    font-size:.72rem; letter-spacing:.1em; font-weight:700;
+    margin-top:0;
+  }
+  .tab.on{border-color:var(--acc); color:var(--acc);}
+  table{width:100%; border-collapse:collapse; margin-top:10px; font-size:.78rem;}
+  th,td{padding:8px 6px; border-bottom:1px solid var(--line); text-align:left;
+    vertical-align:top; word-break:break-word;}
+  th{color:var(--mut); font-weight:600; font-size:.66rem;
+    text-transform:uppercase; letter-spacing:.08em;}
+  .st{display:inline-block; padding:2px 8px; border-radius:20px;
+    font-size:.64rem; font-weight:700; letter-spacing:.05em;}
+  .st.act{background:#12351f; color:var(--ok);}
+  .st.can{background:#33240b; color:var(--acc);}
+  .st.exp{background:#2b2b2b; color:var(--mut);}
+  .st.oto{background:#0f2f22; color:var(--ok);}
+  .st.nue{background:#33240b; color:var(--acc);}
+  .st.res{background:#12351f; color:var(--ok);}
+  .st.cer{background:#2b2b2b; color:var(--mut);}
+  .nota{color:var(--mut); font-size:.78rem; margin-top:10px; line-height:1.5;}
+  .fila-cods{display:flex; gap:14px; flex-wrap:wrap; margin-top:8px;}
+  .fila-cods span{font-size:.72rem; color:var(--mut);}
+  .fila-cods b{color:var(--txt);}
+  .subcard{
+    background:#0a0c0f; border:1px solid var(--line);
+    border-radius:11px; padding:14px; margin-top:14px;
+  }
+  .subcard h2{font-size:.8rem; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--acc); margin-bottom:2px;}
+  .progress{font-size:.85rem; margin-top:8px; min-height:1.2em; color:var(--txt);}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>BVros · <span>Panel del dueño</span></h1>
-  <div class="sub">Accesos especiales BVLUX — genera, comparte y controla códigos de un solo uso.</div>
+  <h1>BVros · <span>Control del dueño</span></h1>
+  <div class="sub">Auditoría y gestión total: cuentas, suscripciones, datos, soporte, correos y contenido. Nada aquí es visible para nadie más.</div>
 
   <!-- CERROJO 1: sesión del dueño -->
   <div class="card" id="cardSesion">
@@ -80,8 +104,8 @@
     <div class="hidden" id="bloqueClave">
       <!-- CERROJO 2: clave maestra -->
       <label>Clave maestra</label>
-      <input type="password" id="clave" placeholder="Tu frase secreta (solo tú la conoces)">
-      <button id="btnEntrar">ABRIR PANEL</button>
+      <input type="password" id="clave" placeholder="Tu frase secreta (la misma del panel de códigos)">
+      <button id="btnEntrar">ABRIR CONTROL</button>
       <div class="msg" id="msgEntrar"></div>
     </div>
   </div>
@@ -89,66 +113,200 @@
   <!-- PANEL -->
   <div class="hidden" id="panel">
 
-    <div class="card">
-      <h1 style="font-size:1rem;">Generar códigos</h1>
-      <div class="grid">
-        <div>
-          <label>Nivel que otorga</label>
-          <select id="tier">
-            <option value="nivel2">Nivel 2 · $3.99</option>
-            <option value="nivel3">Nivel 3 · $4.75</option>
-            <option value="nivel2_promo">Nivel 2 promocional · $1.70</option>
-          </select>
-        </div>
-        <div>
-          <label>Duración del beneficio</label>
-          <select id="duracion">
-            <option value="5">5 día</option>
-            <option value="15">15 días</option>
-            <option value="30">30 días</option>
-            <option value="90">90 días</option>
-            <option value="365">365 días</option>
-            <option value="9999">Perpetuo (solo dueño)</option>
-          </select>
-        </div>
-        <div>
-          <label>Modo</label>
-          <select id="modo">
-            <option value="libre">Libre · el primero que lo canjee</option>
-            <option value="dedicado">Dedicado · solo un correo</option>
-          </select>
-        </div>
-        <div>
-          <label>Cantidad (1–20)</label>
-          <input type="number" id="cantidad" value="1" min="1" max="20">
-        </div>
-        <div id="bloqueEmail" class="hidden">
-          <label>Correo de la persona (modo dedicado)</label>
-          <input type="email" id="email" placeholder="persona@correo.com">
-        </div>
-      </div>
-      <button id="btnGenerar">GENERAR CÓDIGOS</button>
-      <div class="msg" id="msgGen"></div>
-      <div class="codes" id="codigosNuevos"></div>
-      <div class="nota">Cada código sirve UNA sola vez y caduca si nadie lo canjea en 2 días.
-      Al canjearlo queda atado a esa cuenta para siempre: si lo comparten, ya no sirve para nadie más.</div>
+    <div class="tabs">
+      <button class="tab on" data-tab="resumen">RESUMEN</button>
+      <button class="tab" data-tab="cuentas">CUENTAS</button>
+      <button class="tab" data-tab="subs">SUSCRIPCIONES</button>
+      <button class="tab" data-tab="datos">DATOS DE LA BASE</button>
+      <button class="tab" data-tab="soporte">SOPORTE ✉</button>
+      <button class="tab" data-tab="correos">CORREOS ✉</button>
+      <button class="tab" data-tab="contenido">CONTENIDO ▲</button>
     </div>
 
-    <div class="card">
-      <h1 style="font-size:1rem;">Códigos emitidos</h1>
-      <button class="sec" id="btnListar">ACTUALIZAR LISTA</button>
-      <div class="msg" id="msgLista"></div>
+    <!-- RESUMEN -->
+    <div class="card" data-vista="resumen">
+      <h1 style="font-size:1rem;">Resumen general</h1>
+      <button class="sec" id="btnResumen">ACTUALIZAR</button>
+      <div class="msg" id="msgResumen"></div>
+      <div class="stats" id="stats"></div>
+      <div class="fila-cods" id="filaCods"></div>
+      <div class="nota">Suscripciones activas incluye PayPal y códigos de canje vigentes.
+      «Canceladas vigentes» son las que aún dan beneficios hasta su vencimiento.</div>
+    </div>
+
+    <!-- CUENTAS -->
+    <div class="card hidden" data-vista="cuentas">
+      <h1 style="font-size:1rem;">Cuentas registradas</h1>
+      <button class="sec" id="btnCuentas">ACTUALIZAR LISTA</button>
+      <div class="msg" id="msgCuentas"></div>
       <div style="overflow-x:auto;">
         <table>
           <thead><tr>
-            <th>Código</th><th>Estado</th><th>Nivel</th>
-            <th>Duración</th><th>Canjeado por</th><th>Beneficio hasta</th><th></th>
+            <th>Correo</th><th>Nombre de perfil</th><th>Cualidad</th>
+            <th>Plan</th><th>Nivel</th><th>Alta</th><th>Último acceso</th>
           </tr></thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="tbodyCuentas"></tbody>
         </table>
       </div>
-      <div class="nota">Estados: VIGENTE = se puede canjear aún · CADUCADO = pasaron los 2 días sin canjear ·
-      CANJEADO = ya tiene dueño · REVOCADO = anulado por ti (si estaba canjeado, el beneficio se cortó al instante).</div>
+      <div class="nota">Cualidad: perfil1 = Escucha · perfil2 = Creador. Plan: free / premium. Nivel: subscription_tier.</div>
+    </div>
+
+    <!-- SUSCRIPCIONES -->
+    <div class="card hidden" data-vista="subs">
+      <h1 style="font-size:1rem;">Suscripciones (últimas 200)</h1>
+      <button class="sec" id="btnSubs">ACTUALIZAR LISTA</button>
+      <div class="msg" id="msgSubs"></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Usuario</th><th>Nivel</th><th>Origen</th><th>Monto</th>
+            <th>Estado</th><th>Inicio</th><th>Vence</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="tbodySubs"></tbody>
+        </table>
+      </div>
+      <div class="nota">DAR DE BAJA = igual que la cancelación del usuario (beneficios hasta la fecha de vencimiento, luego el cron degrada solo).
+      REACTIVAR = solo si sigue vigente. Los códigos de canje se cortan al instante desde el panel de códigos (REVOCAR).</div>
+    </div>
+
+    <!-- DATOS -->
+    <div class="card hidden" data-vista="datos">
+      <h1 style="font-size:1rem;">Datos de la base (auditoría)</h1>
+      <button class="sec" id="btnTablas">LISTAR TABLAS</button>
+      <div class="msg" id="msgDatos"></div>
+      <label>Tabla</label>
+      <select id="selTabla"><option value="">— elige una tabla —</option></select>
+      <button id="btnVer">VER PRIMERAS 50 FILAS</button>
+      <div style="overflow-x:auto;" id="zonaTabla"></div>
+      <div class="nota">Aquí aparecen TODAS las tablas públicas (reproducciones, me gusta, catálogos…)
+      con su número de filas. La vista es SOLO LECTURA: nada se modifica ni se borra desde aquí.</div>
+    </div>
+
+    <!-- SOPORTE (2C.4) -->
+    <div class="card hidden" data-vista="soporte">
+      <h1 style="font-size:1rem;">Soporte · consultas de usuarios</h1>
+      <button class="sec" id="btnSoporte">ACTUALIZAR</button>
+      <div class="msg" id="msgSoporte"></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Fecha</th><th>De</th><th>Asunto / Detalle</th>
+            <th>Estado</th><th>Respuesta</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="tbodySoporte"></tbody>
+        </table>
+      </div>
+      <div class="subcard hidden" id="cajaRespuesta">
+        <h2>Responder ticket</h2>
+        <div class="nota" id="respDe" style="margin-top:4px;"></div>
+        <label>Respuesta</label>
+        <textarea id="respTexto" rows="5" placeholder="Escribe tu respuesta para el usuario…"></textarea>
+        <label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0; font-size:.8rem; color:var(--txt);">
+          <input type="checkbox" id="respCorreo" checked style="width:auto;">
+          Enviar copia al correo del usuario (SMTP de tu Gmail)
+        </label>
+        <button id="btnEnviarRespuesta">ENVIAR RESPUESTA</button>
+        <button class="sec" id="btnCancelarRespuesta" style="margin-left:8px;">CANCELAR</button>
+        <div class="msg" id="msgRespuesta"></div>
+      </div>
+      <div class="nota">Las respuestas quedan guardadas: el usuario las ve en «Mis consultas»
+      (menú de su pastilla de usuario) y, si configuraste la contraseña de aplicación de Gmail,
+      además le llega el correo real a su bandeja.
+      Los correos que te escriban DIRECTAMENTE a bvrosmusic@gmail.com se leen en tu Gmail normal:
+      esta bandeja muestra los tickets enviados desde la web.</div>
+    </div>
+
+    <!-- CORREOS (2C.5) -->
+    <div class="card hidden" data-vista="correos">
+      <h1 style="font-size:1rem;">Correos · directo y campañas</h1>
+      <div class="msg" id="msgCorreos"></div>
+
+      <div class="subcard">
+        <h2>Campaña masiva · anuncios y promos de tiempo limitado</h2>
+        <label>Asunto</label>
+        <input id="masAsunto" placeholder="Ej: ¡PROMO 48 HORAS! Nivel 2 por $1.70 con código BVLUX170">
+        <label>Mensaje</label>
+        <textarea id="masCuerpo" rows="6" placeholder="Escribe el anuncio o promo…"></textarea>
+        <label>Destinatarios</label>
+        <select id="masSegmento">
+          <option value="todos">Todos los miembros registrados</option>
+          <option value="premium">Solo Premium (suscripción o canje vigente)</option>
+          <option value="gratuitos">Solo Miembros Gratuitos</option>
+        </select>
+        <button class="sec" id="btnPreparar">PREPARAR DESTINATARIOS</button>
+        <button id="btnCampania" class="hidden">ENVIAR CAMPAÑA</button>
+        <div class="progress" id="masProgreso"></div>
+        <div class="nota">Se envía con TU Gmail (contraseña de aplicación), correo por correo,
+        con pausas de seguridad. Gmail gratuito permite ~500/día: las campañas se limitan a 450.
+        No envíes spam: Gmail puede bloquear tu cuenta.</div>
+      </div>
+
+      <div class="subcard">
+        <h2>Correo directo a un usuario</h2>
+        <label>Para (correo)</label>
+        <input id="dirPara" placeholder="usuario@correo.com">
+        <label>Asunto</label>
+        <input id="dirAsunto" placeholder="Ej: Sobre tu cuenta de BVros">
+        <label>Mensaje</label>
+        <textarea id="dirCuerpo" rows="5" placeholder="Escribe tu mensaje…"></textarea>
+        <button id="btnDirecto">ENVIAR CORREO</button>
+        <div class="msg" id="msgDirecto"></div>
+      </div>
+
+      <div class="subcard">
+        <h2>Historial de envíos</h2>
+        <button class="sec" id="btnHistorial">ACTUALIZAR HISTORIAL</button>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Tipo</th><th>Para</th><th>Asunto</th><th>Estado</th>
+            </tr></thead>
+            <tbody id="tbodyCorreos"></tbody>
+          </table>
+        </div>
+        <div class="msg" id="msgHistorial"></div>
+      </div>
+    </div>
+
+    <!-- CONTENIDO (2C.6) -->
+    <div class="card hidden" data-vista="contenido">
+      <h1 style="font-size:1rem;">Contenido · ebooks, imágenes, videos, música, anuncios</h1>
+      <div class="msg" id="msgContenido"></div>
+
+      <div class="subcard">
+        <h2>Subir archivo (máximo 25 MB)</h2>
+        <label>Tipo de contenido</label>
+        <select id="contTipo">
+          <option value="ebook">Ebook</option>
+          <option value="imagen">Imagen</option>
+          <option value="video">Video</option>
+          <option value="musica">Música</option>
+          <option value="anuncio">Anuncio (banner)</option>
+          <option value="otro">Otro</option>
+        </select>
+        <label>Archivo</label>
+        <input type="file" id="contArchivo">
+        <label>Notas (opcional)</label>
+        <input id="contNotas" placeholder="Ej: ebook promo nivel 2 · tapa final">
+        <button id="btnSubirContenido">SUBIR CONTENIDO</button>
+      </div>
+
+      <div class="subcard">
+        <h2>Archivos guardados</h2>
+        <button class="sec" id="btnListarContenido">ACTUALIZAR LISTA</button>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Nombre</th><th>Tipo</th><th>Tamaño</th>
+              <th>Notas</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="tbodyContenido"></tbody>
+          </table>
+        </div>
+        <div class="nota">ENLACE crea un link privado válido 1 hora (cópialo y compártelo donde quieras).
+        BORRAR elimina el archivo y su registro para siempre. El bucket es PRIVADO:
+        sin enlace temporal, nadie accede a nada.</div>
+      </div>
     </div>
 
   </div>
@@ -157,16 +315,13 @@
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-/* MISMO proyecto y MISMA anon key que tu web:
-   así la sesión iniciada en el sitio se reconoce aquí
-   (comparten el almacenamiento del navegador). */
+/* MISMO proyecto y MISMA anon key que tu web y el panel
+   de códigos: la sesión del navegador se comparte. */
 
 const supabase = createClient(
   'https://udbwjixdwoahonzezbqj.supabase.co',
   'sb_publishable_CERYzMSJCTQkzIVjkn7c8g_C1QAo6Hc'
 );
-
-const FUNCION = 'bvlux-accesos-dueno';
 
 let claveMaestra = '';
 
@@ -175,6 +330,15 @@ const $ = (id) => document.getElementById(id);
 const fecha = (iso) => iso
   ? new Date(iso).toLocaleDateString('es-EC', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})
   : '—';
+
+const esc = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+const kb = (n) => n == null ? '—'
+  : n < 1024 ? n + ' B'
+  : n < 1048576 ? (n / 1024).toFixed(0) + ' KB'
+  : (n / 1048576).toFixed(1) + ' MB';
 
 /* ---------- CERROJO 1 · SESIÓN ---------- */
 
@@ -198,9 +362,7 @@ $('btnEntrar').addEventListener('click', async () => {
     return;
   }
 
-  /* Prueba la clave con una llamada ligera (listar). */
-
-  const res = await llamar({ accion: 'listar', clave });
+  const res = await llamar({ accion: 'resumen', clave });
 
   if (!res.ok) {
     $('msgEntrar').textContent = res.error || 'Clave incorrecta.';
@@ -213,126 +375,243 @@ $('btnEntrar').addEventListener('click', async () => {
   $('cardSesion').classList.add('hidden');
   $('panel').classList.remove('hidden');
 
-  pintarLista(res.codigos);
+  pintarResumen(res.resumen);
 });
 
-/* ---------- GENERAR ---------- */
+/* ---------- PESTAÑAS ---------- */
 
-$('modo').addEventListener('change', () => {
-  $('bloqueEmail').classList.toggle('hidden', $('modo').value !== 'dedicado');
-});
+document.querySelectorAll('.tab').forEach((t) => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach((x) => x.classList.remove('on'));
+    t.classList.add('on');
 
-$('btnGenerar').addEventListener('click', async () => {
-  $('btnGenerar').disabled = true;
-  $('msgGen').textContent = '';
-  $('codigosNuevos').innerHTML = '';
+    document.querySelectorAll('[data-vista]').forEach((v) => {
+      v.classList.toggle('hidden', v.dataset.vista !== t.dataset.tab);
+    });
 
-  const res = await llamar({
-    accion: 'generar',
-    clave: claveMaestra,
-    tier: $('tier').value,
-    duracion_dias: Number($('duracion').value),
-    modo: $('modo').value,
-    email_asignado: $('email').value.trim(),
-    cantidad: Number($('cantidad').value) || 1
+    if (t.dataset.tab === 'cuentas') listarCuentas();
+    if (t.dataset.tab === 'subs') listarSubs();
+    if (t.dataset.tab === 'datos') listarTablas();
+    if (t.dataset.tab === 'soporte') listarSoporte();
+    if (t.dataset.tab === 'correos') verHistorial();
+    if (t.dataset.tab === 'contenido') listarContenido();
   });
-
-  $('btnGenerar').disabled = false;
-
-  if (!res.ok) {
-    $('msgGen').textContent = res.error || 'No se pudo generar.';
-    $('msgGen').className = 'msg err';
-    return;
-  }
-
-  $('msgGen').textContent =
-    'Códigos creados. Caducan para canje en ' + res.plazo_dias + ' días. Cópialos ahora:';
-  $('msgGen').className = 'msg ok';
-
-  res.codigos.forEach((c) => {
-    const div = document.createElement('div');
-    div.className = 'code';
-    div.innerHTML = '<span>' + c.codigo + '</span>' +
-      '<small>' + (c.modo === 'dedicado' ? '→ ' + c.email_asignado : 'modo libre') +
-      ' · ' + c.tier + ' · ' + c.duracion_dias + ' días</small>';
-    div.addEventListener('click', () => navigator.clipboard?.writeText(c.codigo));
-    div.title = 'Clic para copiar';
-    $('codigosNuevos').appendChild(div);
-  });
-
-  listar();
 });
 
-/* ---------- LISTAR ---------- */
+/* ---------- RESUMEN ---------- */
 
-$('btnListar').addEventListener('click', listar);
+$('btnResumen').addEventListener('click', async () => {
+  const res = await llamar({ accion: 'resumen', clave: claveMaestra });
 
-async function listar() {
-  const res = await llamar({ accion: 'listar', clave: claveMaestra });
+  if (res.ok) pintarResumen(res.resumen);
+  else falla('msgResumen', res.error);
+});
 
-  if (!res.ok) {
-    $('msgLista').textContent = res.error || 'No se pudo listar.';
-    $('msgLista').className = 'msg err';
-    return;
-  }
+function pintarResumen(r) {
+  const items = [
+    [r.usuarios, 'usuarios registrados'],
+    [r.premium, 'premium'],
+    [r.gratuitos, 'miembros gratuitos'],
+    [r.subActivas, 'suscripciones activas'],
+    [r.subCanceladas, 'canceladas vigentes', 'verde'],
+    [r.canjesActivos, 'canjes activos', 'verde'],
+  ];
 
-  pintarLista(res.codigos);
+  $('stats').innerHTML = items.map(([n, txt, cls]) =>
+    `<div class="stat ${cls || ''}"><b>${n ?? '—'}</b><small>${txt}</small></div>`
+  ).join('');
+
+  const c = r.codigos || {};
+
+  $('filaCods').innerHTML =
+    `<span>Códigos — <b>VIGENTES ${c.vigente ?? 0}</b></span>` +
+    `<span>· <b>CANJEADOS ${c.canjeado ?? 0}</b></span>` +
+    `<span>· <b>CADUCADOS ${c.caducado ?? 0}</b></span>` +
+    `<span>· <b>REVOCADOS ${c.revocado ?? 0}</b></span>`;
+
+  $('msgResumen').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-EC');
+  $('msgResumen').className = 'msg';
 }
 
-function estadoDe(c) {
-  if (!c.activo) return ['REVOCADO', 'rev'];
-  if (c.canjeado_por) return ['CANJEADO', 'can'];
-  if (new Date(c.canjable_hasta) < new Date()) return ['CADUCADO', 'cad'];
-  return ['VIGENTE', 'vig'];
+/* ---------- CUENTAS ---------- */
+
+$('btnCuentas').addEventListener('click', listarCuentas);
+
+async function listarCuentas() {
+  $('msgCuentas').textContent = 'Cargando…';
+  $('msgCuentas').className = 'msg';
+
+  const res = await llamar({ accion: 'cuentas', clave: claveMaestra });
+
+  if (!res.ok) return falla('msgCuentas', res.error);
+
+  $('msgCuentas').textContent = res.total + ' cuenta(s).';
+  $('msgCuentas').className = 'msg';
+
+  $('tbodyCuentas').innerHTML = res.cuentas.map((c) =>
+    '<tr>' +
+    '<td>' + (c.email || '—') + '</td>' +
+    '<td>' + (c.username || '—') + '</td>' +
+    '<td>' + (c.perfil === 'perfil2' ? 'Creador (2)' : 'Escucha (1)') + '</td>' +
+    '<td>' + (c.plan || '—') + '</td>' +
+    '<td>' + (c.tier || '—') + '</td>' +
+    '<td>' + fecha(c.alta) + '</td>' +
+    '<td>' + fecha(c.ultimo_acceso) + '</td>' +
+    '</tr>'
+  ).join('');
 }
 
-function pintarLista(codigos) {
-  $('msgLista').textContent = codigos.length + ' código(s) registrados.';
-  $('msgLista').className = 'msg';
+/* ---------- SUSCRIPCIONES ---------- */
 
-  const tbody = $('tbody');
-  tbody.innerHTML = '';
+$('btnSubs').addEventListener('click', listarSubs);
 
-  codigos.forEach((c) => {
-    const [txt, cls] = estadoDe(c);
+async function listarSubs() {
+  $('msgSubs').textContent = 'Cargando…';
+  $('msgSubs').className = 'msg';
+
+  const res = await llamar({ accion: 'suscripciones', clave: claveMaestra });
+
+  if (!res.ok) return falla('msgSubs', res.error);
+
+  $('msgSubs').textContent = res.suscripciones.length + ' suscripción(es).';
+  $('msgSubs').className = 'msg';
+
+  $('tbodySubs').innerHTML = '';
+
+  res.suscripciones.forEach((s) => {
+    const vigente = s.expires_at && new Date(s.expires_at) > new Date();
+
+    let st, cls;
+    if (s.status === 'active') { st = 'ACTIVA'; cls = 'act'; }
+    else if (s.status === 'cancelled' && vigente) { st = 'CANCELADA · VIGENTE'; cls = 'can'; }
+    else if (s.status === 'cancelled') { st = 'CANCELADA'; cls = 'exp'; }
+    else if (s.status === 'expired') { st = 'CADUCADA'; cls = 'exp'; }
+    else { st = (s.status || '—').toUpperCase(); cls = 'exp'; }
+
+    const origen = s.payment_provider === 'acceso_especial'
+      ? '<span class="st oto">CANJE</span>'
+      : (s.payment_provider || '—');
+
     const tr = document.createElement('tr');
     tr.innerHTML =
-      '<td><span class="cod">' + c.codigo + '</span><br>' +
-      '<small style="color:var(--mut)">' + (c.modo === 'dedicado' ? 'dedicado → ' + c.email_asignado : 'libre') + '</small></td>' +
-      '<td><span class="st ' + cls + '">' + txt + '</span></td>' +
-      '<td>' + c.tier + '</td>' +
-      '<td>' + c.duracion_dias + ' d</td>' +
-      '<td>' + (c.canjeado_email || '—') + '<br><small style="color:var(--mut)">' + fecha(c.canjeado_en) + '</small></td>' +
-      '<td>' + (c.beneficio_hasta ? fecha(c.beneficio_hasta) : '—') + '</td>' +
+      '<td>' + (s.email || '—') + '<br><small style="color:var(--mut)">' + (s.username || '') + '</small></td>' +
+      '<td>' + (s.plan_type || s.plan || '—') + '</td>' +
+      '<td>' + origen + '</td>' +
+      '<td>' + (s.amount != null ? '$' + s.amount : '—') + '</td>' +
+      '<td><span class="st ' + cls + '">' + st + '</span></td>' +
+      '<td>' + fecha(s.started_at) + '</td>' +
+      '<td>' + fecha(s.expires_at) + '</td>' +
       '<td></td>';
 
-    if (c.activo) {
-      const btn = document.createElement('button');
-      btn.className = 'mini';
-      btn.textContent = 'REVOCAR';
-      btn.addEventListener('click', () => revocar(c, btn));
-      tr.lastElementChild.appendChild(btn);
+    const td = tr.lastElementChild;
+
+    if (s.status === 'active') {
+      const b = document.createElement('button');
+      b.className = 'mini baja';
+      b.textContent = 'DAR DE BAJA';
+      b.addEventListener('click', () => accionSub('dar_baja', s, b));
+      td.appendChild(b);
+    } else if (s.status === 'cancelled' && vigente) {
+      const b = document.createElement('button');
+      b.className = 'mini reac';
+      b.textContent = 'REACTIVAR';
+      b.addEventListener('click', () => accionSub('reactivar', s, b));
+      td.appendChild(b);
     }
 
-    tbody.appendChild(tr);
+    $('tbodySubs').appendChild(tr);
   });
 }
 
-async function revocar(c, btn) {
-  if (!confirm('¿Anular el código ' + c.codigo + '? Si ya fue canjeado, el beneficio se corta al instante.')) return;
+async function accionSub(accion, s, btn) {
+  const verbo = accion === 'dar_baja'
+    ? '¿Dar de baja la suscripción de ' + (s.email || s.user_id) + '? Los beneficios siguen hasta su vencimiento.'
+    : '¿Reactivar la suscripción de ' + (s.email || s.user_id) + '?';
+
+  if (!confirm(verbo)) return;
 
   btn.disabled = true;
 
-  const res = await llamar({ accion: 'revocar', clave: claveMaestra, id: c.id });
+  const res = await llamar({ accion, clave: claveMaestra, id: s.id });
 
-  if (!res.ok) alert(res.error || 'No se pudo revocar.');
+  if (!res.ok) alert(res.error || 'No se pudo completar.');
+  else if (res.aviso) alert(res.aviso);
 
-  listar();
+  listarSubs();
 }
 
-/* ---------- LLAMADA A LA FUNCIÓN ---------- */
+/* ---------- DATOS (auditoría) ---------- */
 
-async function llamar(cuerpo) {
+$('btnTablas').addEventListener('click', listarTablas);
+
+async function listarTablas() {
+  $('msgDatos').textContent = 'Cargando tablas…';
+  $('msgDatos').className = 'msg';
+
+  const res = await llamar({ accion: 'tablas', clave: claveMaestra });
+
+  if (!res.ok) return falla('msgDatos', res.error);
+
+  $('selTabla').innerHTML =
+    '<option value="">— elige una tabla —</option>' +
+    res.tablas.map((t) =>
+      '<option value="' + t.nombre + '">' + t.nombre +
+      (t.filas != null ? ' · ' + t.filas + ' filas' : ' · (sin acceso)') +
+      '</option>'
+    ).join('');
+
+  $('msgDatos').textContent = res.tablas.length + ' tabla(s) encontradas.';
+  $('msgDatos').className = 'msg';
+}
+
+$('btnVer').addEventListener('click', async () => {
+  const tabla = $('selTabla').value;
+
+  if (!tabla) {
+    $('msgDatos').textContent = 'Elige una tabla primero.';
+    $('msgDatos').className = 'msg err';
+    return;
+  }
+
+  $('msgDatos').textContent = 'Leyendo ' + tabla + '…';
+  $('msgDatos').className = 'msg';
+
+  const res = await llamar({ accion: 'ver', clave: claveMaestra, tabla });
+
+  if (!res.ok) return falla('msgDatos', res.error);
+
+  const filas = res.filas;
+
+  if (!filas.length) {
+    $('zonaTabla').innerHTML = '<p class="nota">La tabla está vacía.</p>';
+    $('msgDatos').textContent = tabla + ' · 0 filas.';
+    return;
+  }
+
+  const cols = Object.keys(filas[0]);
+
+  $('zonaTabla').innerHTML =
+    '<table><thead><tr>' +
+    cols.map((c) => '<th>' + c + '</th>').join('') +
+    '</tr></thead><tbody>' +
+    filas.map((f) =>
+      '<tr>' + cols.map((c) => {
+        const v = f[c];
+        return '<td>' + (v == null ? '—'
+          : typeof v === 'object' ? JSON.stringify(v)
+          : String(v).length > 80 ? String(v).slice(0, 80) + '…'
+          : String(v)) + '</td>';
+      }).join('') + '</tr>'
+    ).join('') +
+    '</tbody></table>';
+
+  $('msgDatos').textContent = tabla + ' · mostrando ' + filas.length + ' fila(s) (solo lectura).';
+  $('msgDatos').className = 'msg';
+});
+
+/* ---------- LLAMADAS A LAS FUNCIONES ---------- */
+
+async function llamar(cuerpo, funcion = 'bvlux-panel-control') {
   const { data: ses } = await supabase.auth.getSession();
 
   if (!ses?.session?.access_token) {
@@ -340,7 +619,7 @@ async function llamar(cuerpo) {
   }
 
   const res = await fetch(
-    supabase.supabaseUrl + '/functions/v1/' + FUNCION,
+    supabase.supabaseUrl + '/functions/v1/' + funcion,
     {
       method: 'POST',
       headers: {
@@ -353,6 +632,478 @@ async function llamar(cuerpo) {
 
   return await res.json();
 }
+
+async function llamarForm(fd, funcion) {
+  const { data: ses } = await supabase.auth.getSession();
+
+  if (!ses?.session?.access_token) {
+    return { ok: false, error: 'Sin sesión. Inicia sesión en tu web y recarga esta página.' };
+  }
+
+  const res = await fetch(
+    supabase.supabaseUrl + '/functions/v1/' + funcion,
+    {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + ses.session.access_token },
+      body: fd
+    }
+  );
+
+  return await res.json();
+}
+
+function falla(id, error) {
+  $(id).textContent = error || 'Ocurrió un error.';
+  $(id).className = 'msg err';
+}
+
+/* =========================================================
+   SOPORTE (2C.4)
+   ========================================================= */
+
+let ticketActual = null;
+
+$('btnSoporte').addEventListener('click', listarSoporte);
+
+async function listarSoporte() {
+  $('msgSoporte').textContent = 'Cargando tickets…';
+  $('msgSoporte').className = 'msg';
+
+  const res = await llamar({ accion: 'listar', clave: claveMaestra }, 'bvlux-soporte');
+
+  if (!res.ok) return falla('msgSoporte', res.error);
+
+  $('msgSoporte').textContent =
+    res.tickets.length + ' ticket(s).' +
+    (res.smtp ? ' Gmail listo para enviar correos.' : ' AVISO: SMTP sin configurar (respuestas guardadas, sin correo real).');
+
+  $('msgSoporte').className = 'msg' + (res.smtp ? '' : ' err');
+
+  $('tbodySoporte').innerHTML = '';
+
+  res.tickets.forEach((t) => {
+    const est = (t.estado || 'nuevo').toLowerCase();
+
+    const chipCls = est === 'respondido' ? 'res' : est === 'cerrado' ? 'cer' : 'nue';
+
+    const tr = document.createElement('tr');
+
+    tr.innerHTML =
+      '<td>' + fecha(t.created_at) + '</td>' +
+      '<td>' + esc(t.email || '—') + '</td>' +
+      '<td><b>' + esc(t.subject || '—') + '</b><br><small style="color:var(--mut)">' +
+        esc(String(t.details || '').slice(0, 140)) +
+        (String(t.details || '').length > 140 ? '…' : '') + '</small></td>' +
+      '<td><span class="st ' + chipCls + '">' + est.toUpperCase() + '</span></td>' +
+      '<td>' + (t.respuesta
+        ? '<small>' + esc(String(t.respuesta).slice(0, 100)) +
+          (String(t.respuesta).length > 100 ? '…' : '') + '</small>'
+        : '—') + '</td>' +
+      '<td></td>';
+
+    const td = tr.lastElementChild;
+
+    const bResp = document.createElement('button');
+    bResp.className = 'mini env';
+    bResp.textContent = 'RESPONDER';
+    bResp.addEventListener('click', () => abrirRespuesta(t));
+    td.appendChild(bResp);
+
+    if (est !== 'cerrado') {
+      const bCerr = document.createElement('button');
+      bCerr.className = 'mini baja';
+      bCerr.style.marginLeft = '6px';
+      bCerr.textContent = 'CERRAR';
+      bCerr.addEventListener('click', () => cerrarTicket(t.id, bCerr));
+      td.appendChild(bCerr);
+    }
+
+    $('tbodySoporte').appendChild(tr);
+  });
+}
+
+function abrirRespuesta(t) {
+  ticketActual = t;
+
+  $('cajaRespuesta').classList.remove('hidden');
+
+  $('respDe').textContent =
+    'Respondiendo a ' + (t.email || '—') + ' · "' + (t.subject || '—') + '"';
+
+  $('respTexto').value = '';
+
+  $('msgRespuesta').textContent = '';
+  $('msgRespuesta').className = 'msg';
+
+  $('respTexto').focus();
+}
+
+$('btnCancelarRespuesta').addEventListener('click', () => {
+  $('cajaRespuesta').classList.add('hidden');
+  ticketActual = null;
+});
+
+$('btnEnviarRespuesta').addEventListener('click', async () => {
+  if (!ticketActual) return;
+
+  const texto = $('respTexto').value.trim();
+
+  if (!texto) {
+    $('msgRespuesta').textContent = 'Escribe la respuesta.';
+    $('msgRespuesta').className = 'msg err';
+    return;
+  }
+
+  $('btnEnviarRespuesta').disabled = true;
+
+  $('msgRespuesta').textContent = 'Guardando…';
+  $('msgRespuesta').className = 'msg';
+
+  const res = await llamar({
+    accion: 'responder',
+    clave: claveMaestra,
+    id: ticketActual.id,
+    respuesta: texto,
+    enviar_correo: $('respCorreo').checked,
+  }, 'bvlux-soporte');
+
+  $('btnEnviarRespuesta').disabled = false;
+
+  if (!res.ok) return falla('msgRespuesta', res.error);
+
+  $('msgRespuesta').textContent = res.aviso || 'Respuesta enviada.';
+  $('msgRespuesta').className = 'msg ok';
+
+  ticketActual = null;
+
+  setTimeout(() => {
+    $('cajaRespuesta').classList.add('hidden');
+    listarSoporte();
+  }, 1400);
+});
+
+async function cerrarTicket(id, btn) {
+  if (!confirm('¿Marcar este ticket como CERRADO?')) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'cerrar', clave: claveMaestra, id }, 'bvlux-soporte');
+
+  if (!res.ok) alert(res.error || 'No se pudo cerrar.');
+
+  listarSoporte();
+}
+
+/* =========================================================
+   CORREOS (2C.5)
+   ========================================================= */
+
+let destinatarios = [];
+
+$('btnPreparar').addEventListener('click', prepararDestinatarios);
+
+$('btnCampania').addEventListener('click', enviarCampania);
+
+$('btnDirecto').addEventListener('click', enviarDirecto);
+
+$('btnHistorial').addEventListener('click', verHistorial);
+
+async function prepararDestinatarios() {
+  $('msgCorreos').textContent = 'Cargando cuentas…';
+  $('msgCorreos').className = 'msg';
+
+  $('btnCampania').classList.add('hidden');
+
+  const res = await llamar({ accion: 'cuentas', clave: claveMaestra });
+
+  if (!res.ok) return falla('msgCorreos', res.error);
+
+  const segmento = $('masSegmento').value;
+
+  let lista = res.cuentas.filter((c) => c.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
+
+  if (segmento === 'premium') lista = lista.filter((c) => c.plan === 'premium');
+  if (segmento === 'gratuitos') lista = lista.filter((c) => c.plan !== 'premium');
+
+  destinatarios = [...new Set(lista.map((c) => c.email.toLowerCase()))];
+
+  if (!destinatarios.length) {
+    $('msgCorreos').textContent = 'No hay destinatarios para ese segmento.';
+    $('msgCorreos').className = 'msg err';
+    return;
+  }
+
+  if (destinatarios.length > 450) {
+    destinatarios = destinatarios.slice(0, 450);
+  }
+
+  $('btnCampania').textContent = 'ENVIAR A ' + destinatarios.length + ' MIEMBRO(S)';
+  $('btnCampania').classList.remove('hidden');
+
+  $('msgCorreos').textContent =
+    destinatarios.length + ' destinatario(s) listos. Revisa asunto y mensaje antes de enviar.';
+  $('msgCorreos').className = 'msg ok';
+}
+
+async function enviarCampania() {
+  const asunto = $('masAsunto').value.trim();
+  const cuerpo = $('masCuerpo').value.trim();
+
+  if (!asunto || !cuerpo) {
+    $('msgCorreos').textContent = 'Escribe asunto y mensaje.';
+    $('msgCorreos').className = 'msg err';
+    return;
+  }
+
+  if (!confirm('¿Enviar la campaña a ' + destinatarios.length + ' miembro(s) desde tu Gmail?')) return;
+
+  $('btnCampania').disabled = true;
+  $('btnPreparar').disabled = true;
+
+  const campania = 'camp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+
+  const LOTE = 12;
+
+  let enviados = 0;
+  let fallidos = 0;
+
+  for (let i = 0; i < destinatarios.length; i += LOTE) {
+    const lote = destinatarios.slice(i, i + LOTE);
+
+    $('masProgreso').textContent =
+      'Enviando… ' + Math.min(i + LOTE, destinatarios.length) + ' / ' + destinatarios.length;
+
+    const res = await llamar({
+      accion: 'masivo',
+      clave: claveMaestra,
+      campania,
+      asunto,
+      cuerpo,
+      correos: lote,
+    }, 'bvlux-correos');
+
+    if (!res.ok) {
+      $('masProgreso').textContent = '';
+      falla('msgCorreos', res.error + ' — campaña DETENIDA, ya enviados: ' + enviados);
+      $('btnCampania').disabled = false;
+      $('btnPreparar').disabled = false;
+      return;
+    }
+
+    enviados += res.enviados || 0;
+    fallidos += res.fallidos || 0;
+  }
+
+  $('masProgreso').textContent = '';
+  $('btnCampania').disabled = false;
+  $('btnPreparar').disabled = false;
+  $('btnCampania').classList.add('hidden');
+
+  $('msgCorreos').textContent =
+    'Campaña terminada: ' + enviados + ' enviado(s), ' + fallidos + ' fallido(s).';
+  $('msgCorreos').className = 'msg ok';
+
+  destinatarios = [];
+
+  verHistorial();
+}
+
+async function enviarDirecto() {
+  const para = $('dirPara').value.trim().toLowerCase();
+  const asunto = $('dirAsunto').value.trim();
+  const cuerpo = $('dirCuerpo').value.trim();
+
+  if (!para || !asunto || !cuerpo) {
+    $('msgDirecto').textContent = 'Completa correo, asunto y mensaje.';
+    $('msgDirecto').className = 'msg err';
+    return;
+  }
+
+  $('btnDirecto').disabled = true;
+
+  $('msgDirecto').textContent = 'Enviando…';
+  $('msgDirecto').className = 'msg';
+
+  const res = await llamar({
+    accion: 'directo',
+    clave: claveMaestra,
+    para,
+    asunto,
+    cuerpo,
+  }, 'bvlux-correos');
+
+  $('btnDirecto').disabled = false;
+
+  if (!res.ok) return falla('msgDirecto', res.error);
+
+  $('msgDirecto').textContent = res.aviso || 'Correo enviado.';
+  $('msgDirecto').className = 'msg ok';
+
+  $('dirPara').value = '';
+  $('dirAsunto').value = '';
+  $('dirCuerpo').value = '';
+}
+
+async function verHistorial() {
+  $('msgHistorial').textContent = 'Cargando…';
+  $('msgHistorial').className = 'msg';
+
+  const res = await llamar({ accion: 'historial', clave: claveMaestra }, 'bvlux-correos');
+
+  if (!res.ok) return falla('msgHistorial', res.error);
+
+  $('msgHistorial').textContent =
+    res.correos.length + ' envío(s) registrados.' +
+    (res.smtp ? '' : ' AVISO: SMTP sin configurar (añade los secrets de Gmail).');
+
+  $('msgHistorial').className = 'msg' + (res.smtp ? '' : ' err');
+
+  $('tbodyCorreos').innerHTML = res.correos.map((c) =>
+    '<tr>' +
+    '<td>' + fecha(c.created_at) + '</td>' +
+    '<td>' + (c.tipo === 'masivo' ? 'MASIVO' : 'DIRECTO') + '</td>' +
+    '<td>' + esc(c.destinatario || '—') + '</td>' +
+    '<td>' + esc(String(c.asunto || '').slice(0, 60)) + '</td>' +
+    '<td><span class="st ' + (c.estado === 'enviado' ? 'act' : 'can') + '">' +
+      (c.estado || '—').toUpperCase() + '</span>' +
+    (c.error ? '<br><small style="color:var(--mut)">' + esc(String(c.error).slice(0, 80)) + '</small>' : '') +
+    '</td>' +
+    '</tr>'
+  ).join('');
+}
+
+/* =========================================================
+   CONTENIDO (2C.6)
+   ========================================================= */
+
+$('btnSubirContenido').addEventListener('click', subirContenido);
+
+$('btnListarContenido').addEventListener('click', listarContenido);
+
+async function subirContenido() {
+  const archivo = $('contArchivo').files[0];
+
+  if (!archivo) {
+    $('msgContenido').textContent = 'Elige un archivo primero.';
+    $('msgContenido').className = 'msg err';
+    return;
+  }
+
+  if (archivo.size > 25 * 1024 * 1024) {
+    $('msgContenido').textContent =
+      'El archivo supera 25 MB (límite del servidor). Súbelo a mano en Supabase → Storage → bvlux-contenido.';
+    $('msgContenido').className = 'msg err';
+    return;
+  }
+
+  $('btnSubirContenido').disabled = true;
+
+  $('msgContenido').textContent = 'Subiendo ' + archivo.name + '…';
+  $('msgContenido').className = 'msg';
+
+  const fd = new FormData();
+
+  fd.append('accion', 'subir');
+  fd.append('clave', claveMaestra);
+  fd.append('tipo', $('contTipo').value);
+  fd.append('notas', $('contNotas').value.trim());
+  fd.append('archivo', archivo);
+
+  const res = await llamarForm(fd, 'bvlux-contenido');
+
+  $('btnSubirContenido').disabled = false;
+
+  if (!res.ok) return falla('msgContenido', res.error);
+
+  $('msgContenido').textContent = 'Subido: ' + res.nombre;
+  $('msgContenido').className = 'msg ok';
+
+  $('contArchivo').value = '';
+  $('contNotas').value = '';
+
+  listarContenido();
+}
+
+async function listarContenido() {
+  $('msgContenido').textContent = 'Cargando archivos…';
+  $('msgContenido').className = 'msg';
+
+  const res = await llamar({ accion: 'listar', clave: claveMaestra }, 'bvlux-contenido');
+
+  if (!res.ok) return falla('msgContenido', res.error);
+
+  $('msgContenido').textContent = res.items.length + ' archivo(s).';
+  $('msgContenido').className = 'msg';
+
+  $('tbodyContenido').innerHTML = '';
+
+  res.items.forEach((it) => {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML =
+      '<td>' + fecha(it.created_at) + '</td>' +
+      '<td>' + esc(it.nombre || '—') + '</td>' +
+      '<td>' + esc(it.tipo || '—') + '</td>' +
+      '<td>' + kb(it.tamano) + '</td>' +
+      '<td>' + esc(it.notas || '—') + '</td>' +
+      '<td></td>';
+
+    const td = tr.lastElementChild;
+
+    const bUrl = document.createElement('button');
+    bUrl.className = 'mini env';
+    bUrl.textContent = 'ENLACE';
+    bUrl.addEventListener('click', () => pedirEnlace(it, bUrl));
+    td.appendChild(bUrl);
+
+    const bDel = document.createElement('button');
+    bDel.className = 'mini baja';
+    bDel.style.marginLeft = '6px';
+    bDel.textContent = 'BORRAR';
+    bDel.addEventListener('click', () => borrarContenido(it, bDel));
+    td.appendChild(bDel);
+
+    $('tbodyContenido').appendChild(tr);
+  });
+}
+
+async function pedirEnlace(it, btn) {
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'enlace', clave: claveMaestra, id: it.id }, 'bvlux-contenido');
+
+  btn.disabled = false;
+
+  if (!res.ok) {
+    alert(res.error || 'No se pudo crear el enlace.');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(res.url);
+  } catch (_) {
+    /* sin permiso del portapapeles: se muestra abajo igual */
+  }
+
+  prompt('Enlace privado de "' + res.nombre + '" (válido ' + res.caduca_en + '). Cópialo con Ctrl+C si no se copió solo:', res.url);
+}
+
+async function borrarContenido(it, btn) {
+  if (!confirm('¿BORRAR "' + (it.nombre || it.ruta) + '" para siempre? No se puede recuperar.')) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'borrar', clave: claveMaestra, id: it.id }, 'bvlux-contenido');
+
+  if (!res.ok) {
+    alert(res.error || 'No se pudo borrar.');
+    btn.disabled = false;
+    return;
+  }
+
+  listarContenido();
+}
+
 </script>
 </body>
 </html>
