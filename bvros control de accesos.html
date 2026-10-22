@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>BVros · Panel del dueño</title>
+<!-- BVLUX 2C.7.1 · página con llamadas blindadas: si algo falla, muestra el motivo (nunca se queda en «Cargando…» infinito). Requiere la función bvlux-panel-control desplegada. -->
 <style>
   :root{
     --bg:#0d0f12; --panel:#161a20; --line:#262c35;
@@ -409,6 +410,8 @@ const supabase = createClient(
 
 let claveMaestra = '';
 
+console.log('BVLUX panel · versión de página 2C.7.1');
+
 const $ = (id) => document.getElementById(id);
 
 const fecha = (iso) => iso
@@ -634,6 +637,35 @@ async function revocar(c, btn) {
    LLAMADAS A LAS FUNCIONES (sesión del dueño + clave)
    ========================================================= */
 
+/* Traduce los errores de la plataforma (gateway de
+   Supabase) a mensajes que se entienden. Los errores de
+   nuestras funciones ya traen su propio texto (.error). */
+
+function errFuncion(funcion, status, datos) {
+
+  const msg = (datos && (datos.error || datos.message)) ||
+    ('HTTP ' + status);
+
+  if (status === 404 || (datos && datos.code === 'NOT_FOUND')) {
+    return 'La función "' + funcion +
+      '" NO está desplegada en Supabase (404). Créala en Edge Functions con ESE nombre exacto y pega su código. Detalle: ' + msg;
+  }
+
+  if (status === 401 || (datos && String(datos.code || '').indexOf('UNAUTHORIZED') === 0)) {
+    return 'Tu sesión expiró o no es válida. Ve a tu web, cierra sesión, inicia sesión de nuevo y recarga este panel. Detalle: ' + msg;
+  }
+
+  if (status === 504) {
+    return 'La función "' + funcion + '" tardó demasiado y la plataforma la cortó (límite 150s). Prueba otra vez o con un archivo más pequeño. Detalle: ' + msg;
+  }
+
+  if (status === 413) {
+    return 'El archivo o la petición supera el límite de la plataforma. Detalle: ' + msg;
+  }
+
+  return 'Error ' + status + ' en ' + funcion + ': ' + msg;
+}
+
 async function llamar(cuerpo, funcion) {
   const { data: ses } = await supabase.auth.getSession();
 
@@ -641,19 +673,47 @@ async function llamar(cuerpo, funcion) {
     return { ok: false, error: 'Sin sesión. Inicia sesión en tu web y recarga esta página.' };
   }
 
-  const res = await fetch(
-    supabase.supabaseUrl + '/functions/v1/' + funcion,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + ses.session.access_token
-      },
-      body: JSON.stringify(cuerpo)
-    }
-  );
+  try {
+    const res = await fetch(
+      supabase.supabaseUrl + '/functions/v1/' + funcion,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + ses.session.access_token
+        },
+        body: JSON.stringify(cuerpo)
+      }
+    );
 
-  return await res.json();
+    let datos = null;
+
+    try { datos = await res.json(); } catch (_) { datos = null; }
+
+    if (datos == null) {
+      return {
+        ok: false,
+
+        error: 'La función "' + funcion + '" respondió algo que no es JSON (HTTP ' + res.status + '). ¿Está bien desplegada?'
+      };
+    }
+
+    if (!res.ok) {
+      if (typeof datos.error === 'string' && datos.error) {
+        return { ok: false, error: datos.error };
+      }
+
+      return { ok: false, error: errFuncion(funcion, res.status, datos) };
+    }
+
+    return datos;
+  } catch (e) {
+    return {
+      ok: false,
+
+      error: 'No se pudo conectar con "' + funcion + '". Lo normal es que la función no esté desplegada con ESE nombre exacto en Supabase. Detalle: ' + (e && e.message ? e.message : e)
+    };
+  }
 }
 
 async function llamarForm(fd, funcion) {
@@ -663,16 +723,44 @@ async function llamarForm(fd, funcion) {
     return { ok: false, error: 'Sin sesión. Inicia sesión en tu web y recarga esta página.' };
   }
 
-  const res = await fetch(
-    supabase.supabaseUrl + '/functions/v1/' + funcion,
-    {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + ses.session.access_token },
-      body: fd
-    }
-  );
+  try {
+    const res = await fetch(
+      supabase.supabaseUrl + '/functions/v1/' + funcion,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + ses.session.access_token },
+        body: fd
+      }
+    );
 
-  return await res.json();
+    let datos = null;
+
+    try { datos = await res.json(); } catch (_) { datos = null; }
+
+    if (datos == null) {
+      return {
+        ok: false,
+
+        error: 'La función "' + funcion + '" respondió algo que no es JSON (HTTP ' + res.status + ').'
+      };
+    }
+
+    if (!res.ok) {
+      if (typeof datos.error === 'string' && datos.error) {
+        return { ok: false, error: datos.error };
+      }
+
+      return { ok: false, error: errFuncion(funcion, res.status, datos) };
+    }
+
+    return datos;
+  } catch (e) {
+    return {
+      ok: false,
+
+      error: 'La subida no pudo conectar con "' + funcion + '" (¿función desplegada con ese nombre exacto? ¿archivo dentro del límite?). Detalle: ' + (e && e.message ? e.message : e)
+    };
+  }
 }
 
 function falla(id, error) {
