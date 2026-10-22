@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>BVros · Panel del dueño</title>
-<!-- BVLUX 2C.7.1 · página con llamadas blindadas: si algo falla, muestra el motivo (nunca se queda en «Cargando…» infinito). Requiere la función bvlux-panel-control desplegada. -->
+<!-- BVLUX PCD-1 (2C.8) · panel con: versión móvil responsive, DATOS DE LA BASE en vista única, mensajería interna sin SMTP, pestaña CATÁLOGO (publicar pistas directo al catálogo) y SIN botón ENLACE externo. Llamadas blindadas desde 2C.7.1. Requiere bvlux-catalogo + bvlux-pcd.sql. -->
 <style>
   :root{
     --bg:#0d0f12; --panel:#161a20; --line:#262c35;
@@ -107,6 +107,53 @@
   .subcard h2{font-size:.8rem; letter-spacing:.1em;
     text-transform:uppercase; color:var(--acc); margin-bottom:2px;}
   .progress{font-size:.85rem; margin-top:8px; min-height:1.2em; color:var(--txt);}
+  .zonaTablas{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px; margin-top:12px;}
+  .tchip{
+    background:#0a0c0f; border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; cursor:pointer; text-align:left; margin-top:0;
+  }
+  .tchip b{display:block; color:var(--acc); font-size:.78rem; word-break:break-all;}
+  .tchip small{color:var(--mut); font-size:.68rem;}
+  .tchip:hover{border-color:var(--acc);}
+  .tchip.on{border-color:var(--acc); background:#16110a;}
+  /* =====================================================
+     VERSIÓN MÓVIL (PCD-1): el panel se reorganiza para el
+     celular — pestañas deslizables, botones grandes y cada
+     fila de tabla convertida en una tarjeta legible
+     (Etiqueta: valor) en vez de columnas apiladas.
+     ===================================================== */
+  @media (max-width:760px){
+    body{padding:14px 8px;}
+    .wrap{max-width:100%;}
+    h1{font-size:1.02rem;}
+    .sub{font-size:.8rem;}
+    .tabs{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      gap:6px; padding-bottom:6px; margin-top:12px;}
+    .tab{white-space:nowrap; padding:9px 13px; font-size:.66rem; width:auto;}
+    .card{padding:14px 12px; border-radius:12px; margin-top:14px;}
+    .subcard{padding:12px 10px;}
+    .grid{gap:0 10px;}
+    button{width:100%;}
+    button.mini{width:auto;}
+    button.tab{width:auto;}
+    button.tchip{width:auto;}
+    .stat b{font-size:1.2rem;}
+    /* Tablas → tarjetas legibles, una por fila */
+    table{display:block; border-collapse:separate; border-spacing:0;}
+    thead{display:none;}
+    tbody{display:block;}
+    tr{display:block; background:#0a0c0f; border:1px solid var(--line);
+      border-radius:10px; padding:10px 12px; margin-bottom:10px;}
+    td{display:flex; justify-content:space-between; align-items:flex-start;
+      gap:12px; padding:5px 0; border:0; text-align:right; font-size:.8rem;}
+    td::before{content:attr(data-c); color:var(--mut); font-size:.62rem;
+      text-transform:uppercase; letter-spacing:.06em; text-align:left;
+      flex:0 0 44%; align-self:center; word-break:break-word;}
+    td.vacio{display:none;}
+    td .mini{margin-top:4px;}
+    .zonaTablas{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
+  }
 </style>
 </head>
 <body>
@@ -140,6 +187,7 @@
       <button class="tab" data-tab="soporte">SOPORTE ✉</button>
       <button class="tab" data-tab="correos">CORREOS ✉</button>
       <button class="tab" data-tab="contenido">CONTENIDO ▲</button>
+      <button class="tab" data-tab="catalogo">CATÁLOGO ★</button>
     </div>
 
     <!-- CÓDIGOS (generador de siempre) -->
@@ -257,14 +305,13 @@
     <!-- DATOS -->
     <div class="card hidden" data-vista="datos">
       <h1 style="font-size:1rem;">Datos de la base (auditoría)</h1>
-      <button class="sec" id="btnTablas">LISTAR TABLAS</button>
+      <button class="sec" id="btnTablas">ACTUALIZAR TABLAS</button>
       <div class="msg" id="msgDatos"></div>
-      <label>Tabla</label>
-      <select id="selTabla"><option value="">— elige una tabla —</option></select>
-      <button id="btnVer">VER PRIMERAS 50 FILAS</button>
+      <div id="zonaTablas" class="zonaTablas"></div>
       <div style="overflow-x:auto;" id="zonaTabla"></div>
-      <div class="nota">Aquí aparecen TODAS las tablas públicas (reproducciones, me gusta, catálogos…)
-      con su número de filas. La vista es SOLO LECTURA: nada se modifica ni se borra desde aquí.</div>
+      <div class="nota">Aquí están TODAS las tablas públicas (reproducciones, me gusta, catálogos…)
+      con su número de filas, TODAS A LA VISTA: toca una tarjeta y se leen sus primeras 50 filas
+      aquí mismo, sin menús desplegables. La vista es SOLO LECTURA: nada se modifica ni se borra desde aquí.</div>
     </div>
 
     <!-- SOPORTE (2C.4) -->
@@ -307,7 +354,39 @@
       <div class="msg" id="msgCorreos"></div>
 
       <div class="subcard">
-        <h2>Campaña masiva · anuncios y promos de tiempo limitado</h2>
+        <h2>Mensajes internos · dentro de BVros (funciona SIEMPRE)</h2>
+        <label>Asunto</label>
+        <input id="intAsunto" placeholder="Ej: ¡NUEVO TEMA EN EL CATÁLOGO!">
+        <label>Mensaje</label>
+        <textarea id="intCuerpo" rows="5" placeholder="Escribe tu mensaje…"></textarea>
+        <label>Destinatarios</label>
+        <select id="intSegmento">
+          <option value="todos">Todos los miembros registrados</option>
+          <option value="premium">Solo Premium (suscripción o canje vigente)</option>
+          <option value="gratuitos">Solo Miembros Gratuitos</option>
+        </select>
+        <button class="sec" id="btnIntPreparar">PREPARAR DESTINATARIOS</button>
+        <button id="btnIntEnviar" class="hidden">ENVIAR MENSAJES INTERNOS</button>
+        <div class="msg" id="msgInterno"></div>
+        <div class="nota">Se guardan DENTRO de BVros: el miembro los lee al instante en
+        «Mis consultas» (pastilla de usuario). No necesita Gmail, ni SMTP,
+        ni contraseñas de aplicación: funciona 100% dentro de Supabase.</div>
+      </div>
+
+      <div class="subcard">
+        <h2>Mensaje interno directo a UN miembro</h2>
+        <label>Para (correo del miembro)</label>
+        <input id="intDirPara" placeholder="usuario@correo.com">
+        <label>Asunto</label>
+        <input id="intDirAsunto">
+        <label>Mensaje</label>
+        <textarea id="intDirCuerpo" rows="4"></textarea>
+        <button class="sec" id="btnIntDirecto">ENVIAR MENSAJE INTERNO</button>
+        <div class="msg" id="msgIntDirecto"></div>
+      </div>
+
+      <div class="subcard">
+        <h2>Campaña por CORREO FÍSICO · OPCIONAL (necesita contraseña de aplicación)</h2>
         <label>Asunto</label>
         <input id="masAsunto" placeholder="Ej: ¡PROMO 48 HORAS! Nivel 2 por $1.70 con código BVLUX170">
         <label>Mensaje</label>
@@ -371,6 +450,14 @@
         </select>
         <label>Archivo</label>
         <input type="file" id="contArchivo">
+        <label>Clasificación / destino</label>
+        <select id="contDestino">
+          <option value="general">General</option>
+          <option value="escuela">Escuela</option>
+          <option value="distribucion">Distribución</option>
+          <option value="catalogo">Catálogo</option>
+          <option value="portafolio">Portafolio de artista</option>
+        </select>
         <label>Notas (opcional)</label>
         <input id="contNotas" placeholder="Ej: ebook promo nivel 2 · tapa final">
         <button id="btnSubirContenido">SUBIR CONTENIDO</button>
@@ -388,9 +475,98 @@
             <tbody id="tbodyContenido"></tbody>
           </table>
         </div>
-        <div class="nota">ENLACE crea un link privado válido 1 hora (cópialo y compártelo donde quieras).
-        BORRAR elimina el archivo y su registro para siempre. El bucket es PRIVADO:
-        sin enlace temporal, nadie accede a nada.</div>
+        <div class="nota">BORRAR elimina el archivo y su registro para siempre. El bucket es PRIVADO.
+        En PCD-1 el botón ENLACE se quitó: tus archivos ya NO generan URLs descargables.
+        La música nueva súbela en la pestaña CATÁLOGO (va directa al catálogo de tu web).</div>
+      </div>
+    </div>
+
+    <!-- CATÁLOGO (PCD-1) -->
+    <div class="card hidden" data-vista="catalogo">
+      <h1 style="font-size:1rem;">Catálogo · publicar pistas directo a tu web</h1>
+      <div class="msg" id="msgCatalogo"></div>
+      <details style="margin-top:10px;">
+        <summary style="cursor:pointer; font-size:.75rem; color:var(--mut);">DIAGNÓSTICO (esquema detectado y bucket del catálogo)</summary>
+        <button class="sec" id="btnDiagCatalogo" style="margin-top:8px;">EJECUTAR DIAGNÓSTICO</button>
+        <div class="msg" id="msgDiagCatalogo"></div>
+        <pre id="diagCatalogo" style="white-space:pre-wrap; font-size:.68rem; color:var(--mut); margin-top:6px;"></pre>
+      </details>
+
+      <div class="subcard">
+        <h2>Subir pista al catálogo</h2>
+        <div class="grid">
+          <div>
+            <label>Título *</label>
+            <input id="catTitulo" placeholder="Ej: Apropiado de lo que más importa">
+          </div>
+          <div>
+            <label>Artista *</label>
+            <input id="catArtista" placeholder="Ej: BVros">
+          </div>
+          <div>
+            <label>Álbum (opcional)</label>
+            <input id="catAlbum" placeholder="Ej: Inéditos 2026">
+          </div>
+          <div>
+            <label>Nivel que puede escucharla</label>
+            <select id="catNivel">
+              <option value="gratuito">Gratuito (todos)</option>
+              <option value="experto">Experto</option>
+              <option value="avanzado">Avanzado</option>
+              <option value="promo">Promoción especial</option>
+            </select>
+          </div>
+          <div>
+            <label>Precio de la pista suelta (USD, 0 = incluida)</label>
+            <input type="number" id="catPrecio" value="0" min="0" step="0.01">
+          </div>
+          <div>
+            <label>Segundos de previsualización (0 = completa)</label>
+            <input type="number" id="catPreview" value="15" min="0" max="600">
+          </div>
+          <div>
+            <label>Destino / clasificación</label>
+            <select id="catDestino">
+              <option value="catalogo">Catálogo</option>
+              <option value="escuela">Escuela</option>
+              <option value="distribucion">Distribución</option>
+              <option value="portafolio">Portafolio de artista</option>
+            </select>
+          </div>
+          <div>
+            <label>Audio (mp3/wav/ogg/m4a/flac · máx 25 MB) *</label>
+            <input type="file" id="catAudio">
+          </div>
+          <div>
+            <label>Carátula / portada (jpg/png/webp · máx 5 MB)</label>
+            <input type="file" id="catPortada">
+            <div class="nota" style="margin-top:4px;">Recomendado: imagen CUADRADA de 1400×1400 px
+            (mínimo 1000×1000). Es la que se ve en tu catálogo.</div>
+          </div>
+          <div>
+            <label>Descripción (opcional)</label>
+            <input id="catDesc" placeholder="Ej: Inédito · lanzamiento del nuevo tema">
+          </div>
+        </div>
+        <button id="btnPublicar">PUBLICAR EN EL CATÁLOGO</button>
+      </div>
+
+      <div class="subcard">
+        <h2>Pistas publicadas</h2>
+        <button class="sec" id="btnListarPistas">ACTUALIZAR LISTA</button>
+        <div class="msg" id="msgPistas"></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Título</th><th>Artista</th><th>Nivel</th><th>Precio</th>
+              <th>Preview</th><th>Destino</th><th>Archivos</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="tbodyPistas"></tbody>
+          </table>
+        </div>
+        <div class="nota">La pista se guarda en las MISMAS tablas y el MISMO bucket privado que usa tu catálogo:
+        aparece en tu web como cualquier otra. SIN URL externa y SIN descarga: se escucha con el
+        mecanismo de siempre de tu página (get-audio-url).</div>
       </div>
     </div>
 
@@ -410,7 +586,7 @@ const supabase = createClient(
 
 let claveMaestra = '';
 
-console.log('BVLUX panel · versión de página 2C.7.1');
+console.log('BVLUX panel · versión de página PCD-1 (2C.8)');
 
 const $ = (id) => document.getElementById(id);
 
@@ -486,6 +662,7 @@ document.querySelectorAll('.tab').forEach((t) => {
     if (t.dataset.tab === 'soporte') listarSoporte();
     if (t.dataset.tab === 'correos') verHistorial();
     if (t.dataset.tab === 'contenido') listarContenido();
+    if (t.dataset.tab === 'catalogo') arranqueCatalogo();
   });
 });
 
@@ -619,6 +796,8 @@ function pintarLista(codigos) {
 
     tbody.appendChild(tr);
   });
+
+  etiquetaMoviles('tbody');
 }
 
 async function revocar(c, btn) {
@@ -768,6 +947,34 @@ function falla(id, error) {
   $(id).className = 'msg err';
 }
 
+/* PCD-1 · Etiqueta las celdas con el nombre de su columna
+   para que, en el CELULAR, cada fila se lea como una
+   tarjetita «Etiqueta: valor» (y las celdas vacías se
+   ocultan). En escritorio no cambia nada. */
+
+function etiquetaMoviles(tb) {
+  if (typeof tb === 'string') tb = $(tb);
+
+  if (!tb) return;
+
+  const tabla = tb.closest('table');
+
+  if (!tabla) return;
+
+  const labels = [...tabla.querySelectorAll('thead th')]
+    .map((th) => th.textContent.trim());
+
+  tb.querySelectorAll('tr').forEach((tr) => {
+    [...tr.children].forEach((td, i) => {
+      td.setAttribute('data-c', labels[i] || '');
+
+      if (td.textContent.trim() === '' && td.children.length === 0) {
+        td.classList.add('vacio');
+      }
+    });
+  });
+}
+
 /* =========================================================
    RESUMEN (función bvlux-panel-control)
    ========================================================= */
@@ -833,6 +1040,8 @@ async function listarCuentas() {
     '<td>' + fecha(c.ultimo_acceso) + '</td>' +
     '</tr>'
   ).join('');
+
+  etiquetaMoviles('tbodyCuentas');
 }
 
 /* =========================================================
@@ -897,6 +1106,8 @@ async function listarSubs() {
 
     $('tbodySubs').appendChild(tr);
   });
+
+  etiquetaMoviles('tbodySubs');
 }
 
 async function accionSub(accion, s, btn) {
@@ -930,26 +1141,29 @@ async function listarTablas() {
 
   if (!res.ok) return falla('msgDatos', res.error);
 
-  $('selTabla').innerHTML =
-    '<option value="">— elige una tabla —</option>' +
-    res.tablas.map((t) =>
-      '<option value="' + esc(t.nombre) + '">' + esc(t.nombre) +
-      (t.filas != null ? ' · ' + t.filas + ' filas' : ' · (sin acceso)') +
-      '</option>'
-    ).join('');
+  /* PCD-1 · Vista ÚNICA: todas las tablas a la vista en
+     tarjetas, sin menú desplegable. Toca una y se leen sus
+     primeras 50 filas aquí mismo. */
 
-  $('msgDatos').textContent = res.tablas.length + ' tabla(s) encontradas.';
+  $('zonaTablas').innerHTML = res.tablas.map((t) =>
+    '<button class="tchip" data-tabla="' + esc(t.nombre) + '">' +
+    '<b>' + esc(t.nombre) + '</b>' +
+    '<small>' + (t.filas != null ? t.filas + ' filas' : '(sin acceso)') + '</small>' +
+    '</button>'
+  ).join('');
+
+  $('zonaTablas').querySelectorAll('.tchip').forEach((ch) => {
+    ch.addEventListener('click', () => verTabla(ch.dataset.tabla, ch));
+  });
+
+  $('msgDatos').textContent = res.tablas.length + ' tabla(s) · toca una tarjeta para ver sus filas.';
   $('msgDatos').className = 'msg';
 }
 
-$('btnVer').addEventListener('click', async () => {
-  const tabla = $('selTabla').value;
+async function verTabla(tabla, chip) {
+  $('zonaTablas').querySelectorAll('.tchip').forEach((x) => x.classList.remove('on'));
 
-  if (!tabla) {
-    $('msgDatos').textContent = 'Elige una tabla primero.';
-    $('msgDatos').className = 'msg err';
-    return;
-  }
+  if (chip) chip.classList.add('on');
 
   $('msgDatos').textContent = 'Leyendo ' + tabla + '…';
   $('msgDatos').className = 'msg';
@@ -983,9 +1197,11 @@ $('btnVer').addEventListener('click', async () => {
     ).join('') +
     '</tbody></table>';
 
+  etiquetaMoviles($('zonaTabla').querySelector('tbody'));
+
   $('msgDatos').textContent = tabla + ' · mostrando ' + filas.length + ' fila(s) (solo lectura).';
   $('msgDatos').className = 'msg';
-});
+}
 
 /* =========================================================
    SOPORTE (función bvlux-soporte)
@@ -1050,6 +1266,8 @@ async function listarSoporte() {
 
     $('tbodySoporte').appendChild(tr);
   });
+
+  etiquetaMoviles('tbodySoporte');
 }
 
 function abrirRespuesta(t) {
@@ -1291,7 +1509,7 @@ async function verHistorial() {
   $('tbodyCorreos').innerHTML = res.correos.map((c) =>
     '<tr>' +
     '<td>' + fecha(c.created_at) + '</td>' +
-    '<td>' + (c.tipo === 'masivo' ? 'MASIVO' : 'DIRECTO') + '</td>' +
+    '<td>' + (c.tipo === 'masivo' ? 'MASIVO' : c.tipo === 'interno' ? 'INTERNO' : 'DIRECTO') + '</td>' +
     '<td>' + esc(c.destinatario || '—') + '</td>' +
     '<td>' + esc(String(c.asunto || '').slice(0, 60)) + '</td>' +
     '<td><span class="st ' + (c.estado === 'enviado' ? 'act' : 'can') + '">' +
@@ -1300,7 +1518,126 @@ async function verHistorial() {
     '</td>' +
     '</tr>'
   ).join('');
+
+  etiquetaMoviles('tbodyCorreos');
 }
+
+/* =========================================================
+   MENSAJES INTERNOS (PCD-1 · función bvlux-correos)
+   Sin SMTP ni Gmail: los mensajes se guardan en BVros y el
+   miembro los lee al instante en «Mis consultas».
+   ========================================================= */
+
+let destinatariosInternos = [];
+
+$('btnIntPreparar').addEventListener('click', async () => {
+  $('msgInterno').textContent = 'Cargando cuentas…';
+  $('msgInterno').className = 'msg';
+
+  $('btnIntEnviar').classList.add('hidden');
+
+  const res = await llamar({ accion: 'cuentas', clave: claveMaestra }, 'bvlux-panel-control');
+
+  if (!res.ok) return falla('msgInterno', res.error);
+
+  const segmento = $('intSegmento').value;
+
+  let lista = res.cuentas.filter((c) => c.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
+
+  if (segmento === 'premium') lista = lista.filter((c) => c.plan === 'premium');
+  if (segmento === 'gratuitos') lista = lista.filter((c) => c.plan !== 'premium');
+
+  destinatariosInternos = [...new Set(lista.map((c) => c.email.toLowerCase()))];
+
+  if (!destinatariosInternos.length) {
+    $('msgInterno').textContent = 'No hay destinatarios para ese segmento.';
+    $('msgInterno').className = 'msg err';
+    return;
+  }
+
+  if (destinatariosInternos.length > 450) {
+    destinatariosInternos = destinatariosInternos.slice(0, 450);
+  }
+
+  $('btnIntEnviar').textContent = 'ENVIAR MENSAJES INTERNOS A ' + destinatariosInternos.length + ' MIEMBRO(S)';
+  $('btnIntEnviar').classList.remove('hidden');
+
+  $('msgInterno').textContent =
+    destinatariosInternos.length + ' destinatario(s) listos. Revisa asunto y mensaje antes de enviar.';
+  $('msgInterno').className = 'msg ok';
+});
+
+$('btnIntEnviar').addEventListener('click', async () => {
+  const asunto = $('intAsunto').value.trim();
+  const cuerpo = $('intCuerpo').value.trim();
+
+  if (!asunto || !cuerpo) {
+    $('msgInterno').textContent = 'Escribe asunto y mensaje.';
+    $('msgInterno').className = 'msg err';
+    return;
+  }
+
+  if (!confirm('¿Guardar el mensaje interno para ' + destinatariosInternos.length + ' miembro(s)? Lo leen en «Mis consultas».')) return;
+
+  $('btnIntEnviar').disabled = true;
+
+  $('msgInterno').textContent = 'Guardando mensajes internos…';
+  $('msgInterno').className = 'msg';
+
+  const res = await llamar({
+    accion: 'interno',
+    clave: claveMaestra,
+    asunto,
+    cuerpo,
+    correos: destinatariosInternos,
+    campania: 'int-' + Date.now(),
+  }, 'bvlux-correos');
+
+  $('btnIntEnviar').disabled = false;
+
+  if (!res.ok) return falla('msgInterno', res.error);
+
+  $('msgInterno').textContent = res.aviso || 'Mensajes internos guardados.';
+  $('msgInterno').className = 'msg ok';
+
+  verHistorial();
+});
+
+$('btnIntDirecto').addEventListener('click', async () => {
+  const para = $('intDirPara').value.trim().toLowerCase();
+  const asunto = $('intDirAsunto').value.trim();
+  const cuerpo = $('intDirCuerpo').value.trim();
+
+  if (!para || !asunto || !cuerpo) {
+    $('msgIntDirecto').textContent = 'Completa correo, asunto y mensaje.';
+    $('msgIntDirecto').className = 'msg err';
+    return;
+  }
+
+  $('btnIntDirecto').disabled = true;
+
+  $('msgIntDirecto').textContent = 'Guardando…';
+  $('msgIntDirecto').className = 'msg';
+
+  const res = await llamar({
+    accion: 'interno',
+    clave: claveMaestra,
+    asunto,
+    cuerpo,
+    correos: [para],
+  }, 'bvlux-correos');
+
+  $('btnIntDirecto').disabled = false;
+
+  if (!res.ok) return falla('msgIntDirecto', res.error);
+
+  $('msgIntDirecto').textContent = 'Mensaje interno guardado: el miembro lo lee en «Mis consultas».';
+  $('msgIntDirecto').className = 'msg ok';
+
+  $('intDirPara').value = '';
+  $('intDirAsunto').value = '';
+  $('intDirCuerpo').value = '';
+});
 
 /* =========================================================
    CONTENIDO (función bvlux-contenido)
@@ -1333,10 +1670,15 @@ async function subirContenido() {
 
   const fd = new FormData();
 
+  const destinoTxt = $('contDestino') ? $('contDestino').value : 'general';
+
+  const notasTxt = '[' + destinoTxt + ']' +
+    ($('contNotas').value.trim() ? ' ' + $('contNotas').value.trim() : '');
+
   fd.append('accion', 'subir');
   fd.append('clave', claveMaestra);
   fd.append('tipo', $('contTipo').value);
-  fd.append('notas', $('contNotas').value.trim());
+  fd.append('notas', notasTxt);
   fd.append('archivo', archivo);
 
   const res = await llamarForm(fd, 'bvlux-contenido');
@@ -1380,12 +1722,6 @@ async function listarContenido() {
 
     const td = tr.lastElementChild;
 
-    const bUrl = document.createElement('button');
-    bUrl.className = 'mini env';
-    bUrl.textContent = 'ENLACE';
-    bUrl.addEventListener('click', () => pedirEnlace(it, bUrl));
-    td.appendChild(bUrl);
-
     const bDel = document.createElement('button');
     bDel.className = 'mini baja';
     bDel.style.marginLeft = '6px';
@@ -1395,27 +1731,8 @@ async function listarContenido() {
 
     $('tbodyContenido').appendChild(tr);
   });
-}
 
-async function pedirEnlace(it, btn) {
-  btn.disabled = true;
-
-  const res = await llamar({ accion: 'enlace', clave: claveMaestra, id: it.id }, 'bvlux-contenido');
-
-  btn.disabled = false;
-
-  if (!res.ok) {
-    alert(res.error || 'No se pudo crear el enlace.');
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(res.url);
-  } catch (_) {
-    /* sin permiso del portapapeles: se muestra abajo igual */
-  }
-
-  prompt('Enlace privado de "' + res.nombre + '" (válido ' + res.caduca_en + '). Cópialo con Ctrl+C si no se copió solo:', res.url);
+  etiquetaMoviles('tbodyContenido');
 }
 
 async function borrarContenido(it, btn) {
@@ -1432,6 +1749,197 @@ async function borrarContenido(it, btn) {
   }
 
   listarContenido();
+}
+
+/* =========================================================
+   CATÁLOGO (PCD-1 · función bvlux-catalogo)
+   Publica pistas directo en las tablas de tu catálogo
+   (releases + track_assets) y en su bucket privado. Sin
+   URLs externas: se escucha como siempre en tu web.
+   ========================================================= */
+
+let diagHecho = false;
+
+$('btnDiagCatalogo').addEventListener('click', diagCatalogo);
+
+$('btnPublicar').addEventListener('click', subirPista);
+
+$('btnListarPistas').addEventListener('click', listarPistas);
+
+async function arranqueCatalogo() {
+  if (!diagHecho) diagCatalogo();
+
+  listarPistas();
+}
+
+async function diagCatalogo() {
+  $('msgDiagCatalogo').textContent = 'Leyendo esquema y bucket…';
+  $('msgDiagCatalogo').className = 'msg';
+
+  const res = await llamar({ accion: 'diagnostico', clave: claveMaestra }, 'bvlux-catalogo');
+
+  if (!res.ok) return falla('msgDiagCatalogo', res.error);
+
+  diagHecho = true;
+
+  const rel = (res.columnas?.releases || []).map((c) => c.name + (c.required ? '*' : ''));
+
+  const as = (res.columnas?.track_assets || []).map((c) => c.name + (c.required ? '*' : ''));
+
+  const diag =
+    'Tablas detectadas:' +
+    '\n· releases: ' + (rel.join(', ') || '(sin columnas)') +
+    '\n· track_assets: ' + (as.join(', ') || '(sin columnas)') +
+    '\n\nBuckets: ' + (res.buckets || []).join(', ') +
+    (res.almacen
+      ? '\n\nBucket del catálogo (detectado): ' + res.almacen.bucket +
+        ' · carpeta: ' + (res.almacen.carpeta || '(raíz)') +
+        ' · método: ' + res.almacen.como
+      : '\n\n(sin filas de ejemplo: se usará la carpeta catalogo/ del primer bucket)') +
+    '\n\nConvención de tipos de archivo: ' + JSON.stringify(res.convencion_kinds || {}) +
+    (res.con_sql_pcd
+      ? ''
+      : '\n\nAVISO: falta bvlux-pcd.sql (columnas acceso_nivel, precio_unitario, preview_seg, destino). Ejecútalo para guardar nivel/precio/preview.');
+
+  $('diagCatalogo').textContent = diag;
+
+  $('msgDiagCatalogo').textContent =
+    'Esquema leído. Bucket del catálogo: ' + (res.almacen?.bucket || '(sin detectar)') +
+    (res.con_sql_pcd ? '' : ' · FALTA bvlux-pcd.sql');
+  $('msgDiagCatalogo').className = 'msg' + (res.con_sql_pcd ? '' : ' err');
+}
+
+async function subirPista() {
+  const titulo = $('catTitulo').value.trim();
+  const artista = $('catArtista').value.trim();
+  const audio = $('catAudio').files[0];
+
+  if (!titulo || !artista || !audio) {
+    $('msgCatalogo').textContent = 'Completa título, artista y elige el audio.';
+    $('msgCatalogo').className = 'msg err';
+    return;
+  }
+
+  if (audio.size > 25 * 1024 * 1024) {
+    $('msgCatalogo').textContent = 'El audio supera 25 MB.';
+    $('msgCatalogo').className = 'msg err';
+    return;
+  }
+
+  const portada = $('catPortada').files[0] || null;
+
+  $('btnPublicar').disabled = true;
+
+  $('msgCatalogo').textContent = 'Publicando "' + titulo + '"… (los archivos grandes tardan uno o dos minutos)';
+  $('msgCatalogo').className = 'msg';
+
+  const fd = new FormData();
+
+  fd.append('accion', 'subir');
+  fd.append('clave', claveMaestra);
+  fd.append('titulo', titulo);
+  fd.append('artista', artista);
+  fd.append('album', $('catAlbum').value.trim());
+  fd.append('descripcion', $('catDesc').value.trim());
+  fd.append('nivel', $('catNivel').value);
+  fd.append('precio', $('catPrecio').value || '0');
+  fd.append('preview_seg', $('catPreview').value || '15');
+  fd.append('destino', $('catDestino').value);
+  fd.append('archivo', audio);
+  if (portada) fd.append('portada', portada);
+
+  const res = await llamarForm(fd, 'bvlux-catalogo');
+
+  $('btnPublicar').disabled = false;
+
+  if (!res.ok) {
+    falla('msgCatalogo', res.error);
+
+    if (res.diagnostico) {
+      $('diagCatalogo').textContent = JSON.stringify(res.diagnostico, null, 1);
+    }
+    return;
+  }
+
+  $('msgCatalogo').textContent =
+    'Publicada: "' + res.titulo + '" (bucket ' + res.bucket +
+    (res.con_caratula ? ' · con carátula' : ' · sin carátula') + ').';
+  $('msgCatalogo').className = 'msg ok';
+
+  $('catTitulo').value = '';
+  $('catAlbum').value = '';
+  $('catDesc').value = '';
+  $('catAudio').value = '';
+  $('catPortada').value = '';
+
+  listarPistas();
+}
+
+async function listarPistas() {
+  $('msgPistas').textContent = 'Cargando pistas…';
+  $('msgPistas').className = 'msg';
+
+  const res = await llamar({ accion: 'listar_pistas', clave: claveMaestra }, 'bvlux-catalogo');
+
+  if (!res.ok) return falla('msgPistas', res.error);
+
+  $('msgPistas').textContent = res.pistas.length + ' pista(s) en el catálogo.';
+  $('msgPistas').className = 'msg';
+
+  const tituloDe = (r) => r.titulo || r.title || r.nombre || r.name || ('#' + (r.id || ''));
+
+  const artistaDe = (r) => r.artista || r.artist || r.artist_name || '—';
+
+  const nivelTxt = { gratuito: 'GRATUITO', experto: 'EXPERTO', avanzado: 'AVANZADO', promo: 'PROMO' };
+
+  $('tbodyPistas').innerHTML = '';
+
+  res.pistas.forEach((p) => {
+    const r = p.release || {};
+
+    const tr = document.createElement('tr');
+
+    const nivel = r.acceso_nivel ? (nivelTxt[r.acceso_nivel] || r.acceso_nivel) : '—';
+
+    tr.innerHTML =
+      '<td><b>' + esc(tituloDe(r)) + '</b></td>' +
+      '<td>' + esc(artistaDe(r)) + '</td>' +
+      '<td>' + esc(nivel) + '</td>' +
+      '<td>' + (r.precio_unitario != null ? '$' + esc(r.precio_unitario) : '—') + '</td>' +
+      '<td>' + (r.preview_seg != null ? r.preview_seg + ' s' : '—') + '</td>' +
+      '<td>' + esc(r.destino || '—') + '</td>' +
+      '<td>' + (p.audio_path ? 'audio: sí' : 'audio: NO') +
+        (p.portada_path ? ' · carátula: sí' : ' · carátula: no') + '</td>' +
+      '<td></td>';
+
+    const td = tr.lastElementChild;
+
+    const bDel = document.createElement('button');
+    bDel.className = 'mini baja';
+    bDel.textContent = 'BORRAR';
+    bDel.addEventListener('click', () => borrarPista(r, bDel));
+    td.appendChild(bDel);
+
+    $('tbodyPistas').appendChild(tr);
+  });
+
+  etiquetaMoviles('tbodyPistas');
+}
+
+async function borrarPista(r, btn) {
+  if (!confirm('¿BORRAR "' + (r.titulo || r.title || r.id) + '" del catálogo? Se borran audio y carátula. No se puede recuperar.')) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'borrar_pista', clave: claveMaestra, id: r.id }, 'bvlux-catalogo');
+
+  if (!res.ok) {
+    alert(res.error || 'No se pudo borrar.');
+    btn.disabled = false;
+    return;
+  }
+
+  listarPistas();
 }
 
 </script>

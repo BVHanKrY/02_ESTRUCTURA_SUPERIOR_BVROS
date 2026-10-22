@@ -1,5 +1,11 @@
 /* =========================================================
-   BVROS GATE — 2C.7 · PANEL DEL DUEÑO (UN SOLO ENLACE, CORREGIDO)
+   BVROS GATE — 2C.8 · FASE PCD-1 (MENSAJES INTERNOS DEL DUEÑO)
+   NUEVO EN 2C.8 · FASE PCD-1 — MENSAJES INTERNOS:
+     · «Mis consultas» ahora también muestra los MENSAJES
+       que el dueño envía a la cuenta (internos, sin correo
+       externo: llegan al instante dentro de la web).
+     · Los tickets de soporte siguen exactamente igual.
+     · Nada más cambia en el gate.
    (sobre tu 2B.7 — anti-persistencia, aviso rojo,
    reglas de salida y webhook-ready intactos)
    NUEVO EN 2B.8:
@@ -161,7 +167,7 @@
        cancelación, caducidad y Mis consultas intactos.
    ========================================================= */
 
-console.log("[BVros Gate] versión 2C.7 activa · panel del dueño: un solo enlace corregido");
+console.log("[BVros Gate] versión 2C.8 activa · fase PCD-1: mensajes internos del dueño en Mis consultas");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -4910,14 +4916,55 @@ function syncNavAuth() {
 
         const lista = data.consultas || [];
 
-        if (!lista.length) {
+        /* PCD-1 · Mensajes internos del dueño para ESTA
+           cuenta (llegan en la misma llamada). */
+
+        const mensajes = data.mensajes || [];
+
+        if (!lista.length && !mensajes.length) {
           zona.innerHTML =
-            '<div style="font-size:.78rem; opacity:.7;">Aún no tienes consultas registradas.</div>';
+            '<div style="font-size:.78rem; opacity:.7;">Aún no tienes consultas ni mensajes.</div>';
           return;
         }
 
-        zona.innerHTML = lista
-          .map((t) => {
+        const bloqueMensajes = mensajes.length
+          ? '<div style="font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:#F97316; margin:10px 0 2px;">Mensajes del dueño · ' +
+            mensajes.length +
+            "</div>" +
+            mensajes
+              .map((m) => {
+                const fechaMsg = m.created_at
+                  ? new Date(m.created_at).toLocaleDateString("es-EC", {
+                      day: "numeric",
+                      month: "short",
+                    })
+                  : "";
+
+                return (
+                  '<div style="font-size:.78rem; border-top:1px solid rgba(255,255,255,.08); padding:8px 0;">' +
+                  "<b>" +
+                  escSup(m.asunto || "Mensaje de BVros") +
+                  '</b><span style="color:#3ecf6e; font-weight:700;"> · MENSAJE</span>' +
+                  '<div style="opacity:.85; margin-top:3px; white-space:pre-wrap;">' +
+                  escSup(String(m.cuerpo || "").slice(0, 600)) +
+                  "</div>" +
+                  (fechaMsg
+                    ? '<div style="opacity:.45;">' + fechaMsg + "</div>"
+                    : "") +
+                  "</div>"
+                );
+              })
+              .join("")
+          : "";
+
+        const bloqueConsultas = lista.length
+          ? (mensajes.length
+              ? '<div style="font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:#F97316; margin:10px 0 2px;">Mis consultas · ' +
+                lista.length +
+                "</div>"
+              : "") +
+            lista
+              .map((t) => {
             const estado = String(t.estado || "nuevo").toLowerCase();
 
             const color =
@@ -4947,7 +4994,10 @@ function syncNavAuth() {
               "</div>"
             );
           })
-          .join("");
+          .join("")
+          : "";
+
+        zona.innerHTML = bloqueMensajes + bloqueConsultas;
       } catch (e) {
         zona.innerHTML =
           '<div style="font-size:.78rem; color:#ff5a5a;">' +
