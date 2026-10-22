@@ -1,5 +1,5 @@
 /* =========================================================
-   BVROS GATE — 2B.8 · FIX VISUAL DEL BOTÓN VOLVER
+   BVROS GATE — 2C.7 · PANEL DEL DUEÑO (UN SOLO ENLACE, CORREGIDO)
    (sobre tu 2B.7 — anti-persistencia, aviso rojo,
    reglas de salida y webhook-ready intactos)
    NUEVO EN 2B.8:
@@ -74,9 +74,11 @@
      · Solo acepta cuentas Miembro Gratuito (no se
        apila sobre suscripciones pagadas).
      · El dueño genera y revoca códigos desde su página
-       privada dueno-accesos.html (doble cerrojo: sesión
-       del dueño + clave maestra, validados 100% en el
-       servidor; nada de esto vive en el navegador).
+       privada (doble cerrojo: sesión del dueño + clave
+       maestra, validados 100% en el servidor; nada de
+       esto vive en el navegador). Desde 2C.7 esa página
+       es «bvros control de accesos.html», pestaña
+       CÓDIGOS.
 
    NUEVO EN 2C.2 · ACCESO DIRECTO SOLO PARA EL DUEÑO:
      · El gate detecta la sesión: si el correo del
@@ -84,7 +86,9 @@
        dueño (constante EMAIL_DUENO_PANEL, al inicio de
        este archivo), en su menú (pastilla de usuario)
        aparece UN ítem más: «Panel del dueño ★» que abre
-       dueno-accesos.html en pestaña nueva.
+       la página del panel en pestaña nueva (en 2C.2
+       apuntaba a dueno-accesos.html; desde 2C.7 abre
+       /bvros%20control%20de%20accesos.html).
      · En CUALQUIER otra cuenta ese ítem NO existe:
        ellos solo ven «Canjear código» dentro del submenú
        SUSCRIPCIÓN (igual que en 2C.1). El panel sigue
@@ -134,9 +138,30 @@
        subes/eliminas ebooks, imágenes, videos, música
        y anuncios en un bucket privado con enlaces de
        1 hora (Edge Function bvlux-contenido).
+
+   NUEVO EN 2C.7 · CORRECCIÓN DEL ACCESO AL PANEL (LO QUE
+   SE ROMPIÓ EN 2C.3–2C.6, VOLVIENDO A LO TUYO):
+     · UN SOLO ítem del dueño en el menú, con su nombre
+       original «Panel del dueño ★». Ya NO existe el
+       segundo ítem «Control del dueño ★» (ese nombre
+       extra se coló en 2C.3 y tú nunca lo pediste).
+     · El ítem abre el nombre REAL de tu archivo:
+       /bvros%20control%20de%20accesos.html
+       (antes «Panel del dueño ★» apuntaba a
+       dueno-accesos.html, que no existe en tu servidor
+       → por eso daba 404 y no podías entrar).
+     · La página del panel se rehízo como UNA sola
+       página con 8 pestañas: CÓDIGOS (tu generador de
+       siempre, ahora con «Otra duración» para escribir
+       los días que tú quieras, incluidas las 2 duraciones
+       que añadiste a mano), RESUMEN, CUENTAS,
+       SUSCRIPCIONES, DATOS DE LA BASE, SOPORTE, CORREOS
+       y CONTENIDO. Misma clave maestra de siempre.
+     · Nada más cambió: pastilla OTORGADO, canje,
+       cancelación, caducidad y Mis consultas intactos.
    ========================================================= */
 
-console.log("[BVros Gate] versión 2C.6 activa");
+console.log("[BVros Gate] versión 2C.7 activa · panel del dueño: un solo enlace corregido");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -4250,16 +4275,10 @@ function syncNavAuth() {
                       esSesionDueno()
                         ? `<a
                     class="m-item bv-menu-dueno"
-                    href="/dueno-accesos.html"
-                    target="_blank"
-                    rel="noopener"
-                >Panel del dueño ★</a>
-                <a
-                    class="m-item bv-menu-dueno"
                     href="/bvros%20control%20de%20accesos.html"
                     target="_blank"
                     rel="noopener"
-                >Control del dueño ★</a>`
+                >Panel del dueño ★</a>`
                         : ""
                     }
 

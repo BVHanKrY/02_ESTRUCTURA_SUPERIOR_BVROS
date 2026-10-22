@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>BVros · Control del dueño</title>
+<title>BVros · Panel del dueño</title>
 <style>
   :root{
     --bg:#0d0f12; --panel:#161a20; --line:#262c35;
@@ -41,6 +41,7 @@
   button.sec{background:#222832; color:var(--txt);}
   button.mini{background:#222832; padding:6px 10px;
     margin-top:0; font-size:.7rem;}
+  button.mini.revo{color:var(--bad);}
   button.mini.baja{color:var(--bad);}
   button.mini.reac{color:var(--ok);}
   button.mini.env{color:var(--acc);}
@@ -48,6 +49,16 @@
   .msg{margin-top:12px; font-size:.88rem; min-height:1.2em;}
   .msg.err{color:var(--bad);} .msg.ok{color:var(--ok);}
   .hidden{display:none;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:0 16px;}
+  @media(max-width:640px){.grid{grid-template-columns:1fr;}}
+  .codes{margin-top:14px; display:flex; flex-direction:column; gap:8px;}
+  .code{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; background:#0a0c0f; border:1px dashed var(--acc);
+    border-radius:9px; padding:10px 12px; font-family:monospace;
+    font-size:1rem; letter-spacing:.08em; cursor:pointer;
+  }
+  .code small{color:var(--mut); font-family:inherit; letter-spacing:0;}
   .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:6px;}
   @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr);}}
   .stat{
@@ -71,11 +82,15 @@
     vertical-align:top; word-break:break-word;}
   th{color:var(--mut); font-weight:600; font-size:.66rem;
     text-transform:uppercase; letter-spacing:.08em;}
+  td .cod{font-family:monospace; letter-spacing:.05em;}
   .st{display:inline-block; padding:2px 8px; border-radius:20px;
     font-size:.64rem; font-weight:700; letter-spacing:.05em;}
+  .st.vig{background:#12351f; color:var(--ok);}
   .st.act{background:#12351f; color:var(--ok);}
   .st.can{background:#33240b; color:var(--acc);}
+  .st.cad{background:#2b2b2b; color:var(--mut);}
   .st.exp{background:#2b2b2b; color:var(--mut);}
+  .st.rev{background:#3a1414; color:var(--bad);}
   .st.oto{background:#0f2f22; color:var(--ok);}
   .st.nue{background:#33240b; color:var(--acc);}
   .st.res{background:#12351f; color:var(--ok);}
@@ -95,8 +110,10 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>BVros · <span>Control del dueño</span></h1>
-  <div class="sub">Auditoría y gestión total: cuentas, suscripciones, datos, soporte, correos y contenido. Nada aquí es visible para nadie más.</div>
+  <h1>BVros · <span>Panel del dueño</span></h1>
+  <div class="sub">Una sola página privada con todo: códigos de acceso, resumen, cuentas,
+  suscripciones, datos de la base, soporte, correos y contenido.
+  Nada aquí es visible para nadie más.</div>
 
   <!-- CERROJO 1: sesión del dueño -->
   <div class="card" id="cardSesion">
@@ -104,8 +121,8 @@
     <div class="hidden" id="bloqueClave">
       <!-- CERROJO 2: clave maestra -->
       <label>Clave maestra</label>
-      <input type="password" id="clave" placeholder="Tu frase secreta (la misma del panel de códigos)">
-      <button id="btnEntrar">ABRIR CONTROL</button>
+      <input type="password" id="clave" placeholder="Tu frase secreta (la misma de siempre)">
+      <button id="btnEntrar">ABRIR PANEL</button>
       <div class="msg" id="msgEntrar"></div>
     </div>
   </div>
@@ -114,7 +131,8 @@
   <div class="hidden" id="panel">
 
     <div class="tabs">
-      <button class="tab on" data-tab="resumen">RESUMEN</button>
+      <button class="tab on" data-tab="codigos">CÓDIGOS ★</button>
+      <button class="tab" data-tab="resumen">RESUMEN</button>
       <button class="tab" data-tab="cuentas">CUENTAS</button>
       <button class="tab" data-tab="subs">SUSCRIPCIONES</button>
       <button class="tab" data-tab="datos">DATOS DE LA BASE</button>
@@ -123,8 +141,74 @@
       <button class="tab" data-tab="contenido">CONTENIDO ▲</button>
     </div>
 
+    <!-- CÓDIGOS (generador de siempre) -->
+    <div class="card" data-vista="codigos">
+      <h1 style="font-size:1rem;">Generar códigos</h1>
+      <div class="grid">
+        <div>
+          <label>Nivel que otorga</label>
+          <select id="tier">
+            <option value="nivel2">Nivel 2 · $3.99</option>
+            <option value="nivel3">Nivel 3 · $4.75</option>
+            <option value="nivel2_promo">Nivel 2 promocional · $1.70</option>
+          </select>
+        </div>
+        <div>
+          <label>Duración del beneficio</label>
+          <select id="duracion">
+            <option value="30">30 días</option>
+            <option value="90">90 días</option>
+            <option value="365">365 días</option>
+            <option value="9999">Perpetuo (solo dueño)</option>
+            <option value="otro">Otra duración (tú escribes los días)</option>
+          </select>
+        </div>
+        <div id="bloqueOtra" class="hidden">
+          <label>Días (1 a 3650, o 9999 perpetuo)</label>
+          <input type="number" id="duracionOtra" min="1" max="3650" placeholder="Ej: 60">
+        </div>
+        <div>
+          <label>Modo</label>
+          <select id="modo">
+            <option value="libre">Libre · el primero que lo canjee</option>
+            <option value="dedicado">Dedicado · solo un correo</option>
+          </select>
+        </div>
+        <div>
+          <label>Cantidad (1–20)</label>
+          <input type="number" id="cantidad" value="1" min="1" max="20">
+        </div>
+        <div id="bloqueEmail" class="hidden">
+          <label>Correo de la persona (modo dedicado)</label>
+          <input type="email" id="email" placeholder="persona@correo.com">
+        </div>
+      </div>
+      <button id="btnGenerar">GENERAR CÓDIGOS</button>
+      <div class="msg" id="msgGen"></div>
+      <div class="codes" id="codigosNuevos"></div>
+      <div class="nota">Cada código sirve UNA sola vez y caduca si nadie lo canjea en 2 días.
+      Al canjearlo queda atado a esa cuenta para siempre: si lo comparten, ya no sirve para nadie más.</div>
+    </div>
+
+    <div class="card" data-vista="codigos">
+      <h1 style="font-size:1rem;">Códigos emitidos</h1>
+      <button class="sec" id="btnListar">ACTUALIZAR LISTA</button>
+      <div class="msg" id="msgLista"></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Código</th><th>Estado</th><th>Nivel</th>
+            <th>Duración</th><th>Canjeado por</th><th>Beneficio hasta</th><th></th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="nota">Estados: VIGENTE = se puede canjear aún · CADUCADO = pasaron los 2 días sin canjear ·
+      CANJEADO = ya tiene dueño · REVOCADO = anulado por ti (si estaba canjeado, el beneficio se cortó al instante).</div>
+    </div>
+
     <!-- RESUMEN -->
-    <div class="card" data-vista="resumen">
+    <div class="card hidden" data-vista="resumen">
       <h1 style="font-size:1rem;">Resumen general</h1>
       <button class="sec" id="btnResumen">ACTUALIZAR</button>
       <div class="msg" id="msgResumen"></div>
@@ -166,7 +250,7 @@
         </table>
       </div>
       <div class="nota">DAR DE BAJA = igual que la cancelación del usuario (beneficios hasta la fecha de vencimiento, luego el cron degrada solo).
-      REACTIVAR = solo si sigue vigente. Los códigos de canje se cortan al instante desde el panel de códigos (REVOCAR).</div>
+      REACTIVAR = solo si sigue vigente. Los códigos de canje se cortan al instante desde la pestaña CÓDIGOS (REVOCAR).</div>
     </div>
 
     <!-- DATOS -->
@@ -311,12 +395,12 @@
 
   </div>
 </div>
-
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-/* MISMO proyecto y MISMA anon key que tu web y el panel
-   de códigos: la sesión del navegador se comparte. */
+/* MISMO proyecto y MISMA anon key que tu web:
+   así la sesión iniciada en el sitio se reconoce aquí
+   (comparten el almacenamiento del navegador). */
 
 const supabase = createClient(
   'https://udbwjixdwoahonzezbqj.supabase.co',
@@ -362,7 +446,10 @@ $('btnEntrar').addEventListener('click', async () => {
     return;
   }
 
-  const res = await llamar({ accion: 'resumen', clave });
+  /* Prueba la clave con la función de códigos (la que ya
+     tienes desplegada y funcionando desde 2C.2). */
+
+  const res = await llamar({ accion: 'listar', clave }, 'bvlux-accesos-dueno');
 
   if (!res.ok) {
     $('msgEntrar').textContent = res.error || 'Clave incorrecta.';
@@ -375,7 +462,7 @@ $('btnEntrar').addEventListener('click', async () => {
   $('cardSesion').classList.add('hidden');
   $('panel').classList.remove('hidden');
 
-  pintarResumen(res.resumen);
+  pintarLista(res.codigos || []);
 });
 
 /* ---------- PESTAÑAS ---------- */
@@ -389,6 +476,7 @@ document.querySelectorAll('.tab').forEach((t) => {
       v.classList.toggle('hidden', v.dataset.vista !== t.dataset.tab);
     });
 
+    if (t.dataset.tab === 'codigos') listar();
     if (t.dataset.tab === 'cuentas') listarCuentas();
     if (t.dataset.tab === 'subs') listarSubs();
     if (t.dataset.tab === 'datos') listarTablas();
@@ -398,220 +486,155 @@ document.querySelectorAll('.tab').forEach((t) => {
   });
 });
 
-/* ---------- RESUMEN ---------- */
+/* =========================================================
+   CÓDIGOS (pestaña 1 · función bvlux-accesos-dueno)
+   ========================================================= */
 
-$('btnResumen').addEventListener('click', async () => {
-  const res = await llamar({ accion: 'resumen', clave: claveMaestra });
-
-  if (res.ok) pintarResumen(res.resumen);
-  else falla('msgResumen', res.error);
+$('modo').addEventListener('change', () => {
+  $('bloqueEmail').classList.toggle('hidden', $('modo').value !== 'dedicado');
 });
 
-function pintarResumen(r) {
-  const items = [
-    [r.usuarios, 'usuarios registrados'],
-    [r.premium, 'premium'],
-    [r.gratuitos, 'miembros gratuitos'],
-    [r.subActivas, 'suscripciones activas'],
-    [r.subCanceladas, 'canceladas vigentes', 'verde'],
-    [r.canjesActivos, 'canjes activos', 'verde'],
-  ];
+$('duracion').addEventListener('change', () => {
+  $('bloqueOtra').classList.toggle('hidden', $('duracion').value !== 'otro');
+});
 
-  $('stats').innerHTML = items.map(([n, txt, cls]) =>
-    `<div class="stat ${cls || ''}"><b>${n ?? '—'}</b><small>${txt}</small></div>`
-  ).join('');
+/* Duración elegida: la del menú o la escrita a mano.
+   El servidor acepta cualquier entero 1–3650, o 9999
+   (perpetuo). Aquí validamos lo mismo antes de enviar. */
 
-  const c = r.codigos || {};
+function diasElegidos() {
+  if ($('duracion').value !== 'otro') return Number($('duracion').value);
 
-  $('filaCods').innerHTML =
-    `<span>Códigos — <b>VIGENTES ${c.vigente ?? 0}</b></span>` +
-    `<span>· <b>CANJEADOS ${c.canjeado ?? 0}</b></span>` +
-    `<span>· <b>CADUCADOS ${c.caducado ?? 0}</b></span>` +
-    `<span>· <b>REVOCADOS ${c.revocado ?? 0}</b></span>`;
+  const n = Number($('duracionOtra').value);
 
-  $('msgResumen').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-EC');
-  $('msgResumen').className = 'msg';
+  if (!Number.isInteger(n) || n < 1 || (n > 3650 && n !== 9999)) return 0;
+
+  return n;
 }
 
-/* ---------- CUENTAS ---------- */
+$('btnGenerar').addEventListener('click', async () => {
+  $('msgGen').textContent = '';
+  $('msgGen').className = 'msg';
+  $('codigosNuevos').innerHTML = '';
 
-$('btnCuentas').addEventListener('click', listarCuentas);
+  const dias = diasElegidos();
 
-async function listarCuentas() {
-  $('msgCuentas').textContent = 'Cargando…';
-  $('msgCuentas').className = 'msg';
+  if (!dias) {
+    $('msgGen').textContent =
+      'Escribe una duración válida: un número de 1 a 3650 días (o 9999 para perpetuo).';
+    $('msgGen').className = 'msg err';
+    return;
+  }
 
-  const res = await llamar({ accion: 'cuentas', clave: claveMaestra });
+  $('btnGenerar').disabled = true;
 
-  if (!res.ok) return falla('msgCuentas', res.error);
+  const res = await llamar({
+    accion: 'generar',
+    clave: claveMaestra,
+    tier: $('tier').value,
+    duracion_dias: dias,
+    modo: $('modo').value,
+    email_asignado: $('email').value.trim(),
+    cantidad: Number($('cantidad').value) || 1
+  }, 'bvlux-accesos-dueno');
 
-  $('msgCuentas').textContent = res.total + ' cuenta(s).';
-  $('msgCuentas').className = 'msg';
+  $('btnGenerar').disabled = false;
 
-  $('tbodyCuentas').innerHTML = res.cuentas.map((c) =>
-    '<tr>' +
-    '<td>' + (c.email || '—') + '</td>' +
-    '<td>' + (c.username || '—') + '</td>' +
-    '<td>' + (c.perfil === 'perfil2' ? 'Creador (2)' : 'Escucha (1)') + '</td>' +
-    '<td>' + (c.plan || '—') + '</td>' +
-    '<td>' + (c.tier || '—') + '</td>' +
-    '<td>' + fecha(c.alta) + '</td>' +
-    '<td>' + fecha(c.ultimo_acceso) + '</td>' +
-    '</tr>'
-  ).join('');
+  if (!res.ok) {
+    $('msgGen').textContent = res.error || 'No se pudo generar.';
+    $('msgGen').className = 'msg err';
+    return;
+  }
+
+  $('msgGen').textContent =
+    'Códigos creados. Caducan para canje en ' + res.plazo_dias + ' días. Cópialos ahora:';
+  $('msgGen').className = 'msg ok';
+
+  res.codigos.forEach((c) => {
+    const div = document.createElement('div');
+    div.className = 'code';
+    div.innerHTML = '<span>' + esc(c.codigo) + '</span>' +
+      '<small>' + (c.modo === 'dedicado' ? '→ ' + esc(c.email_asignado) : 'modo libre') +
+      ' · ' + esc(c.tier) + ' · ' + (c.duracion_dias >= 9999 ? 'PERPETUO' : c.duracion_dias + ' días') + '</small>';
+    div.addEventListener('click', () => navigator.clipboard?.writeText(c.codigo));
+    div.title = 'Clic para copiar';
+    $('codigosNuevos').appendChild(div);
+  });
+
+  listar();
+});
+
+$('btnListar').addEventListener('click', listar);
+
+async function listar() {
+  const res = await llamar({ accion: 'listar', clave: claveMaestra }, 'bvlux-accesos-dueno');
+
+  if (!res.ok) {
+    $('msgLista').textContent = res.error || 'No se pudo listar.';
+    $('msgLista').className = 'msg err';
+    return;
+  }
+
+  pintarLista(res.codigos || []);
 }
 
-/* ---------- SUSCRIPCIONES ---------- */
+function estadoDe(c) {
+  if (!c.activo) return ['REVOCADO', 'rev'];
+  if (c.canjeado_por) return ['CANJEADO', 'can'];
+  if (new Date(c.canjable_hasta) < new Date()) return ['CADUCADO', 'cad'];
+  return ['VIGENTE', 'vig'];
+}
 
-$('btnSubs').addEventListener('click', listarSubs);
+function pintarLista(codigos) {
+  $('msgLista').textContent = codigos.length + ' código(s) registrados.';
+  $('msgLista').className = 'msg';
 
-async function listarSubs() {
-  $('msgSubs').textContent = 'Cargando…';
-  $('msgSubs').className = 'msg';
+  const tbody = $('tbody');
+  tbody.innerHTML = '';
 
-  const res = await llamar({ accion: 'suscripciones', clave: claveMaestra });
-
-  if (!res.ok) return falla('msgSubs', res.error);
-
-  $('msgSubs').textContent = res.suscripciones.length + ' suscripción(es).';
-  $('msgSubs').className = 'msg';
-
-  $('tbodySubs').innerHTML = '';
-
-  res.suscripciones.forEach((s) => {
-    const vigente = s.expires_at && new Date(s.expires_at) > new Date();
-
-    let st, cls;
-    if (s.status === 'active') { st = 'ACTIVA'; cls = 'act'; }
-    else if (s.status === 'cancelled' && vigente) { st = 'CANCELADA · VIGENTE'; cls = 'can'; }
-    else if (s.status === 'cancelled') { st = 'CANCELADA'; cls = 'exp'; }
-    else if (s.status === 'expired') { st = 'CADUCADA'; cls = 'exp'; }
-    else { st = (s.status || '—').toUpperCase(); cls = 'exp'; }
-
-    const origen = s.payment_provider === 'acceso_especial'
-      ? '<span class="st oto">CANJE</span>'
-      : (s.payment_provider || '—');
+  codigos.forEach((c) => {
+    const [txt, cls] = estadoDe(c);
 
     const tr = document.createElement('tr');
     tr.innerHTML =
-      '<td>' + (s.email || '—') + '<br><small style="color:var(--mut)">' + (s.username || '') + '</small></td>' +
-      '<td>' + (s.plan_type || s.plan || '—') + '</td>' +
-      '<td>' + origen + '</td>' +
-      '<td>' + (s.amount != null ? '$' + s.amount : '—') + '</td>' +
-      '<td><span class="st ' + cls + '">' + st + '</span></td>' +
-      '<td>' + fecha(s.started_at) + '</td>' +
-      '<td>' + fecha(s.expires_at) + '</td>' +
+      '<td><span class="cod">' + esc(c.codigo) + '</span><br>' +
+      '<small style="color:var(--mut)">' + (c.modo === 'dedicado' ? 'dedicado → ' + esc(c.email_asignado) : 'libre') + '</small></td>' +
+      '<td><span class="st ' + cls + '">' + txt + '</span></td>' +
+      '<td>' + esc(c.tier) + '</td>' +
+      '<td>' + (c.duracion_dias >= 9999 ? 'PERPETUO' : c.duracion_dias + ' d') + '</td>' +
+      '<td>' + esc(c.canjeado_email || '—') + '<br><small style="color:var(--mut)">' + fecha(c.canjeado_en) + '</small></td>' +
+      '<td>' + (c.beneficio_hasta ? fecha(c.beneficio_hasta) : '—') + '</td>' +
       '<td></td>';
 
-    const td = tr.lastElementChild;
-
-    if (s.status === 'active') {
-      const b = document.createElement('button');
-      b.className = 'mini baja';
-      b.textContent = 'DAR DE BAJA';
-      b.addEventListener('click', () => accionSub('dar_baja', s, b));
-      td.appendChild(b);
-    } else if (s.status === 'cancelled' && vigente) {
-      const b = document.createElement('button');
-      b.className = 'mini reac';
-      b.textContent = 'REACTIVAR';
-      b.addEventListener('click', () => accionSub('reactivar', s, b));
-      td.appendChild(b);
+    if (c.activo) {
+      const btn = document.createElement('button');
+      btn.className = 'mini revo';
+      btn.textContent = 'REVOCAR';
+      btn.addEventListener('click', () => revocar(c, btn));
+      tr.lastElementChild.appendChild(btn);
     }
 
-    $('tbodySubs').appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
-async function accionSub(accion, s, btn) {
-  const verbo = accion === 'dar_baja'
-    ? '¿Dar de baja la suscripción de ' + (s.email || s.user_id) + '? Los beneficios siguen hasta su vencimiento.'
-    : '¿Reactivar la suscripción de ' + (s.email || s.user_id) + '?';
-
-  if (!confirm(verbo)) return;
+async function revocar(c, btn) {
+  if (!confirm('¿Anular el código ' + c.codigo + '? Si ya fue canjeado, el beneficio se corta al instante.')) return;
 
   btn.disabled = true;
 
-  const res = await llamar({ accion, clave: claveMaestra, id: s.id });
+  const res = await llamar({ accion: 'revocar', clave: claveMaestra, id: c.id }, 'bvlux-accesos-dueno');
 
-  if (!res.ok) alert(res.error || 'No se pudo completar.');
-  else if (res.aviso) alert(res.aviso);
+  if (!res.ok) alert(res.error || 'No se pudo revocar.');
 
-  listarSubs();
+  listar();
 }
 
-/* ---------- DATOS (auditoría) ---------- */
+/* =========================================================
+   LLAMADAS A LAS FUNCIONES (sesión del dueño + clave)
+   ========================================================= */
 
-$('btnTablas').addEventListener('click', listarTablas);
-
-async function listarTablas() {
-  $('msgDatos').textContent = 'Cargando tablas…';
-  $('msgDatos').className = 'msg';
-
-  const res = await llamar({ accion: 'tablas', clave: claveMaestra });
-
-  if (!res.ok) return falla('msgDatos', res.error);
-
-  $('selTabla').innerHTML =
-    '<option value="">— elige una tabla —</option>' +
-    res.tablas.map((t) =>
-      '<option value="' + t.nombre + '">' + t.nombre +
-      (t.filas != null ? ' · ' + t.filas + ' filas' : ' · (sin acceso)') +
-      '</option>'
-    ).join('');
-
-  $('msgDatos').textContent = res.tablas.length + ' tabla(s) encontradas.';
-  $('msgDatos').className = 'msg';
-}
-
-$('btnVer').addEventListener('click', async () => {
-  const tabla = $('selTabla').value;
-
-  if (!tabla) {
-    $('msgDatos').textContent = 'Elige una tabla primero.';
-    $('msgDatos').className = 'msg err';
-    return;
-  }
-
-  $('msgDatos').textContent = 'Leyendo ' + tabla + '…';
-  $('msgDatos').className = 'msg';
-
-  const res = await llamar({ accion: 'ver', clave: claveMaestra, tabla });
-
-  if (!res.ok) return falla('msgDatos', res.error);
-
-  const filas = res.filas;
-
-  if (!filas.length) {
-    $('zonaTabla').innerHTML = '<p class="nota">La tabla está vacía.</p>';
-    $('msgDatos').textContent = tabla + ' · 0 filas.';
-    return;
-  }
-
-  const cols = Object.keys(filas[0]);
-
-  $('zonaTabla').innerHTML =
-    '<table><thead><tr>' +
-    cols.map((c) => '<th>' + c + '</th>').join('') +
-    '</tr></thead><tbody>' +
-    filas.map((f) =>
-      '<tr>' + cols.map((c) => {
-        const v = f[c];
-        return '<td>' + (v == null ? '—'
-          : typeof v === 'object' ? JSON.stringify(v)
-          : String(v).length > 80 ? String(v).slice(0, 80) + '…'
-          : String(v)) + '</td>';
-      }).join('') + '</tr>'
-    ).join('') +
-    '</tbody></table>';
-
-  $('msgDatos').textContent = tabla + ' · mostrando ' + filas.length + ' fila(s) (solo lectura).';
-  $('msgDatos').className = 'msg';
-});
-
-/* ---------- LLAMADAS A LAS FUNCIONES ---------- */
-
-async function llamar(cuerpo, funcion = 'bvlux-panel-control') {
+async function llamar(cuerpo, funcion) {
   const { data: ses } = await supabase.auth.getSession();
 
   if (!ses?.session?.access_token) {
@@ -658,7 +681,226 @@ function falla(id, error) {
 }
 
 /* =========================================================
-   SOPORTE (2C.4)
+   RESUMEN (función bvlux-panel-control)
+   ========================================================= */
+
+$('btnResumen').addEventListener('click', async () => {
+  const res = await llamar({ accion: 'resumen', clave: claveMaestra }, 'bvlux-panel-control');
+
+  if (res.ok) pintarResumen(res.resumen);
+  else falla('msgResumen', res.error);
+});
+
+function pintarResumen(r) {
+  const items = [
+    [r.usuarios, 'usuarios registrados'],
+    [r.premium, 'premium'],
+    [r.gratuitos, 'miembros gratuitos'],
+    [r.subActivas, 'suscripciones activas'],
+    [r.subCanceladas, 'canceladas vigentes', 'verde'],
+    [r.canjesActivos, 'canjes activos', 'verde'],
+  ];
+
+  $('stats').innerHTML = items.map(([n, txt, cls]) =>
+    '<div class="stat ' + (cls || '') + '"><b>' + (n ?? '—') + '</b><small>' + txt + '</small></div>'
+  ).join('');
+
+  const c = r.codigos || {};
+
+  $('filaCods').innerHTML =
+    '<span>Códigos — <b>VIGENTES ' + (c.vigente ?? 0) + '</b></span>' +
+    '<span>· <b>CANJEADOS ' + (c.canjeado ?? 0) + '</b></span>' +
+    '<span>· <b>CADUCADOS ' + (c.caducado ?? 0) + '</b></span>' +
+    '<span>· <b>REVOCADOS ' + (c.revocado ?? 0) + '</b></span>';
+
+  $('msgResumen').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-EC');
+  $('msgResumen').className = 'msg';
+}
+
+/* =========================================================
+   CUENTAS (función bvlux-panel-control)
+   ========================================================= */
+
+$('btnCuentas').addEventListener('click', listarCuentas);
+
+async function listarCuentas() {
+  $('msgCuentas').textContent = 'Cargando…';
+  $('msgCuentas').className = 'msg';
+
+  const res = await llamar({ accion: 'cuentas', clave: claveMaestra }, 'bvlux-panel-control');
+
+  if (!res.ok) return falla('msgCuentas', res.error);
+
+  $('msgCuentas').textContent = res.total + ' cuenta(s).';
+  $('msgCuentas').className = 'msg';
+
+  $('tbodyCuentas').innerHTML = res.cuentas.map((c) =>
+    '<tr>' +
+    '<td>' + esc(c.email || '—') + '</td>' +
+    '<td>' + esc(c.username || '—') + '</td>' +
+    '<td>' + (c.perfil === 'perfil2' ? 'Creador (2)' : 'Escucha (1)') + '</td>' +
+    '<td>' + esc(c.plan || '—') + '</td>' +
+    '<td>' + esc(c.tier || '—') + '</td>' +
+    '<td>' + fecha(c.alta) + '</td>' +
+    '<td>' + fecha(c.ultimo_acceso) + '</td>' +
+    '</tr>'
+  ).join('');
+}
+
+/* =========================================================
+   SUSCRIPCIONES (función bvlux-panel-control)
+   ========================================================= */
+
+$('btnSubs').addEventListener('click', listarSubs);
+
+async function listarSubs() {
+  $('msgSubs').textContent = 'Cargando…';
+  $('msgSubs').className = 'msg';
+
+  const res = await llamar({ accion: 'suscripciones', clave: claveMaestra }, 'bvlux-panel-control');
+
+  if (!res.ok) return falla('msgSubs', res.error);
+
+  $('msgSubs').textContent = res.suscripciones.length + ' suscripción(es).';
+  $('msgSubs').className = 'msg';
+
+  $('tbodySubs').innerHTML = '';
+
+  res.suscripciones.forEach((s) => {
+    const vigente = s.expires_at && new Date(s.expires_at) > new Date();
+
+    let st, cls;
+    if (s.status === 'active') { st = 'ACTIVA'; cls = 'act'; }
+    else if (s.status === 'cancelled' && vigente) { st = 'CANCELADA · VIGENTE'; cls = 'can'; }
+    else if (s.status === 'cancelled') { st = 'CANCELADA'; cls = 'exp'; }
+    else if (s.status === 'expired') { st = 'CADUCADA'; cls = 'exp'; }
+    else { st = (s.status || '—').toUpperCase(); cls = 'exp'; }
+
+    const origen = s.payment_provider === 'acceso_especial'
+      ? '<span class="st oto">CANJE</span>'
+      : esc(s.payment_provider || '—');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + esc(s.email || '—') + '<br><small style="color:var(--mut)">' + esc(s.username || '') + '</small></td>' +
+      '<td>' + esc(s.plan_type || s.plan || '—') + '</td>' +
+      '<td>' + origen + '</td>' +
+      '<td>' + (s.amount != null ? '$' + esc(s.amount) : '—') + '</td>' +
+      '<td><span class="st ' + cls + '">' + st + '</span></td>' +
+      '<td>' + fecha(s.started_at) + '</td>' +
+      '<td>' + fecha(s.expires_at) + '</td>' +
+      '<td></td>';
+
+    const td = tr.lastElementChild;
+
+    if (s.status === 'active') {
+      const b = document.createElement('button');
+      b.className = 'mini baja';
+      b.textContent = 'DAR DE BAJA';
+      b.addEventListener('click', () => accionSub('dar_baja', s, b));
+      td.appendChild(b);
+    } else if (s.status === 'cancelled' && vigente) {
+      const b = document.createElement('button');
+      b.className = 'mini reac';
+      b.textContent = 'REACTIVAR';
+      b.addEventListener('click', () => accionSub('reactivar', s, b));
+      td.appendChild(b);
+    }
+
+    $('tbodySubs').appendChild(tr);
+  });
+}
+
+async function accionSub(accion, s, btn) {
+  const verbo = accion === 'dar_baja'
+    ? '¿Dar de baja la suscripción de ' + (s.email || s.user_id) + '? Los beneficios siguen hasta su vencimiento.'
+    : '¿Reactivar la suscripción de ' + (s.email || s.user_id) + '?';
+
+  if (!confirm(verbo)) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion, clave: claveMaestra, id: s.id }, 'bvlux-panel-control');
+
+  if (!res.ok) alert(res.error || 'No se pudo completar.');
+  else if (res.aviso) alert(res.aviso);
+
+  listarSubs();
+}
+
+/* =========================================================
+   DATOS · auditoría (función bvlux-panel-control)
+   ========================================================= */
+
+$('btnTablas').addEventListener('click', listarTablas);
+
+async function listarTablas() {
+  $('msgDatos').textContent = 'Cargando tablas…';
+  $('msgDatos').className = 'msg';
+
+  const res = await llamar({ accion: 'tablas', clave: claveMaestra }, 'bvlux-panel-control');
+
+  if (!res.ok) return falla('msgDatos', res.error);
+
+  $('selTabla').innerHTML =
+    '<option value="">— elige una tabla —</option>' +
+    res.tablas.map((t) =>
+      '<option value="' + esc(t.nombre) + '">' + esc(t.nombre) +
+      (t.filas != null ? ' · ' + t.filas + ' filas' : ' · (sin acceso)') +
+      '</option>'
+    ).join('');
+
+  $('msgDatos').textContent = res.tablas.length + ' tabla(s) encontradas.';
+  $('msgDatos').className = 'msg';
+}
+
+$('btnVer').addEventListener('click', async () => {
+  const tabla = $('selTabla').value;
+
+  if (!tabla) {
+    $('msgDatos').textContent = 'Elige una tabla primero.';
+    $('msgDatos').className = 'msg err';
+    return;
+  }
+
+  $('msgDatos').textContent = 'Leyendo ' + tabla + '…';
+  $('msgDatos').className = 'msg';
+
+  const res = await llamar({ accion: 'ver', clave: claveMaestra, tabla }, 'bvlux-panel-control');
+
+  if (!res.ok) return falla('msgDatos', res.error);
+
+  const filas = res.filas;
+
+  if (!filas.length) {
+    $('zonaTabla').innerHTML = '<p class="nota">La tabla está vacía.</p>';
+    $('msgDatos').textContent = tabla + ' · 0 filas.';
+    return;
+  }
+
+  const cols = Object.keys(filas[0]);
+
+  $('zonaTabla').innerHTML =
+    '<table><thead><tr>' +
+    cols.map((c) => '<th>' + esc(c) + '</th>').join('') +
+    '</tr></thead><tbody>' +
+    filas.map((f) =>
+      '<tr>' + cols.map((c) => {
+        const v = f[c];
+        return '<td>' + esc(v == null ? '—'
+          : typeof v === 'object' ? JSON.stringify(v)
+          : String(v).length > 80 ? String(v).slice(0, 80) + '…'
+          : String(v)) + '</td>';
+      }).join('') + '</tr>'
+    ).join('') +
+    '</tbody></table>';
+
+  $('msgDatos').textContent = tabla + ' · mostrando ' + filas.length + ' fila(s) (solo lectura).';
+  $('msgDatos').className = 'msg';
+});
+
+/* =========================================================
+   SOPORTE (función bvlux-soporte)
    ========================================================= */
 
 let ticketActual = null;
@@ -795,7 +1037,7 @@ async function cerrarTicket(id, btn) {
 }
 
 /* =========================================================
-   CORREOS (2C.5)
+   CORREOS (función bvlux-correos)
    ========================================================= */
 
 let destinatarios = [];
@@ -814,7 +1056,7 @@ async function prepararDestinatarios() {
 
   $('btnCampania').classList.add('hidden');
 
-  const res = await llamar({ accion: 'cuentas', clave: claveMaestra });
+  const res = await llamar({ accion: 'cuentas', clave: claveMaestra }, 'bvlux-panel-control');
 
   if (!res.ok) return falla('msgCorreos', res.error);
 
@@ -973,7 +1215,7 @@ async function verHistorial() {
 }
 
 /* =========================================================
-   CONTENIDO (2C.6)
+   CONTENIDO (función bvlux-contenido)
    ========================================================= */
 
 $('btnSubirContenido').addEventListener('click', subirContenido);
