@@ -556,6 +556,13 @@
       <div class="gal-slot">Espacio para video 02</div>
     </div>
 
+    <!-- PCD-2 · GALERÍA DESDE EL PANEL DEL DUEÑO:
+         todo lo que subas al panel con destino "Portafolio"
+         (imagen o video) aparece aquí automáticamente,
+         con candado por nivel y versión pixelada
+         para quien no tiene el nivel. -->
+    <div id="galPanel" class="gal-grid" style="margin-top:14px;"></div>
+
     <!-- RIDER TÉCNICO -->
     <div class="rider" data-pcd="rider">
       <h3>Rider técnico (editable)</h3>
@@ -604,6 +611,76 @@
     <div class="made">Hecho en Ecuador · Pasión por el arte</div>
   </div>
 </footer>
+
+<!-- PCD-2 · PORTAFOLIO ← PANEL DEL DUEÑO:
+     carga automática de imagen/video con destino
+     "Portafolio". Si el panel no responde, esta
+     sección queda vacía y NADA más se afecta. -->
+<script>
+(async () => {
+  const PCD_URL = 'https://udbwjixdwoahonzezbqj.supabase.co';
+  const PCD_KEY = 'sb_publishable_CERYzMSJCTQkzIVjkn7c8g_C1QAo6Hc';
+
+  const zona = document.getElementById('galPanel');
+  if (!zona) return;
+
+  const estilo = document.createElement('style');
+  estilo.textContent =
+    '.pf-item{position:relative;overflow:hidden;aspect-ratio:4/3;background:#111;}' +
+    '.pf-item img,.pf-item video{width:100%;height:100%;object-fit:cover;display:block;}' +
+    '.pf-item.pf-bloqueada img{filter:blur(12px) saturate(.7);transform:scale(1.08);}' +
+    '.pf-item .pf-tag{position:absolute;top:8px;right:8px;padding:3px 7px;background:rgba(0,0,0,.75);border:1px solid #00ff66;color:#00ff66;font:9px monospace;letter-spacing:1px;text-transform:uppercase;}';
+  document.head.appendChild(estilo);
+
+  let rank = 0;
+  try {
+    let mod = null;
+    try { mod = await import('./assets/js/services/auth-service.js'); }
+    catch (_) { mod = await import('../assets/js/services/auth-service.js'); }
+    const BVrosAuth = mod && mod.BVrosAuth;
+    if (BVrosAuth && BVrosAuth.isAuthenticated && BVrosAuth.isAuthenticated()) {
+      const p = BVrosAuth.profile || {};
+      const tier = String(p.subscription_tier || (p.plan === 'premium' ? (p.profile_type === 'perfil2' ? 'nivel3' : 'nivel2') : 'nivel1')).toLowerCase();
+      rank = (tier === 'nivel3' || tier === 'avanzado') ? 2 : (tier && tier !== 'nivel1' ? 1 : 0);
+    }
+  } catch (_) { rank = 0; }
+
+  const rankDe = (n) => n === 'avanzado' ? 2 : (n === 'experto' || n === 'promo' ? 1 : 0);
+
+  try {
+    const res = await fetch(PCD_URL + '/functions/v1/bvlux-catalogo', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: PCD_KEY,
+        Authorization: 'Bearer ' + PCD_KEY
+      },
+      body: JSON.stringify({ accion: 'publico', destino: 'portafolio' })
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.items)) return;
+
+    const items = data.items.filter((i) => i.tipo === 'imagen' || i.tipo === 'video');
+    if (!items.length) return;
+
+    zona.innerHTML = items.map((it) => {
+      const abierto = rank >= rankDe(String(it.nivel || 'gratuito'));
+      const pixelada = !abierto && it.preview_modo === 'pixeleda';
+      const url = it.preview_url || '';
+      if (!url) return '';
+      const esVideo = /\.(mp4|webm)(\?|$)/i.test(url);
+      const media = esVideo
+        ? '<video src="' + url + '" muted loop playsinline preload="metadata" controls></video>'
+        : '<img src="' + url + '" alt="" loading="lazy">';
+      return '<div class="pf-item ' + (pixelada ? 'pf-bloqueada' : '') + '">' + media +
+        (abierto ? '' : '<span class="pf-tag">🔒 ' + String(it.nivel || '').toUpperCase() + '</span>') + '</div>';
+    }).join('');
+  } catch (_) {
+    /* silencioso: el portafolio estático sigue igual */
+  }
+})();
+</script>
 
 </body>
 </html>

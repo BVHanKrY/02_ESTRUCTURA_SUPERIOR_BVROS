@@ -38,3 +38,87 @@ body{
 .course-card,.artist-card,.merch-card,.rel-row,.track-row,
 .step,.dist-form,.pill,.badge,.btn-accent,.btn-outline{border-radius:0}
 .track-row{border:1px solid var(--border)}
+
+/* ============================================================
+   PCD-2 · ENTRADA DESTACADA AL PORTAFOLIO (index.html)
+   Tarjeta ancha que va JUSTO DEBAJO del hero de bienvenida
+   (antes de .module-grid). NO mueve ni cambia las demás
+   tarjetas de entrada: es un bloque nuevo y aparte.
+============================================================ */
+
+.bv-featured{
+  display:block;
+  margin:36px 0 0;
+  border:1px solid var(--accent);
+  padding:28px;
+  text-decoration:none;
+  background:linear-gradient(120deg,rgba(0,255,102,.06),transparent 62%);
+  transition:background .2s ease;
+}
+.bv-featured:hover{background:var(--surface)}
+.bv-featured .eyebrow{display:block;margin-bottom:4px}
+.bv-featured h2{
+  margin:10px 0 8px;
+  font-size:clamp(26px,5vw,44px);
+  letter-spacing:-1px;
+  color:var(--text);
+}
+.bv-featured h2 small{
+  font-size:.45em;
+  color:var(--muted);
+  letter-spacing:2px;
+}
+.bv-featured p{
+  max-width:640px;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.6;
+  margin:0;
+}
+.bv-featured em{
+  display:inline-block;
+  margin-top:14px;
+  font:11px var(--mono);
+  color:var(--accent);
+  letter-spacing:2px;
+  font-style:normal;
+  border-bottom:1px solid var(--accent);
+  padding-bottom:2px;
+}
+@media(max-width:760px){
+  .bv-featured{padding:20px;margin-top:26px}
+}
+
+/* ============================================================
+   PCD-2 · CLARIDAD EN MÓVIL (aplicación más cómoda)
+   Mantiene tipografía y símbolos EXACTOS: solo da aire al
+   menú del hub y a los botones para que todo sea tocable.
+============================================================ */
+
+@media(max-width:760px){
+  .hub-links{
+    gap:14px;
+    padding:4px 0 2px;
+  }
+  .hub-links a{
+    padding:6px 2px;
+    font-size:.7rem;
+  }
+  .hub-nav{
+    position:relative;
+  }
+}
+
+/* ============================================================
+   PCD-2 · TEMA CLARO: refuerzo para elementos de este
+   archivo con colores fijos (el resto lo maneja shell.js
+   redefiniendo las variables del sitio).
+============================================================ */
+
+html.bv-tema-claro body{
+  background-color:#f4f4f1 !important;
+  background-image:
+    linear-gradient(rgba(0,0,0,.032) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,0,0,.032) 1px,transparent 1px) !important;
+  background-size:48px 48px !important;
+}

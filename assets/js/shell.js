@@ -26,7 +26,7 @@
    ========================================================= */
 
 console.info(
-    '[BVros Shell] v3.5.1 · fixes: idioma en raíz (/) · toggle ES/EN anclado · ortografía ES'
+    '[BVros Shell] v3.6 · PCD-2: tema claro/oscuro junto a ES/EN · idioma en raíz (/) · toggle ES/EN anclado · ortografía ES'
 );
 
 window.__BVROS_SHELL__ = true;
@@ -1014,6 +1014,12 @@ function bvEnsureToggle(){
         return;
     }
 
+    /* PCD-2 v3.6: el botón de tema vive ANTES del
+       botón de idioma (el ES/EN sigue siendo el
+       último de la esquina, como ya quedó fijado). */
+
+    bvEnsureTema(nav);
+
     let toggle =
         nav.querySelector('#bvLangToggle');
 
@@ -1131,9 +1137,165 @@ bvLangStyle.textContent = `
     border-color:var(--accent,#F97316);
 }
 
+/* PCD-2 v3.6 · BOTÓN DE TEMA: mismo estilo del
+   toggle de idioma, siempre a su izquierda. */
+
+#bvTemaToggle{
+    border:1px solid var(--border,#2A2119);
+    background:none;
+    color:var(--accent,#F97316);
+    font-family:var(--mono, monospace);
+    font-size:.62rem;
+    padding:5px 9px;
+    cursor:pointer;
+    order:998;
+    line-height:1;
+}
+#bvTemaToggle:hover{
+    border-color:var(--accent,#F97316);
+}
+
+/* ============================================================
+   TEMA CLARO (PCD-2): SOLO cambia el fondo y las letras
+   (blanco → negro) para producir contraste. Se redefine la
+   paleta por variables (las que usan TODAS las páginas del
+   sitio) y se ajustan los fondos de filas/tarjetas que
+   estaban pensados para oscuro. El acento pasa a un verde
+   legible sobre claro. Nada más cambia: tipografía,
+   tamaños, símbolos y diseño intactos.
+============================================================ */
+
+html.bv-tema-claro{
+    --bg:#f4f4f1;
+    --surface:#ffffff;
+    --border:#d8d8d2;
+    --border-hi:#c3c3bb;
+    --text:#101010;
+    --muted:#58584f;
+    --text-muted:#58584f;
+    --accent:#00a344;
+    --accent-dim:#008a39;
+}
+
+html.bv-tema-claro body{
+    background-color:#f4f4f1 !important;
+    background-image:
+        linear-gradient(rgba(0,0,0,.032) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,0,0,.032) 1px,transparent 1px) !important;
+    background-size:48px 48px !important;
+}
+
+html.bv-tema-claro .track-row{
+    background:transparent !important;
+}
+
+html.bv-tema-claro .track-row:hover{
+    background:rgba(0,0,0,.035) !important;
+}
+
+html.bv-tema-claro .track-row.active{
+    background:rgba(0,163,68,.06) !important;
+}
+
+html.bv-tema-claro .track-cover{
+    background:#e7e7e2;
+}
+
+html.bv-tema-claro .module-card:hover,
+html.bv-tema-claro .hub-links a:hover{
+    background:#ffffff;
+}
+
+html.bv-tema-claro .empty-catalog{
+    color:#58584f;
+}
+
 `;
 
 document.head.appendChild(bvLangStyle);
+
+
+/* =========================================================
+   PCD-2 v3.6 · TEMA CLARO/OSCURO
+   · Botón ☀/☾ junto al ES/EN (PC y móvil).
+   · Se recuerda en localStorage (bvros_tema).
+   · Solo invierte fondo y letras; el diseño es el mismo.
+========================================================= */
+
+const BV_TEMA_KEY = 'bvros_tema';
+
+function bvTemaClaro(){
+    return localStorage.getItem(BV_TEMA_KEY) === 'claro';
+}
+
+function bvAplicarTema(){
+    document.documentElement.classList.toggle(
+        'bv-tema-claro',
+        bvTemaClaro()
+    );
+}
+
+function bvEnsureTema(nav){
+
+    let btn =
+        nav.querySelector('#bvTemaToggle');
+
+    if(!btn){
+
+        btn =
+            document.createElement('button');
+
+        btn.id =
+            'bvTemaToggle';
+
+        btn.type =
+            'button';
+
+        btn.title =
+            'Tema claro / oscuro';
+
+        btn.textContent =
+            bvTemaClaro() ? '☾' : '☀';
+
+        btn.addEventListener(
+            'click',
+            () => {
+
+                localStorage.setItem(
+                    BV_TEMA_KEY,
+                    bvTemaClaro() ? 'oscuro' : 'claro'
+                );
+
+                bvAplicarTema();
+
+                btn.textContent =
+                    bvTemaClaro() ? '☾' : '☀';
+
+            }
+        );
+    }
+
+    const toggle =
+        nav.querySelector('#bvLangToggle');
+
+    if(toggle){
+
+        if(toggle.previousElementSibling !== btn){
+            nav.insertBefore(btn, toggle);
+        }
+
+        return;
+    }
+
+    if(!btn.isConnected){
+        nav.appendChild(btn);
+    }
+
+}
+
+/* Aplica el tema guardado en cuanto el shell carga. */
+
+bvAplicarTema();
 
 
 /* =========================================================

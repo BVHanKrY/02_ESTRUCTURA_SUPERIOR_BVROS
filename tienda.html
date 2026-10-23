@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#050505">
+
+    <title>Tienda — BVros</title>
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/hub.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/theme-hankry.css">
+
+    <style>
+
+        .store-content{
+            max-width:1100px;
+            margin:0 auto;
+            padding:28px 0 120px;
+        }
+
+        .store-grid{
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:1px;
+            background:var(--border);
+            border:1px solid var(--border);
+            margin-top:10px;
+        }
+
+        .prod-card{
+            background:var(--bg);
+            padding:0;
+            display:flex;
+            flex-direction:column;
+            min-height:300px;
+            position:relative;
+            overflow:hidden;
+        }
+
+        .prod-card:hover{
+            background:var(--surface);
+        }
+
+        .prod-media{
+            position:relative;
+            aspect-ratio:1/1;
+            background:#111;
+            overflow:hidden;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+
+        .prod-media img,
+        .prod-media video{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:block;
+        }
+
+        /* PCD-2 · PIXELADA: la imagen se ve borrosa
+           hasta que el usuario tiene el nivel. */
+
+        .prod-media.pixelada img{
+            filter:blur(14px) saturate(.7);
+            transform:scale(1.1);
+        }
+
+        .prod-media .sin-media{
+            color:var(--text-muted);
+            font-family:var(--mono);
+            font-size:.6rem;
+            letter-spacing:2px;
+            text-transform:uppercase;
+        }
+
+        /* Previsualización hover (producto): se superpone
+           al pasar el ratón por encima. */
+
+        .prod-media .hover-preview{
+            position:absolute;
+            inset:0;
+            opacity:0;
+            transition:opacity .25s ease;
+            pointer-events:none;
+        }
+
+        .prod-media .hover-preview img,
+        .prod-media .hover-preview video{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+        }
+
+        .prod-card:hover .hover-preview.activo{
+            opacity:1;
+        }
+
+        .prod-candado{
+            position:absolute;
+            top:10px;
+            right:10px;
+            padding:4px 8px;
+            background:rgba(0,0,0,.75);
+            border:1px solid var(--accent);
+            color:var(--accent);
+            font-family:var(--mono);
+            font-size:.52rem;
+            letter-spacing:1.5px;
+            text-transform:uppercase;
+        }
+
+        .prod-body{
+            padding:16px;
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+            flex:1;
+        }
+
+        .prod-tipo{
+            font:10px var(--mono);
+            color:var(--accent);
+            letter-spacing:2px;
+            text-transform:uppercase;
+        }
+
+        .prod-nombre{
+            font-size:.95rem;
+            font-weight:600;
+            color:var(--text);
+            line-height:1.25;
+        }
+
+        .prod-clase{
+            font:11px var(--mono);
+            color:var(--text-muted);
+            line-height:1.4;
+        }
+
+        .prod-desc{
+            font-size:.78rem;
+            color:var(--text-muted);
+            line-height:1.55;
+        }
+
+        .prod-pie{
+            margin-top:auto;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            padding-top:12px;
+            border-top:1px solid var(--border);
+        }
+
+        .prod-precio{
+            font-family:var(--mono);
+            font-size:.9rem;
+            color:var(--text);
+        }
+
+        .prod-btn{
+            background:var(--accent);
+            border:1px solid var(--accent);
+            color:#05130a;
+            font-family:var(--mono);
+            font-size:.62rem;
+            font-weight:700;
+            letter-spacing:1.5px;
+            text-transform:uppercase;
+            padding:9px 14px;
+            cursor:pointer;
+        }
+
+        .prod-btn.sec{
+            background:transparent;
+            color:var(--accent);
+        }
+
+        .prod-btn:disabled{
+            opacity:.5;
+            cursor:wait;
+        }
+
+        .empty-store{
+            padding:60px 20px;
+            text-align:center;
+            color:var(--text-muted);
+            font-family:var(--mono);
+            font-size:.75rem;
+            border:1px solid var(--border);
+            margin-top:10px;
+        }
+
+        @media(max-width:850px){
+            .store-grid{ grid-template-columns:repeat(2,1fr); }
+        }
+
+        @media(max-width:620px){
+            .store-grid{ grid-template-columns:1fr; }
+            .store-content{ padding-top:20px; padding-bottom:110px; }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<script>
+    window.BVROS_CONFIG_OVERRIDE = {
+        supabaseUrl:
+            'https://udbwjixdwoahonzezbqj.supabase.co',
+
+        supabaseAnonKey:
+            'sb_publishable_CERYzMSJCTQkzIVjkn7c8g_C1QAo6Hc',
+
+        audioFunctionName:
+            'get-audio-url',
+
+        signedUrlRefreshMarginMs:
+            15000
+    };
+</script>
+
+<div class="shell">
+    <nav class="hub-nav">
+        <a class="hub-brand" href="index.html">BVros</a>
+
+        <div class="hub-links">
+            <a href="stream.html">Stream</a>
+            <a href="distribution.html">Distribution</a>
+            <a href="academy.html">Academy</a>
+            <a href="artists.html">Artists</a>
+            <a href="tienda.html" style="color:var(--accent);">Tienda</a>
+            <a href="privacy.html">Privacidad</a>
+        </div>
+    </nav>
+
+    <header class="page-head">
+        <div class="eyebrow">STORE · PRODUCTOS BVROS</div>
+        <h1>Tienda</h1>
+        <p>
+            Mercancía, arte, documentos y coleccionables del ecosistema.
+            Publicado directo desde el catálogo del dueño.
+        </p>
+    </header>
+
+    <main class="store-content">
+        <div id="store-list" class="store-grid"></div>
+        <div id="store-aviso" class="empty-store" style="display:none;"></div>
+    </main>
+
+    <footer>
+        © 2026 · BVros Music Ecuador · versión 1.1 ·
+        <a href="privacy.html">Privacidad</a> ·
+        <a href="terms.html">Términos</a>
+    </footer>
+</div>
+
+<script type="module" src="assets/js/shell.js"></script>
+<script type="module" src="assets/js/gate.js"></script>
+
+<script type="module">
+
+import { BVrosAuth } from './assets/js/services/auth-service.js';
+import './assets/js/gate.js';
+import './assets/js/bvlux.js';
+
+/* =========================================================
+   TIENDA · PCD-2
+   Lee el catálogo público del panel del dueño
+   (bvlux-catalogo · acción "publico" · destino=tienda)
+   y pinta las tarjetas con candado por nivel,
+   previsualización hover y descarga firmada (600 s).
+   ADITIVO: si la función falla, la página queda
+   funcional con el aviso de "próximamente".
+========================================================= */
+
+const CFG =
+    window.BVROS_CONFIG_OVERRIDE ||
+    window.BVROS_CONFIG ||
+    {};
+
+const PCD_URL =
+    (CFG.supabaseUrl || '').replace(/\/+$/, '');
+
+const PCD_KEY =
+    CFG.supabaseAnonKey || '';
+
+const zona =
+    document.getElementById('store-list');
+
+const aviso =
+    document.getElementById('store-aviso');
+
+/* ---------- NIVEL DEL USUARIO ---------- */
+
+function rankNivel(nivel){
+    switch(String(nivel || '').toLowerCase()){
+        case 'experto': return 1;
+        case 'promo': return 1;
+        case 'avanzado': return 2;
+        default: return 0;
+    }
+}
+
+function nivelDeUsuario(){
+    const auth = window.BVrosAuth;
+    if(!auth || !auth.isAuthenticated || !auth.isAuthenticated()) return 'gratuito';
+    const p = auth.profile || {};
+    const tier = String(
+        p.subscription_tier ||
+        (p.plan === 'premium'
+            ? (p.profile_type === 'perfil2' ? 'nivel3' : 'nivel2')
+            : 'nivel1')
+    ).toLowerCase();
+    if(tier === 'nivel3' || tier === 'avanzado') return 'avanzado';
+    if(tier === 'nivel2' || tier === 'nivel2_promo' || tier === 'experto' || tier === 'promo') return 'experto';
+    return 'gratuito';
+}
+
+function nivelPermite(n){
+    return rankNivel(nivelDeUsuario()) >= rankNivel(n);
+}
+
+function nivelEtiqueta(n){
+    return {
+        gratuito: 'GRATUITO',
+        experto: 'EXPERTO',
+        avanzado: 'AVANZADO',
+        promo: 'PROMO ESPECIAL'
+    }[String(n || '').toLowerCase()] || 'EXCLUSIVO';
+}
+
+const esc = (s) =>
+    String(s ?? '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+
+/* ---------- OBTENER ACCESO (mismo gate del sitio) ---------- */
+
+function pedirAcceso(){
+    if(window.BVrosGate && window.BVrosGate.open){
+        window.BVrosGate.open('suscripcion');
+    }else{
+        window.location.href = 'index.html';
+    }
+}
+
+/* ---------- DESCARGA FIRMADA (600 s, privada) ---------- */
+
+async function descargarItem(id, btn){
+    btn.disabled = true;
+    try{
+        const res =
+            await fetch(PCD_URL + '/functions/v1/bvlux-catalogo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: PCD_KEY,
+                    Authorization: 'Bearer ' + PCD_KEY
+                },
+                body: JSON.stringify({ accion: 'archivo', id })
+            });
+
+        const data = await res.json();
+
+        if(!data.ok || !data.url){
+            throw new Error(data.error || 'no disponible');
+        }
+
+        window.open(data.url, '_blank', 'noopener');
+    }catch(e){
+        alert('No se pudo abrir el archivo: ' + (e.message || e));
+    }finally{
+        btn.disabled = false;
+    }
+}
+
+/* ---------- TARJETAS ---------- */
+
+function mediaDe(it){
+    const url = it.preview_url || '';
+    const esVideo = /\.(mp4|webm)(\?|$)/i.test(url) || String(it.mime || '').startsWith('video/');
+    if(!url) return '<div class="sin-media">BVros</div>';
+    return esVideo
+        ? `<video src="${esc(url)}" muted loop playsinline preload="metadata"></video>`
+        : `<img src="${esc(url)}" alt="" loading="lazy">`;
+}
+
+function tarjeta(it){
+    const desbloqueado = nivelPermite(it.nivel);
+
+    const tipoTxt = {
+        producto: 'PRODUCTO',
+        imagen: 'IMAGEN',
+        video: 'VIDEO',
+        documento: 'DOCUMENTO'
+    }[it.tipo] || String(it.tipo || 'ITEM').toUpperCase();
+
+    const pixelada =
+        !desbloqueado && it.preview_modo === 'pixeleda';
+
+    const hover =
+        it.tipo === 'producto' &&
+        it.preview_url &&
+        /\.(mp4|webm)(\?|$)/i.test(it.preview_url);
+
+    const clase = it.contenido
+        ? `<div class="prod-clase">${esc(it.contenido)}</div>`
+        : '';
+
+    const desc = it.descripcion
+        ? `<div class="prod-desc">${esc(String(it.descripcion).slice(0, 160))}</div>`
+        : '';
+
+    const candado = desbloqueado
+        ? ''
+        : `<span class="prod-candado">🔒 ${nivelEtiqueta(it.nivel)}</span>`;
+
+    const precioTxt = Number(it.precio) > 0
+        ? '$' + Number(it.precio).toFixed(2)
+        : 'CON TU NIVEL';
+
+    let accion;
+
+    if(!desbloqueado){
+        accion = `<button class="prod-btn" data-acceso>OBTENER ACCESO</button>`;
+    }else if(it.tiene_archivo){
+        accion = `<button class="prod-btn" data-descargar="${esc(it.id)}">DESCARGAR</button>`;
+    }else{
+        accion = `<button class="prod-btn sec" data-acceso>PRÓXIMAMENTE</button>`;
+    }
+
+    return `
+        <article class="prod-card">
+            <div class="prod-media ${pixelada ? 'pixelada' : ''}">
+                ${mediaDe(it)}
+                ${hover ? `<div class="hover-preview activo">${mediaDe({ ...it, preview_url: it.preview_url })}</div>` : ''}
+                ${candado}
+            </div>
+            <div class="prod-body">
+                <div class="prod-tipo">${tipoTxt}</div>
+                <div class="prod-nombre">${esc(it.titulo)}</div>
+                ${clase}
+                ${desc}
+                <div class="prod-pie">
+                    <span class="prod-precio">${precioTxt}</span>
+                    ${accion}
+                </div>
+            </div>
+        </article>
+    `;
+}
+
+function cablear(){
+    zona.querySelectorAll('[data-acceso]').forEach((b) =>
+        b.addEventListener('click', pedirAcceso)
+    );
+
+    zona.querySelectorAll('[data-descargar]').forEach((b) =>
+        b.addEventListener('click', () => descargarItem(b.dataset.descargar, b))
+    );
+}
+
+async function cargar(){
+    if(!PCD_URL || !PCD_KEY){
+        aviso.textContent =
+            'Tienda lista. Cuando el dueño publique productos desde el panel, aparecerán aquí.';
+        aviso.style.display = 'block';
+        return;
+    }
+
+    try{
+        const res =
+            await fetch(PCD_URL + '/functions/v1/bvlux-catalogo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: PCD_KEY,
+                    Authorization: 'Bearer ' + PCD_KEY
+                },
+                body: JSON.stringify({
+                    accion: 'publico',
+                    destino: 'tienda'
+                })
+            });
+
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+
+        const data = await res.json();
+
+        const items = (data.ok && Array.isArray(data.items))
+            ? data.items
+            : [];
+
+        if(!items.length){
+            aviso.textContent =
+                'La tienda está abierta: todavía no hay productos publicados. Vuelve pronto.';
+            aviso.style.display = 'block';
+            return;
+        }
+
+        zona.innerHTML = items.map(tarjeta).join('');
+
+        cablear();
+
+        console.info('[BVros Tienda] ' + items.length + ' item(s) cargados.');
+
+    }catch(e){
+        aviso.textContent =
+            'Tienda en mantenimiento momentáneo. El resto del sitio funciona normal.';
+        aviso.style.display = 'block';
+        console.warn('[BVros Tienda] ', e && e.message ? e.message : e);
+    }
+}
+
+/* Re-render si la sesión cambia (el candado depende del nivel). */
+
+window.addEventListener('bvros:authchange', () => {
+    cargar();
+});
+
+cargar();
+
+</script>
+
+</body>
+</html>

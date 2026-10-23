@@ -167,7 +167,7 @@
        cancelación, caducidad y Mis consultas intactos.
    ========================================================= */
 
-console.log("[BVros Gate] versión 2C.8 activa · fase PCD-1: mensajes internos del dueño en Mis consultas");
+console.log("[BVros Gate] versión 2C.9 activa · fase PCD-2: BUZÓN (soporte/mensajes/consultas con contadores verdes) + menú de usuario centrado dentro de la pantalla en móviles");
 
 import { BVrosAuth, supabase, PROFILE_ROLES } from "./services/auth-service.js";
 
@@ -1321,6 +1321,64 @@ STYLE.textContent = `
     cursor:pointer;
     padding:0;
     margin-bottom:8px;
+}
+
+/* PCD-2 · BUZÓN: título, contadores verdes y zonas */
+
+.bv-buzon-titulo{
+    font-family:var(--mono, monospace);
+    font-size:.6rem;
+    letter-spacing:.2em;
+    color:var(--text-muted,#9A8D7D);
+    margin:4px 0 8px;
+}
+
+.bv-buzon-badge{
+    display:none;
+    min-width:18px;
+    padding:1px 6px;
+    margin-left:6px;
+    border-radius:10px;
+    background:#3ecf6e;
+    color:#06240f;
+    font-size:.58rem;
+    font-weight:700;
+    text-align:center;
+    vertical-align:middle;
+}
+
+.bv-buzon-desc{
+    color:var(--text-muted,#9A8D7D);
+    font-size:.62rem;
+    line-height:1.6;
+    margin:6px 0 10px;
+}
+
+.bv-buzon-zona{
+    max-height:300px;
+    overflow-y:auto;
+}
+
+/* PCD-2 · MÓVIL: el menú de usuario SE DESPLIEGA CENTRADO
+     y SIEMPRE DENTRO de la pantalla (iPhone, Android y
+     cualquier teléfono): anclado a la vista, ancho máximo
+     de la pantalla, con desplazamiento vertical si hace
+     falta. Nada se sale de la pantalla ni tapa funciones. */
+
+@media (max-width:560px){
+    .bv-auth-menu{
+        position:fixed;
+        top:58px;
+        left:50%;
+        right:auto;
+        transform:translateX(-50%);
+        width:min(340px, calc(100vw - 16px));
+        max-width:calc(100vw - 16px);
+        max-height:calc(100vh - 72px);
+        max-height:calc(100dvh - 72px);
+        overflow-y:auto;
+        -webkit-overflow-scrolling:touch;
+    }
 }
 .bv-menu-back:hover{
     color:var(--accent,#F97316);
@@ -4290,9 +4348,12 @@ function syncNavAuth() {
 
                     <button
                         class="m-item"
-                        data-menu="soporte"
+                        data-menu="buzon"
                         type="button"
-                    >Contacto a soporte</button>
+                    >Buzón <span
+                        class="bv-buzon-badge"
+                        data-buzon-badge="total"
+                    >0</span></button>
 
                     <button
                         class="m-item"
@@ -4494,7 +4555,7 @@ function syncNavAuth() {
 
                     <button
                         class="bv-menu-back"
-                        data-menu="main"
+                        data-menu="buzon"
                         type="button"
                     >← Volver</button>
 
@@ -4537,16 +4598,92 @@ function syncNavAuth() {
                         type="button"
                     >ENVIAR A SOPORTE</button>
 
-                    <button
-                        class="bv-menu-save"
-                        data-act="load-mis-consultas"
-                        type="button"
-                    >MIS CONSULTAS ↻</button>
-
-                    <div data-ref="misConsultas"></div>
+                    <div class="bv-buzon-desc">Tu ticket va al dueño como siempre.
+                    Su respuesta te llega a BUZÓN > MENSAJES (y a tu correo si la
+                    activó).</div>
 
                     <div class="bv-menu-ok" data-ref="okSup"></div>
                     <div class="bv-menu-err" data-ref="errSup"></div>
+
+                </div>
+
+
+                <!-- PCD-2 · BUZÓN: hub con las 3 pestañas -->
+                <div class="bv-menu-panel" data-view="buzon">
+
+                    <button
+                        class="bv-menu-back"
+                        data-menu="main"
+                        type="button"
+                    >← Volver</button>
+
+                    <div class="bv-buzon-titulo">BUZÓN</div>
+
+                    <button
+                        class="m-item"
+                        data-menu="soporte"
+                        type="button"
+                    >Soporte <span
+                        class="bv-buzon-desc-inline"
+                    ></span></button>
+
+                    <button
+                        class="m-item"
+                        data-menu="buzon-mensajes"
+                        type="button"
+                    >Mensajes <span
+                        class="bv-buzon-badge"
+                        data-buzon-badge="mensajes"
+                    >0</span></button>
+
+                    <button
+                        class="m-item"
+                        data-menu="buzon-consultas"
+                        type="button"
+                    >Consultas <span
+                        class="bv-buzon-badge"
+                        data-buzon-badge="consultas"
+                    >0</span></button>
+
+                </div>
+
+
+                <!-- PCD-2 · BUZÓN > MENSAJES -->
+                <div class="bv-menu-panel" data-view="buzon-mensajes">
+
+                    <button
+                        class="bv-menu-back"
+                        data-menu="buzon"
+                        type="button"
+                    >← Volver</button>
+
+                    <div class="bv-buzon-titulo">MENSAJES</div>
+
+                    <div class="bv-buzon-desc">Mensajes personales del dueño,
+                    respuestas de soporte y descuentos exclusivos para tu cuenta.
+                    El contador verde desaparece al revisarlos.</div>
+
+                    <div class="bv-buzon-zona" data-buzon-zona="mensajes"></div>
+
+                </div>
+
+
+                <!-- PCD-2 · BUZÓN > CONSULTAS -->
+                <div class="bv-menu-panel" data-view="buzon-consultas">
+
+                    <button
+                        class="bv-menu-back"
+                        data-menu="buzon"
+                        type="button"
+                    >← Volver</button>
+
+                    <div class="bv-buzon-titulo">CONSULTAS</div>
+
+                    <div class="bv-buzon-desc">Anuncios, promociones y
+                    advertencias generales que el dueño envía a todos los
+                    miembros. El contador verde desaparece al revisarlos.</div>
+
+                    <div class="bv-buzon-zona" data-buzon-zona="consultas"></div>
 
                 </div>
 
@@ -4609,6 +4746,11 @@ function syncNavAuth() {
         event.stopPropagation();
 
         menu.classList.toggle("open");
+
+        /* PCD-2 · Cada vez que se abre la pastilla se
+           refrescan los contadores verdes del buzón. */
+
+        buzonContadores();
       });
 
     document.addEventListener("click", (event) => {
@@ -5015,6 +5157,147 @@ function syncNavAuth() {
         if (zona) cargarMisConsultas(zona);
       });
     }
+
+    /* =========================================================
+       PCD-2 · BUZÓN: contadores verdes, MENSAJES y CONSULTAS
+       · El contador verde aparece cuando llega algo y
+         desaparece cuando el usuario abre la pestaña.
+       · Soporte funciona como siempre (envía tickets);
+         las respuestas del dueño llegan a MENSAJES.
+    ========================================================= */
+
+    async function buzonContadores() {
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "bvlux-soporte",
+          { body: { accion: "mias" } },
+        );
+
+        if (error || !data?.ok) return;
+
+        const nl = data.no_leidos || { mensajes: 0, consultas: 0 };
+
+        const total = (nl.mensajes || 0) + (nl.consultas || 0);
+
+        const pinta = (nombre, n) => {
+          const el = chip.querySelector(
+            '[data-buzon-badge="' + nombre + '"]',
+          );
+
+          if (!el) return;
+
+          el.textContent = String(n);
+
+          el.style.display = n > 0 ? "inline-block" : "none";
+        };
+
+        pinta("total", total);
+        pinta("mensajes", nl.mensajes || 0);
+        pinta("consultas", nl.consultas || 0);
+      } catch (_) {
+        /* silencioso: el buzón nunca rompe la pastilla */
+      }
+    }
+
+    function buzonEsc(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function buzonPintaLista(zona, filas, vacioTxt) {
+      if (!filas.length) {
+        zona.innerHTML = '<div class="bv-buzon-desc">' + vacioTxt + "</div>";
+        return;
+      }
+
+      zona.innerHTML = filas
+        .map((m) => {
+          const f = m.created_at
+            ? new Date(m.created_at).toLocaleDateString("es-EC", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : "";
+
+          return (
+            '<div style="font-size:.78rem; border-top:1px solid rgba(255,255,255,.08); padding:8px 0;">' +
+            "<b>" +
+            buzonEsc(m.asunto || "Mensaje de BVros") +
+            "</b>" +
+            '<div style="opacity:.85; margin-top:3px; white-space:pre-wrap;">' +
+            buzonEsc(String(m.cuerpo || "").slice(0, 600)) +
+            "</div>" +
+            (f ? '<div style="opacity:.45;">' + f + "</div>" : "") +
+            "</div>"
+          );
+        })
+        .join("");
+    }
+
+    async function buzonAbrir(tipo) {
+      const zona = chip.querySelector(
+        '[data-buzon-zona="' + tipo + '"]',
+      );
+
+      if (!zona) return;
+
+      zona.innerHTML =
+        '<div style="font-size:.78rem; opacity:.7;">Cargando…</div>';
+
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "bvlux-soporte",
+          { body: { accion: "mias" } },
+        );
+
+        if (error || !data?.ok) {
+          throw new Error(data?.error || "no se pudo abrir el buzón");
+        }
+
+        if (tipo === "mensajes") {
+          buzonPintaLista(
+            zona,
+            data.mensajes || [],
+            "Aún no tienes mensajes. Las respuestas de soporte y los mensajes personales del dueño llegarán aquí.",
+          );
+        } else {
+          buzonPintaLista(
+            zona,
+            data.anuncios || [],
+            "Aún no hay consultas. Las promos, anuncios y avisos generales llegarán aquí.",
+          );
+        }
+
+        /* El usuario ya revisó: el contador verde desaparece. */
+
+        supabase.functions
+          .invoke("bvlux-soporte", {
+            body: { accion: "marcar_leidos", tipo },
+          })
+          .catch(() => {});
+
+        buzonContadores();
+      } catch (e) {
+        zona.innerHTML =
+          '<div style="font-size:.78rem; color:#ff5a5a;">' +
+          buzonEsc(e?.message || "No se pudo abrir el buzón.") +
+          "</div>";
+      }
+    }
+
+    chip
+      .querySelectorAll('[data-menu="buzon-mensajes"]')
+      .forEach((b) => b.addEventListener("click", () => buzonAbrir("mensajes")));
+
+    chip
+      .querySelectorAll('[data-menu="buzon-consultas"]')
+      .forEach((b) => b.addEventListener("click", () => buzonAbrir("consultas")));
+
+    buzonContadores();
 
     links.appendChild(chip);
   } else {

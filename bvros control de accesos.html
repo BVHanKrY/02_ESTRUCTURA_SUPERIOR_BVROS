@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>BVros · Panel del dueño</title>
-<!-- BVLUX PCD-1 (2C.8) · panel con: versión móvil responsive, DATOS DE LA BASE en vista única, mensajería interna sin SMTP, pestaña CATÁLOGO (publicar pistas directo al catálogo) y SIN botón ENLACE externo. Llamadas blindadas desde 2C.7.1. Requiere bvlux-catalogo + bvlux-pcd.sql. -->
+<!-- BVLUX PCD-2 · panel con: BUZÓN del dueño (respuestas llegan a Mensajes), SUSCRIPCIONES con QUITAR ACCIÓN y ELIMINAR USUARIO, CORREOS con destinatarios visibles y REENVIAR, pestaña CATÁLOGO con PISTA + IMAGEN/VIDEO + DOCUMENTO + PRODUCTO (destino: módulos reales, tienda incluida), sin pestaña CONTENIDO (su función vive dentro de CATÁLOGO). Requiere bvlux-pcd2.sql + re-despliegue de bvlux-catalogo, bvlux-soporte, bvlux-correos, bvlux-panel-control. -->
 <style>
   :root{
     --bg:#0d0f12; --panel:#161a20; --line:#262c35;
@@ -186,7 +186,6 @@
       <button class="tab" data-tab="datos">DATOS DE LA BASE</button>
       <button class="tab" data-tab="soporte">SOPORTE ✉</button>
       <button class="tab" data-tab="correos">CORREOS ✉</button>
-      <button class="tab" data-tab="contenido">CONTENIDO ▲</button>
       <button class="tab" data-tab="catalogo">CATÁLOGO ★</button>
     </div>
 
@@ -299,7 +298,9 @@
         </table>
       </div>
       <div class="nota">DAR DE BAJA = igual que la cancelación del usuario (beneficios hasta la fecha de vencimiento, luego el cron degrada solo).
-      REACTIVAR = solo si sigue vigente. Los códigos de canje se cortan al instante desde la pestaña CÓDIGOS (REVOCAR).</div>
+      REACTIVAR = solo si sigue vigente. QUITAR ACCIÓN = elimina un proceso PENDIENTE/incompleto para que el usuario lo reintente desde cero (no toca su plan).
+      ELIMINAR USUARIO = borra la cuenta COMPLETA del sistema (auth, perfil, suscripciones, compras, mensajes, tickets): queda fuera como espectador. IRREVERSIBLE.
+      Los códigos de canje se cortan al instante desde la pestaña CÓDIGOS (REVOCAR).</div>
     </div>
 
     <!-- DATOS -->
@@ -348,13 +349,31 @@
       esta bandeja muestra los tickets enviados desde la web.</div>
     </div>
 
-    <!-- CORREOS (2C.5) -->
+    <!-- CORREOS (2C.5 + PCD-2) -->
     <div class="card hidden" data-vista="correos">
-      <h1 style="font-size:1rem;">Correos · directo y campañas</h1>
+      <h1 style="font-size:1rem;">Correos · a dónde llega cada mensaje</h1>
       <div class="msg" id="msgCorreos"></div>
 
       <div class="subcard">
-        <h2>Mensajes internos · dentro de BVros (funciona SIEMPRE)</h2>
+        <h2>Destinatarios · correos de TODOS los miembros</h2>
+        <button class="sec" id="btnVerDestinatarios">VER CORREOS DE MIEMBROS</button>
+        <div class="msg" id="msgDestinatarios"></div>
+        <div id="zonaDestinatarios" style="max-height:220px; overflow-y:auto; margin-top:8px; display:none;"></div>
+        <div class="nota">Esta es la sección de destinatarios: mira todos los correos registrados,
+        INCLUYE o EXCLUYE miembros de tus mensajes masivos (marca o desmarca su casilla) y usa
+        el botón «USAR SELECCIÓN» como destinatarios de la campaña o de los mensajes internos.
+        También puedes seguir usando los segmentos (todos/premium/gratuitos) de cada subcard.</div>
+      </div>
+
+      <div class="subcard">
+        <h2>1 · Consultas y anuncios masivos DENTRO de BVros (funciona SIEMPRE)</h2>
+        <div class="nota" style="margin:0 0 6px;">Llegan al BUZÓN > CONSULTAS de cada usuario
+        (promos, anuncios, advertencias) con contador verde hasta que el usuario los revise.</div>
+        <label>Enviar como</label>
+        <select id="intModo">
+          <option value="consulta">CONSULTA masiva (llega a BUZÓN > CONSULTAS de todos)</option>
+          <option value="mensaje">MENSAJE personal (llega a BUZÓN > MENSAJES de cada cuenta)</option>
+        </select>
         <label>Asunto</label>
         <input id="intAsunto" placeholder="Ej: ¡NUEVO TEMA EN EL CATÁLOGO!">
         <label>Mensaje</label>
@@ -364,18 +383,19 @@
           <option value="todos">Todos los miembros registrados</option>
           <option value="premium">Solo Premium (suscripción o canje vigente)</option>
           <option value="gratuitos">Solo Miembros Gratuitos</option>
+          <option value="manual">Los que marqué en DESTINATARIOS (arriba)</option>
         </select>
         <button class="sec" id="btnIntPreparar">PREPARAR DESTINATARIOS</button>
-        <button id="btnIntEnviar" class="hidden">ENVIAR MENSAJES INTERNOS</button>
+        <button id="btnIntEnviar" class="hidden">ENVIAR AL BUZÓN</button>
         <div class="msg" id="msgInterno"></div>
-        <div class="nota">Se guardan DENTRO de BVros: el miembro los lee al instante en
-        «Mis consultas» (pastilla de usuario). No necesita Gmail, ni SMTP,
-        ni contraseñas de aplicación: funciona 100% dentro de Supabase.</div>
+        <div class="nota">Se guarda DENTRO de Supabase: sin Gmail, sin SMTP, sin contraseñas.
+        Funciona 100% dentro de BVros, siempre.</div>
       </div>
 
       <div class="subcard">
-        <h2>Mensaje interno directo a UN miembro</h2>
-        <label>Para (correo del miembro)</label>
+        <h2>2 · Correo interno a UN miembro (BUZÓN > Mensajes)</h2>
+        <label>Para (elige de la lista o escribe el correo)</label>
+        <select id="intDirParaSel"><option value="">— CARGA LA LISTA CON «VER CORREOS DE MIEMBROS» —</option></select>
         <input id="intDirPara" placeholder="usuario@correo.com">
         <label>Asunto</label>
         <input id="intDirAsunto">
@@ -386,7 +406,9 @@
       </div>
 
       <div class="subcard">
-        <h2>Campaña por CORREO FÍSICO · OPCIONAL (necesita contraseña de aplicación)</h2>
+        <h2>3 · Campaña por correo FÍSICO · a Gmail real (PENDIENTE SMTP)</h2>
+        <div class="nota" style="margin:0 0 6px;">NECESITA los secrets BVLUX_GMAIL_USER + BVLUX_GMAIL_APP_PASS.
+        Sin ellos, esta sección queda en espera: úsala cuando actives tu Gmail de envío.</div>
         <label>Asunto</label>
         <input id="masAsunto" placeholder="Ej: ¡PROMO 48 HORAS! Nivel 2 por $1.70 con código BVLUX170">
         <label>Mensaje</label>
@@ -396,6 +418,7 @@
           <option value="todos">Todos los miembros registrados</option>
           <option value="premium">Solo Premium (suscripción o canje vigente)</option>
           <option value="gratuitos">Solo Miembros Gratuitos</option>
+          <option value="manual">Los que marqué en DESTINATARIOS (arriba)</option>
         </select>
         <button class="sec" id="btnPreparar">PREPARAR DESTINATARIOS</button>
         <button id="btnCampania" class="hidden">ENVIAR CAMPAÑA</button>
@@ -406,8 +429,9 @@
       </div>
 
       <div class="subcard">
-        <h2>Correo directo a un usuario</h2>
-        <label>Para (correo)</label>
+        <h2>4 · Correo directo a un usuario · a Gmail real (PENDIENTE SMTP)</h2>
+        <label>Para (elige de la lista o escribe el correo)</label>
+        <select id="dirParaSel"><option value="">— CARGA LA LISTA CON «VER CORREOS DE MIEMBROS» —</option></select>
         <input id="dirPara" placeholder="usuario@correo.com">
         <label>Asunto</label>
         <input id="dirAsunto" placeholder="Ej: Sobre tu cuenta de BVros">
@@ -423,67 +447,21 @@
         <div style="overflow-x:auto;">
           <table>
             <thead><tr>
-              <th>Fecha</th><th>Tipo</th><th>Para</th><th>Asunto</th><th>Estado</th>
+              <th>Fecha</th><th>Tipo</th><th>Para</th><th>Asunto</th><th>Estado</th><th>Acciones</th>
             </tr></thead>
             <tbody id="tbodyCorreos"></tbody>
           </table>
         </div>
         <div class="msg" id="msgHistorial"></div>
+        <div class="nota">Cuando el mensaje rojo desaparece (SMTP activo), el historial se pinta
+        con REENVIAR y ENVIAR OTRO: puedes hacer seguimiento de cada envío. Los INTERNO se
+        reenvían al buzón del miembro sin necesidad de SMTP.</div>
       </div>
     </div>
 
-    <!-- CONTENIDO (2C.6) -->
-    <div class="card hidden" data-vista="contenido">
-      <h1 style="font-size:1rem;">Contenido · ebooks, imágenes, videos, música, anuncios</h1>
-      <div class="msg" id="msgContenido"></div>
-
-      <div class="subcard">
-        <h2>Subir archivo (máximo 25 MB)</h2>
-        <label>Tipo de contenido</label>
-        <select id="contTipo">
-          <option value="ebook">Ebook</option>
-          <option value="imagen">Imagen</option>
-          <option value="video">Video</option>
-          <option value="musica">Música</option>
-          <option value="anuncio">Anuncio (banner)</option>
-          <option value="otro">Otro</option>
-        </select>
-        <label>Archivo</label>
-        <input type="file" id="contArchivo">
-        <label>Clasificación / destino</label>
-        <select id="contDestino">
-          <option value="general">General</option>
-          <option value="escuela">Escuela</option>
-          <option value="distribucion">Distribución</option>
-          <option value="catalogo">Catálogo</option>
-          <option value="portafolio">Portafolio de artista</option>
-        </select>
-        <label>Notas (opcional)</label>
-        <input id="contNotas" placeholder="Ej: ebook promo nivel 2 · tapa final">
-        <button id="btnSubirContenido">SUBIR CONTENIDO</button>
-      </div>
-
-      <div class="subcard">
-        <h2>Archivos guardados</h2>
-        <button class="sec" id="btnListarContenido">ACTUALIZAR LISTA</button>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead><tr>
-              <th>Fecha</th><th>Nombre</th><th>Tipo</th><th>Tamaño</th>
-              <th>Notas</th><th>Acciones</th>
-            </tr></thead>
-            <tbody id="tbodyContenido"></tbody>
-          </table>
-        </div>
-        <div class="nota">BORRAR elimina el archivo y su registro para siempre. El bucket es PRIVADO.
-        En PCD-1 el botón ENLACE se quitó: tus archivos ya NO generan URLs descargables.
-        La música nueva súbela en la pestaña CATÁLOGO (va directa al catálogo de tu web).</div>
-      </div>
-    </div>
-
-    <!-- CATÁLOGO (PCD-1) -->
+    <!-- CATÁLOGO (PCD-1 + PCD-2) -->
     <div class="card hidden" data-vista="catalogo">
-      <h1 style="font-size:1rem;">Catálogo · publicar pistas directo a tu web</h1>
+      <h1 style="font-size:1rem;">Catálogo · publicar directo a tu web (música, imagen/video, documento, producto)</h1>
       <div class="msg" id="msgCatalogo"></div>
       <details style="margin-top:10px;">
         <summary style="cursor:pointer; font-size:.75rem; color:var(--mut);">DIAGNÓSTICO (esquema detectado y bucket del catálogo)</summary>
@@ -525,12 +503,14 @@
             <input type="number" id="catPreview" value="15" min="0" max="600">
           </div>
           <div>
-            <label>Destino / clasificación</label>
+            <label>Destino / módulo de tu web</label>
             <select id="catDestino">
-              <option value="catalogo">Catálogo</option>
+              <option value="stream">Música en Línea (stream)</option>
+              <option value="portafolio">Portafolio</option>
+              <option value="distribution">Distribución (distribution)</option>
+              <option value="artists">Artista (artists)</option>
+              <option value="tienda">Tienda (store)</option>
               <option value="escuela">Escuela</option>
-              <option value="distribucion">Distribución</option>
-              <option value="portafolio">Portafolio de artista</option>
             </select>
           </div>
           <div>
@@ -566,7 +546,334 @@
         </div>
         <div class="nota">La pista se guarda en las MISMAS tablas y el MISMO bucket privado que usa tu catálogo:
         aparece en tu web como cualquier otra. SIN URL externa y SIN descarga: se escucha con el
-        mecanismo de siempre de tu página (get-audio-url).</div>
+        mecanismo de siempre de tu página (get-audio-url). ESTRUCTURA DEFINIDA (PCD-2): la música
+        nueva SIEMPRE sube a bvros-stream-private / carpeta catalogo/. Tus másteres originales siguen
+        en bvros-masters-private (solo para ti) y Avatars para fotos de perfil: cero confusión.</div>
+      </div>
+
+      <!-- PCD-2 · SUBIR IMAGEN Y VIDEO -->
+      <div class="subcard">
+        <h2>Subir imagen y video al catálogo</h2>
+        <div class="grid">
+          <div>
+            <label>Título *</label>
+            <input id="ivTitulo" placeholder="Ej: Sesión fotográfica Raíz de mi ser">
+          </div>
+          <div>
+            <label>Autor</label>
+            <input id="ivAutor" placeholder="Ej: BVHanKrY">
+          </div>
+          <div>
+            <label>Contenido</label>
+            <input id="ivContenido" placeholder="Ej: photoshoot · making of · videoclip">
+          </div>
+          <div>
+            <label>Fecha de creación</label>
+            <input type="date" id="ivFecha">
+          </div>
+          <div>
+            <label>Nivel de visualización</label>
+            <select id="ivNivel">
+              <option value="gratuito">Gratuito (todos)</option>
+              <option value="experto">Experto</option>
+              <option value="avanzado">Avanzado</option>
+              <option value="promo">Promoción especial</option>
+            </select>
+          </div>
+          <div>
+            <label>Precio de la imagen o video suelto (USD, 0 = con el nivel)</label>
+            <input type="number" id="ivPrecio" value="0" min="0" step="0.01">
+          </div>
+          <div>
+            <label>Protección para quien no tiene nivel</label>
+            <select id="ivPreviewModo">
+              <option value="previsualizacion">Previsualización (ve la versión corta)</option>
+              <option value="pixeleda">Pixelada (imagen borrosa / bloqueada)</option>
+            </select>
+          </div>
+          <div>
+            <label>Destino / módulo de tu web</label>
+            <select id="ivDestino">
+              <option value="portafolio">Portafolio</option>
+              <option value="escuela">Escuela</option>
+              <option value="artists">Artista (artists)</option>
+              <option value="tienda">Tienda (store)</option>
+              <option value="distribution">Distribución (distribution)</option>
+            </select>
+          </div>
+          <div>
+            <label>Imagen o Video (jpg/png/webp/gif · mp4/webm/mov · máx 25 MB) *</label>
+            <input type="file" id="ivArchivo">
+          </div>
+          <div>
+            <label>Previsualización (imagen o video corto · máx 10 MB)</label>
+            <input type="file" id="ivPreview">
+            <div class="nota" style="margin-top:4px;">Especificaciones: imagen hasta 4 MB · video corto
+            (30–60 s) hasta 10 MB. Es lo que ve el usuario sin nivel; el archivo completo jamás sale
+            del bucket privado.</div>
+          </div>
+          <div>
+            <label>Descripción (opcional)</label>
+            <input id="ivDesc" placeholder="Ej: detrás de cámaras del EP">
+          </div>
+        </div>
+        <button id="btnPublicarIV">PUBLICAR EN EL CATÁLOGO</button>
+      </div>
+
+      <!-- PCD-2 · SUBIR DOCUMENTO -->
+      <div class="subcard">
+        <h2>Subir documento al catálogo</h2>
+        <div class="grid">
+          <div>
+            <label>Título *</label>
+            <input id="dcTitulo" placeholder="Ej: Ebook · Los modos musicales">
+          </div>
+          <div>
+            <label>Autor</label>
+            <input id="dcAutor" placeholder="Ej: Henry Villavicencio B.">
+          </div>
+          <div>
+            <label>Contenido</label>
+            <input id="dcContenido" placeholder="Ej: teoría · partituras · guía de producción">
+          </div>
+          <div>
+            <label>Fecha de creación</label>
+            <input type="date" id="dcFecha">
+          </div>
+          <div>
+            <label>Nivel de visualización</label>
+            <select id="dcNivel">
+              <option value="gratuito">Gratuito (todos)</option>
+              <option value="experto">Experto</option>
+              <option value="avanzado">Avanzado</option>
+              <option value="promo">Promoción especial</option>
+            </select>
+          </div>
+          <div>
+            <label>Precio del documento suelto (USD, 0 = con el nivel)</label>
+            <input type="number" id="dcPrecio" value="0" min="0" step="0.01">
+          </div>
+          <div>
+            <label>Protección para quien no tiene nivel</label>
+            <select id="dcPreviewModo">
+              <option value="previsualizacion">Previsualización (3–4 primeras páginas en imagen)</option>
+              <option value="pixeleda">Pixelada / bloqueado (sin vista previa)</option>
+            </select>
+          </div>
+          <div>
+            <label>Destino / módulo de tu web</label>
+            <select id="dcDestino">
+              <option value="escuela">Escuela</option>
+              <option value="portafolio">Portafolio</option>
+              <option value="artists">Artista (artists)</option>
+              <option value="tienda">Tienda (store)</option>
+              <option value="distribution">Distribución (distribution)</option>
+            </select>
+          </div>
+          <div>
+            <label>Documento (pdf/epub/doc/docx/ppt/pptx/odt/ods/xls/xlsx/mus/mscz/txt/md/zip · máx 25 MB) *</label>
+            <input type="file" id="dcArchivo">
+          </div>
+          <div>
+            <label>Previsualización (imagen o video corto de las primeras páginas · máx 10 MB)</label>
+            <input type="file" id="dcPreview">
+          </div>
+          <div>
+            <label>Descripción (opcional)</label>
+            <input id="dcDesc" placeholder="Ej: 40 páginas · nivel inicial">
+          </div>
+        </div>
+        <button id="btnPublicarDC">PUBLICAR EN EL CATÁLOGO</button>
+      </div>
+
+      <!-- PCD-2 · SUBIR PRODUCTO -->
+      <div class="subcard">
+        <h2>Subir producto al catálogo (tienda)</h2>
+        <div class="grid">
+          <div>
+            <label>Título *</label>
+            <input id="prTitulo" placeholder="Ej: Colección NFC BVros">
+          </div>
+          <div>
+            <label>Autor o creador</label>
+            <input id="prAutor" placeholder="Ej: BVros Music">
+          </div>
+          <div>
+            <label>Clase de producto</label>
+            <select id="prClase">
+              <optgroup label="Accesorios y Joyería">
+                <option>Collar (dije metálico logotipo calado)</option>
+                <option>Gargantilla de cuero con remaches</option>
+                <option>Cadena con placa grabada estilo militar</option>
+                <option>Pulsera de silicona con frases grabadas</option>
+                <option>Brazalete de hilo trenzado artesanal</option>
+                <option>Pulsera de cuentas con letras</option>
+                <option>Llavero acrílico transparente a doble cara</option>
+                <option>Llavero de goma 3D (PVC flexible)</option>
+                <option>Llavero de hotel vintage con tipografía</option>
+              </optgroup>
+              <optgroup label="Ropa y Textil">
+                <option>Camiseta oversize con estampado grande</option>
+                <option>Playera minimalista bordada</option>
+                <option>Diseño de edición limitada anime/urbano</option>
+                <option>Gorra trucker con parche frontal</option>
+                <option>Gorro de lana (beanie) bordado</option>
+                <option>Calcetines altos con patrón del logo</option>
+              </optgroup>
+              <optgroup label="Contenedores y Vasos">
+                <option>Vaso de vidrio tipo lata</option>
+                <option>Vaso térmico de acero inoxidable</option>
+                <option>Vaso de plástico neón reutilizable</option>
+                <option>Taza que cambia de color con el calor</option>
+                <option>Taza de peltre estilo campista</option>
+              </optgroup>
+              <optgroup label="Papelería y Decoración">
+                <option>Pack de stickers holográficos</option>
+                <option>Pegatinas de vinilo troqueladas</option>
+                <option>Lámina de arte en papel texturizado</option>
+                <option>Postal coleccionable</option>
+                <option>Calendario mensual ilustrado</option>
+                <option>Pin metálico esmaltado</option>
+              </optgroup>
+              <optgroup label="Tecnología e Innovación (NFC)">
+                <option>Tarjeta inteligente NFC con enlace secreto</option>
+                <option>Llavero NFC (playlist de Spotify)</option>
+                <option>Popsocket con chip NFC</option>
+                <option>Soporte de celular con NFC</option>
+              </optgroup>
+              <optgroup label="Comida y Experiencias">
+                <option>Galletas artesanales decoradas</option>
+                <option>Tableta de chocolate con envoltorio propio</option>
+                <option>Bote de palomitas de sabores especiales</option>
+                <option>Cold brew con etiqueta personalizada</option>
+                <option>Caja de tés herbales diseñada</option>
+              </optgroup>
+              <optgroup label="Bolsos y Estilo de Vida">
+                <option>Tote bag de algodón grueso</option>
+                <option>Cangurera / riñonera de nailon</option>
+                <option>Mochila de cuerdas ligera</option>
+                <option>Parche termoadhesivo bordado</option>
+              </optgroup>
+              <optgroup label="Decoración y Hogar">
+                <option>Cojín decorativo con estampado propio</option>
+                <option>Vela aromática en frasco de vidrio</option>
+                <option>Póster de tela / banderín</option>
+                <option>Imán de nevera flexible o de resina</option>
+              </optgroup>
+              <optgroup label="Escritorio y Gaming">
+                <option>Mousepad XXL</option>
+                <option>Cuaderno de notas pasta dura</option>
+                <option>Cinta washi decorativa</option>
+                <option>Funda acolchada para laptop</option>
+              </optgroup>
+              <optgroup label="Cuidado Personal y Viaje">
+                <option>Antifaz de satén</option>
+                <option>Toalla de microfibra</option>
+                <option>Neceser de viaje</option>
+                <option>Funda de pasaporte</option>
+              </optgroup>
+              <optgroup label="Eventos y Conciertos">
+                <option>Correa para gafas de neopreno</option>
+                <option>Tapones para oídos de alta fidelidad</option>
+                <option>Capa impermeable compacta</option>
+                <option>Abanico de tela y madera</option>
+              </optgroup>
+              <optgroup label="Coleccionables y Gaming">
+                <option>Figura de resina pintada a mano</option>
+                <option>Skin de vinilo para consola</option>
+                <option>Set de dados personalizados</option>
+                <option>Bolsa para dados de cuero/terciopelo</option>
+                <option>Moneda conmemorativa de metal</option>
+                <option>Cartas coleccionables con holograma</option>
+              </optgroup>
+              <optgroup label="Noche de Películas y Streaming">
+                <option>Manta con mangas térmica</option>
+                <option>Palomitero de silicona</option>
+                <option>Pantuflas acolchadas 3D</option>
+                <option>Tarjetas de desafíos / trivia</option>
+              </optgroup>
+              <optgroup label="Formatos Físicos y Nostalgia">
+                <option>Disco de vinilo edición especial</option>
+                <option>Casete de audio neón</option>
+                <option>Libro de arte (artbook)</option>
+                <option>Peluche personalizable (plushie)</option>
+                <option>Funda de teléfono con relieve 3D</option>
+                <option>Termo con pantalla de temperatura</option>
+                <option>Caja musical de manivela</option>
+                <option>Sello de lacre con el logotipo</option>
+                <option>Litografía seriada y firmada</option>
+                <option>Suéter navideño temático</option>
+              </optgroup>
+              <optgroup label="Otros">
+                <option>Tira de luces LED con diseño propio</option>
+                <option>Monopatín decorado con arte gráfico</option>
+                <option>Reloj de pared temático</option>
+                <option>Kit de pintura por números</option>
+                <option>Tarjeta rasca y gana de la comunidad</option>
+                <option>Tablas de picar grabadas con láser</option>
+              </optgroup>
+            </select>
+          </div>
+          <div>
+            <label>Fecha de publicación</label>
+            <input type="date" id="prFecha">
+          </div>
+          <div>
+            <label>Nivel de visualización</label>
+            <select id="prNivel">
+              <option value="gratuito">Gratuito (todos)</option>
+              <option value="experto">Experto</option>
+              <option value="avanzado">Avanzado</option>
+              <option value="promo">Promoción especial</option>
+            </select>
+          </div>
+          <div>
+            <label>Precio del producto suelto (USD) *</label>
+            <input type="number" id="prPrecio" value="0" min="0" step="0.01">
+          </div>
+          <div>
+            <label>Destino</label>
+            <select id="prDestino">
+              <option value="tienda">Tienda (store)</option>
+            </select>
+          </div>
+          <div>
+            <label>Imagen para producto (jpg/png/webp · máx 25 MB)</label>
+            <input type="file" id="prArchivo">
+          </div>
+          <div>
+            <label>Previsualización (imagen o video corto · máx 10 MB)</label>
+            <input type="file" id="prPreview">
+            <div class="nota" style="margin-top:4px;">En la TIENDA se superpone al pasar el ratón
+            por encima de la tarjeta (efecto hover).</div>
+          </div>
+          <div>
+            <label>Descripción (opcional)</label>
+            <input id="prDesc" placeholder="Ej: envíos a todo Ecuador · edición limitada">
+          </div>
+        </div>
+        <button id="btnPublicarPR">PUBLICAR EN EL CATÁLOGO</button>
+      </div>
+
+      <!-- PCD-2 · ITEMS PUBLICADOS -->
+      <div class="subcard">
+        <h2>Items publicados (imagen/video · documento · producto)</h2>
+        <button class="sec" id="btnListarItems">ACTUALIZAR LISTA</button>
+        <div class="msg" id="msgItems"></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Tipo</th><th>Título</th><th>Autor</th>
+              <th>Nivel</th><th>Precio</th><th>Protección</th><th>Destino</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="tbodyItems"></tbody>
+          </table>
+        </div>
+        <div class="nota">Cada item se enruta SOLO al módulo elegido (Portafolio, Escuela,
+        Artista, Tienda…). El archivo principal vive en bvlux-contenido (carpetas imagenes/,
+        videos/, documentos/, productos/ + previews/): el usuario sin nivel solo ve la
+        previsualización o la versión pixelada; el archivo completo sale firmado SOLO cuando
+        su nivel lo permite y por tiempo limitado (10 minutos para descargar).</div>
       </div>
     </div>
 
@@ -586,7 +893,7 @@ const supabase = createClient(
 
 let claveMaestra = '';
 
-console.log('BVLUX panel · versión de página PCD-1 (2C.8)');
+console.log('BVLUX panel · versión de página PCD-2');
 
 const $ = (id) => document.getElementById(id);
 
@@ -660,8 +967,7 @@ document.querySelectorAll('.tab').forEach((t) => {
     if (t.dataset.tab === 'subs') listarSubs();
     if (t.dataset.tab === 'datos') listarTablas();
     if (t.dataset.tab === 'soporte') listarSoporte();
-    if (t.dataset.tab === 'correos') verHistorial();
-    if (t.dataset.tab === 'contenido') listarContenido();
+    if (t.dataset.tab === 'correos') { verHistorial(); }
     if (t.dataset.tab === 'catalogo') arranqueCatalogo();
   });
 });
@@ -1102,6 +1408,23 @@ async function listarSubs() {
       b.textContent = 'REACTIVAR';
       b.addEventListener('click', () => accionSub('reactivar', s, b));
       td.appendChild(b);
+    } else if (s.status !== 'cancelled' && s.status !== 'expired') {
+      /* PCD-2 · PENDING y otros estados no concluidos: QUITAR ACCIÓN */
+      const bq = document.createElement('button');
+      bq.className = 'mini env';
+      bq.textContent = 'QUITAR ACCIÓN';
+      bq.addEventListener('click', () => quitarAccion(s, bq));
+      td.appendChild(bq);
+    }
+
+    /* PCD-2 · ELIMINAR USUARIO (cuenta completa, irreversible) */
+    if (s.user_id && s.email) {
+      const be = document.createElement('button');
+      be.className = 'mini revo';
+      be.style.marginLeft = '6px';
+      be.textContent = 'ELIMINAR USUARIO';
+      be.addEventListener('click', () => eliminarUsuario(s, be));
+      td.appendChild(be);
     }
 
     $('tbodySubs').appendChild(tr);
@@ -1123,6 +1446,61 @@ async function accionSub(accion, s, btn) {
 
   if (!res.ok) alert(res.error || 'No se pudo completar.');
   else if (res.aviso) alert(res.aviso);
+
+  listarSubs();
+}
+
+/* PCD-2 · QUITAR ACCIÓN: elimina un proceso PENDIENTE
+   (no toca el plan ni el estado del usuario: limpia el
+   pendiente para que pueda reintentar desde cero). */
+
+async function quitarAccion(s, btn) {
+  if (!confirm('¿QUITAR ACCIÓN del proceso ' + (s.status || '').toUpperCase() + ' de ' + (s.email || s.user_id) + '?\n\nEl registro del proceso se elimina y el usuario puede reintentar. NO cambia su estado actual.')) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'quitar_accion', clave: claveMaestra, id: s.id }, 'bvlux-panel-control');
+
+  if (!res.ok) alert(res.error || 'No se pudo quitar.');
+  else alert(res.aviso || 'Proceso eliminado.');
+
+  listarSubs();
+}
+
+/* PCD-2 · ELIMINAR USUARIO: borra la cuenta COMPLETA
+   (auth + perfil + suscripciones + compras + mensajes +
+   tickets). Doble confirmación. IRREVERSIBLE. */
+
+async function eliminarUsuario(s, btn) {
+  const mail = s.email || '';
+
+  if (!confirm('¿ELIMINAR al usuario ' + mail + ' del SISTEMA COMPLETO?\n\nSe borran: cuenta, correo, nombre, beneficios y actividad. Queda fuera como espectador. IRREVERSIBLE.')) return;
+
+  if (!confirm('ÚLTIMA CONFIRMACIÓN:\n¿Borrar DEFINITIVAMENTE la cuenta de ' + mail + '?\n\nEscribe OK en la siguiente caja solo si estás seguro.')) return;
+
+  const frase = prompt('Escribe OK para confirmar la eliminación de ' + mail + ':');
+
+  if (!frase || frase.trim().toUpperCase() !== 'OK') {
+    alert('Cancelado: no escribiste OK.');
+    btn.disabled = false;
+    return;
+  }
+
+  btn.disabled = true;
+
+  const res = await llamar({
+    accion: 'eliminar_usuario',
+    clave: claveMaestra,
+    user_id: s.user_id,
+    email: mail,
+  }, 'bvlux-panel-control');
+
+  if (!res.ok) {
+    alert(res.error || 'No se pudo eliminar.');
+    btn.disabled = false;
+  } else {
+    alert(res.aviso || 'Usuario eliminado.');
+  }
 
   listarSubs();
 }
@@ -1348,6 +1726,80 @@ async function cerrarTicket(id, btn) {
 
 let destinatarios = [];
 
+/* PCD-2 · SELECCIÓN MANUAL de destinatarios (subcard
+   DESTINATARIOS): ver TODOS los correos, incluir/excluir
+   con casillas y usar la selección en campaña o internos. */
+
+let correosMiembros = [];
+
+$('btnVerDestinatarios').addEventListener('click', async () => {
+  $('msgDestinatarios').textContent = 'Cargando cuentas…';
+  $('msgDestinatarios').className = 'msg';
+
+  const res = await llamar({ accion: 'cuentas', clave: claveMaestra }, 'bvlux-panel-control');
+
+  if (!res.ok) return falla('msgDestinatarios', res.error);
+
+  correosMiembros = res.cuentas
+    .filter((c) => c.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email))
+    .map((c) => ({ email: c.email.toLowerCase(), plan: c.plan || 'free', nombre: c.username || '' }));
+
+  if (!correosMiembros.length) {
+    $('msgDestinatarios').textContent = 'No hay correos de miembros todavía.';
+    $('msgDestinatarios').className = 'msg err';
+    return;
+  }
+
+  const zona = $('zonaDestinatarios');
+
+  zona.style.display = 'block';
+
+  zona.innerHTML = correosMiembros.map((m, i) =>
+    '<label style="display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0; font-size:.8rem; color:var(--txt); margin:4px 0;">' +
+    '<input type="checkbox" checked data-mail="' + esc(m.email) + '" style="width:auto;">' +
+    '<span>' + esc(m.email) + (m.nombre ? ' · ' + esc(m.nombre) : '') +
+    ' <small style="color:var(--mut)">' + (m.plan === 'premium' ? 'PREMIUM' : 'gratuito') + '</small></span></label>'
+  ).join('') +
+  '<button class="sec" id="btnUsarSeleccion" style="margin-top:10px;">USAR SELECCIÓN (' + correosMiembros.length + ')</button>';
+
+  $('btnUsarSeleccion').addEventListener('click', () => {
+    const marcados = [...zona.querySelectorAll('input[type=checkbox][data-mail]')]
+      .filter((c) => c.checked)
+      .map((c) => c.dataset.mail);
+
+    if (!marcados.length) {
+      $('msgDestinatarios').textContent = 'No marcaste ningún correo.';
+      $('msgDestinatarios').className = 'msg err';
+      return;
+    }
+
+    destinatarios = marcados;
+
+    $('msgDestinatarios').textContent = marcados.length + ' miembro(s) seleccionados: ya son los destinatarios de la campaña (3) y de los internos (1) con el segmento «manual».';
+    $('msgDestinatarios').className = 'msg ok';
+  });
+
+  /* Rellena los desplegables «Para» de los envíos directos */
+
+  const opciones = '<option value="">— elige un miembro de la lista —</option>' +
+    correosMiembros.map((m) => '<option value="' + esc(m.email) + '">' + esc(m.email) + '</option>').join('');
+
+  $('intDirParaSel').innerHTML = opciones;
+
+  $('dirParaSel').innerHTML = opciones;
+
+  $('msgDestinatarios').textContent = correosMiembros.length + ' miembro(s). Marca o desmarca para incluir/excluir, y llena los desplegables «Para».';
+  $('msgDestinatarios').className = 'msg ok';
+});
+
+$('intDirParaSel').addEventListener('change', () => {
+  if ($('intDirParaSel').value) $('intDirPara').value = $('intDirParaSel').value;
+});
+
+$('dirParaSel').addEventListener('change', () => {
+  if ($('dirParaSel').value) $('dirPara').value = $('dirParaSel').value;
+});
+
 $('btnPreparar').addEventListener('click', prepararDestinatarios);
 
 $('btnCampania').addEventListener('click', enviarCampania);
@@ -1372,6 +1824,7 @@ async function prepararDestinatarios() {
 
   if (segmento === 'premium') lista = lista.filter((c) => c.plan === 'premium');
   if (segmento === 'gratuitos') lista = lista.filter((c) => c.plan !== 'premium');
+  if (segmento === 'manual') lista = destinatarios.map((e) => ({ email: e }));
 
   destinatarios = [...new Set(lista.map((c) => c.email.toLowerCase()))];
 
@@ -1500,26 +1953,68 @@ async function verHistorial() {
 
   if (!res.ok) return falla('msgHistorial', res.error);
 
+  /* PCD-2 · Verde cuando el SMTP ya está activo; rojo
+     mientras esté sin configurar. El historial se muestra
+     SIEMPRE (aún sin envíos físicos: los internos cuentan). */
+
   $('msgHistorial').textContent =
-    res.correos.length + ' envío(s) registrados.' +
-    (res.smtp ? '' : ' AVISO: SMTP sin configurar (añade los secrets de Gmail).');
+    res.correos.length + ' envío(s) registrados · ' +
+    (res.smtp
+      ? 'Gmail ACTIVO: tus correos físicos salen correctamente.'
+      : 'SMTP sin configurar: los envíos FÍSICOS esperan tus secrets de Gmail (los INTERNO funcionan igual).');
 
-  $('msgHistorial').className = 'msg' + (res.smtp ? '' : ' err');
+  $('msgHistorial').className = 'msg' + (res.smtp ? ' ok' : ' err');
 
-  $('tbodyCorreos').innerHTML = res.correos.map((c) =>
-    '<tr>' +
-    '<td>' + fecha(c.created_at) + '</td>' +
-    '<td>' + (c.tipo === 'masivo' ? 'MASIVO' : c.tipo === 'interno' ? 'INTERNO' : 'DIRECTO') + '</td>' +
-    '<td>' + esc(c.destinatario || '—') + '</td>' +
-    '<td>' + esc(String(c.asunto || '').slice(0, 60)) + '</td>' +
-    '<td><span class="st ' + (c.estado === 'enviado' ? 'act' : 'can') + '">' +
-      (c.estado || '—').toUpperCase() + '</span>' +
-    (c.error ? '<br><small style="color:var(--mut)">' + esc(String(c.error).slice(0, 80)) + '</small>' : '') +
-    '</td>' +
-    '</tr>'
-  ).join('');
+  $('tbodyCorreos').innerHTML = '';
+
+  res.correos.forEach((c) => {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML =
+      '<td>' + fecha(c.created_at) + '</td>' +
+      '<td>' + (c.tipo === 'masivo' ? 'MASIVO' : c.tipo === 'interno' ? 'INTERNO' : 'DIRECTO') + '</td>' +
+      '<td>' + esc(c.destinatario || '—') + '</td>' +
+      '<td>' + esc(String(c.asunto || '').slice(0, 60)) + '</td>' +
+      '<td><span class="st ' + (c.estado === 'enviado' ? 'act' : c.estado === 'interno' ? 'oto' : 'can') + '">' +
+        (c.estado || '—').toUpperCase() + '</span>' +
+      (c.error ? '<br><small style="color:var(--mut)">' + esc(String(c.error).slice(0, 80)) + '</small>' : '') +
+      '</td>' +
+      '<td></td>';
+
+    const td = tr.lastElementChild;
+
+    const bRe = document.createElement('button');
+    bRe.className = 'mini env';
+    bRe.textContent = 'REENVIAR';
+    bRe.addEventListener('click', () => reenviarCorreo(c, bRe));
+    td.appendChild(bRe);
+
+    $('tbodyCorreos').appendChild(tr);
+  });
 
   etiquetaMoviles('tbodyCorreos');
+}
+
+/* PCD-2 · REENVIAR un envío del historial (seguimiento).
+   INTERNO → vuelve al buzón del miembro (sin SMTP).
+   DIRECTO/MASIVO → vuelve a salir por tu Gmail. */
+
+async function reenviarCorreo(c, btn) {
+  if (!confirm('¿REENVIAR "' + (c.asunto || '(sin asunto)') + '" a ' + (c.destinatario || '—') + '?')) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'reenviar', clave: claveMaestra, id: c.id }, 'bvlux-correos');
+
+  if (!res.ok) {
+    alert(res.error || 'No se pudo reenviar.');
+    btn.disabled = false;
+    return;
+  }
+
+  alert(res.aviso || 'Reenviado.');
+
+  verHistorial();
 }
 
 /* =========================================================
@@ -1542,10 +2037,17 @@ $('btnIntPreparar').addEventListener('click', async () => {
 
   const segmento = $('intSegmento').value;
 
+  if (segmento === 'manual' && !destinatarios.length) {
+    $('msgInterno').textContent = 'Primero marca destinatarios en la subcard DESTINATARIOS (arriba) y pulsa USAR SELECCIÓN.';
+    $('msgInterno').className = 'msg err';
+    return;
+  }
+
   let lista = res.cuentas.filter((c) => c.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
 
   if (segmento === 'premium') lista = lista.filter((c) => c.plan === 'premium');
   if (segmento === 'gratuitos') lista = lista.filter((c) => c.plan !== 'premium');
+  if (segmento === 'manual') lista = destinatarios.map((e) => ({ email: e }));
 
   destinatariosInternos = [...new Set(lista.map((c) => c.email.toLowerCase()))];
 
@@ -1577,11 +2079,11 @@ $('btnIntEnviar').addEventListener('click', async () => {
     return;
   }
 
-  if (!confirm('¿Guardar el mensaje interno para ' + destinatariosInternos.length + ' miembro(s)? Lo leen en «Mis consultas».')) return;
+  if (!confirm('¿Guardar para ' + destinatariosInternos.length + ' miembro(s) como ' + ($('intModo').value === 'consulta' ? 'CONSULTA masiva (BUZÓN > Consultas)' : 'MENSAJE personal (BUZÓN > Mensajes)') + '?')) return;
 
   $('btnIntEnviar').disabled = true;
 
-  $('msgInterno').textContent = 'Guardando mensajes internos…';
+  $('msgInterno').textContent = 'Guardando…';
   $('msgInterno').className = 'msg';
 
   const res = await llamar({
@@ -1590,7 +2092,8 @@ $('btnIntEnviar').addEventListener('click', async () => {
     asunto,
     cuerpo,
     correos: destinatariosInternos,
-    campania: 'int-' + Date.now(),
+    modo: $('intModo').value,
+    campania: ($('intModo').value === 'consulta' ? 'cons-' : 'int-') + Date.now(),
   }, 'bvlux-correos');
 
   $('btnIntEnviar').disabled = false;
@@ -1640,122 +2143,11 @@ $('btnIntDirecto').addEventListener('click', async () => {
 });
 
 /* =========================================================
-   CONTENIDO (función bvlux-contenido)
-   ========================================================= */
-
-$('btnSubirContenido').addEventListener('click', subirContenido);
-
-$('btnListarContenido').addEventListener('click', listarContenido);
-
-async function subirContenido() {
-  const archivo = $('contArchivo').files[0];
-
-  if (!archivo) {
-    $('msgContenido').textContent = 'Elige un archivo primero.';
-    $('msgContenido').className = 'msg err';
-    return;
-  }
-
-  if (archivo.size > 25 * 1024 * 1024) {
-    $('msgContenido').textContent =
-      'El archivo supera 25 MB (límite del servidor). Súbelo a mano en Supabase → Storage → bvlux-contenido.';
-    $('msgContenido').className = 'msg err';
-    return;
-  }
-
-  $('btnSubirContenido').disabled = true;
-
-  $('msgContenido').textContent = 'Subiendo ' + archivo.name + '…';
-  $('msgContenido').className = 'msg';
-
-  const fd = new FormData();
-
-  const destinoTxt = $('contDestino') ? $('contDestino').value : 'general';
-
-  const notasTxt = '[' + destinoTxt + ']' +
-    ($('contNotas').value.trim() ? ' ' + $('contNotas').value.trim() : '');
-
-  fd.append('accion', 'subir');
-  fd.append('clave', claveMaestra);
-  fd.append('tipo', $('contTipo').value);
-  fd.append('notas', notasTxt);
-  fd.append('archivo', archivo);
-
-  const res = await llamarForm(fd, 'bvlux-contenido');
-
-  $('btnSubirContenido').disabled = false;
-
-  if (!res.ok) return falla('msgContenido', res.error);
-
-  $('msgContenido').textContent = 'Subido: ' + res.nombre;
-  $('msgContenido').className = 'msg ok';
-
-  $('contArchivo').value = '';
-  $('contNotas').value = '';
-
-  listarContenido();
-}
-
-async function listarContenido() {
-  $('msgContenido').textContent = 'Cargando archivos…';
-  $('msgContenido').className = 'msg';
-
-  const res = await llamar({ accion: 'listar', clave: claveMaestra }, 'bvlux-contenido');
-
-  if (!res.ok) return falla('msgContenido', res.error);
-
-  $('msgContenido').textContent = res.items.length + ' archivo(s).';
-  $('msgContenido').className = 'msg';
-
-  $('tbodyContenido').innerHTML = '';
-
-  res.items.forEach((it) => {
-    const tr = document.createElement('tr');
-
-    tr.innerHTML =
-      '<td>' + fecha(it.created_at) + '</td>' +
-      '<td>' + esc(it.nombre || '—') + '</td>' +
-      '<td>' + esc(it.tipo || '—') + '</td>' +
-      '<td>' + kb(it.tamano) + '</td>' +
-      '<td>' + esc(it.notas || '—') + '</td>' +
-      '<td></td>';
-
-    const td = tr.lastElementChild;
-
-    const bDel = document.createElement('button');
-    bDel.className = 'mini baja';
-    bDel.style.marginLeft = '6px';
-    bDel.textContent = 'BORRAR';
-    bDel.addEventListener('click', () => borrarContenido(it, bDel));
-    td.appendChild(bDel);
-
-    $('tbodyContenido').appendChild(tr);
-  });
-
-  etiquetaMoviles('tbodyContenido');
-}
-
-async function borrarContenido(it, btn) {
-  if (!confirm('¿BORRAR "' + (it.nombre || it.ruta) + '" para siempre? No se puede recuperar.')) return;
-
-  btn.disabled = true;
-
-  const res = await llamar({ accion: 'borrar', clave: claveMaestra, id: it.id }, 'bvlux-contenido');
-
-  if (!res.ok) {
-    alert(res.error || 'No se pudo borrar.');
-    btn.disabled = false;
-    return;
-  }
-
-  listarContenido();
-}
-
-/* =========================================================
-   CATÁLOGO (PCD-1 · función bvlux-catalogo)
-   Publica pistas directo en las tablas de tu catálogo
-   (releases + track_assets) y en su bucket privado. Sin
-   URLs externas: se escucha como siempre en tu web.
+   CATÁLOGO (PCD-1 + PCD-2 · función bvlux-catalogo)
+   Publica pistas en releases+track_assets e IMAGEN/VIDEO,
+   DOCUMENTO y PRODUCTO en bvlux_catalogo_items. Todo en
+   buckets privados con URLs firmadas por tiempo limitado.
+   La pestaña CONTENIDO se fusionó aquí en PCD-2.
    ========================================================= */
 
 let diagHecho = false;
@@ -1770,6 +2162,8 @@ async function arranqueCatalogo() {
   if (!diagHecho) diagCatalogo();
 
   listarPistas();
+
+  listarItems();
 }
 
 async function diagCatalogo() {
@@ -1940,6 +2334,165 @@ async function borrarPista(r, btn) {
   }
 
   listarPistas();
+}
+
+/* =========================================================
+   PCD-2 · SUBIR ITEMS (imagen/video · documento · producto)
+   Un solo formulario genérico, tres botones.
+   ========================================================= */
+
+$('btnPublicarIV').addEventListener('click', () => subirItem('imagen'));
+
+$('btnPublicarDC').addEventListener('click', () => subirItem('documento'));
+
+$('btnPublicarPR').addEventListener('click', () => subirItem('producto'));
+
+$('btnListarItems').addEventListener('click', listarItems);
+
+async function subirItem(tipo) {
+  const ids = {
+    imagen:    { titulo: 'ivTitulo', autor: 'ivAutor', contenido: 'ivContenido', fecha: 'ivFecha',
+                 nivel: 'ivNivel', precio: 'ivPrecio', modo: 'ivPreviewModo', destino: 'ivDestino',
+                 archivo: 'ivArchivo', preview: 'ivPreview', desc: 'ivDesc', msg: 'msgCatalogo', btn: 'btnPublicarIV' },
+    documento: { titulo: 'dcTitulo', autor: 'dcAutor', contenido: 'dcContenido', fecha: 'dcFecha',
+                 nivel: 'dcNivel', precio: 'dcPrecio', modo: 'dcPreviewModo', destino: 'dcDestino',
+                 archivo: 'dcArchivo', preview: 'dcPreview', desc: 'dcDesc', msg: 'msgCatalogo', btn: 'btnPublicarDC' },
+    producto:  { titulo: 'prTitulo', autor: 'prAutor', contenido: 'prClase', fecha: 'prFecha',
+                 nivel: 'prNivel', precio: 'prPrecio', modo: null, destino: 'prDestino',
+                 archivo: 'prArchivo', preview: 'prPreview', desc: 'prDesc', msg: 'msgCatalogo', btn: 'btnPublicarPR' },
+  }[tipo];
+
+  const titulo = $(ids.titulo).value.trim();
+
+  const archivo = $(ids.archivo).files[0] || null;
+
+  if (!titulo) {
+    $('msgCatalogo').textContent = 'Escribe el título.';
+    $('msgCatalogo').className = 'msg err';
+    return;
+  }
+
+  if (tipo !== 'producto' && !archivo) {
+    $('msgCatalogo').textContent = 'Elige el archivo.';
+    $('msgCatalogo').className = 'msg err';
+    return;
+  }
+
+  if (archivo && archivo.size > 25 * 1024 * 1024) {
+    $('msgCatalogo').textContent = 'El archivo supera 25 MB (límite del servidor).';
+    $('msgCatalogo').className = 'msg err';
+    return;
+  }
+
+  const preview = $(ids.preview).files[0] || null;
+
+  const btn = $(ids.btn);
+
+  btn.disabled = true;
+
+  $('msgCatalogo').textContent = 'Publicando "' + titulo + '"… (los archivos grandes tardan uno o dos minutos)';
+  $('msgCatalogo').className = 'msg';
+
+  const fd = new FormData();
+
+  fd.append('accion', 'subir_item');
+  fd.append('clave', claveMaestra);
+  fd.append('tipo', tipo);
+  fd.append('titulo', titulo);
+  fd.append('autor', $(ids.autor).value.trim());
+  fd.append('contenido', $(ids.contenido).value.trim());
+  fd.append('fecha_creacion', $(ids.fecha).value);
+  fd.append('nivel', $(ids.nivel).value);
+  fd.append('precio', $(ids.precio).value || '0');
+  fd.append('preview_modo', ids.modo ? $(ids.modo).value : 'previsualizacion');
+  fd.append('preview_seg', tipo === 'producto' ? '0' : '15');
+  fd.append('destino', $(ids.destino).value);
+  fd.append('descripcion', $(ids.desc).value.trim());
+  if (archivo) fd.append('archivo', archivo);
+  if (preview) fd.append('portada', preview);
+
+  const res = await llamarForm(fd, 'bvlux-catalogo');
+
+  btn.disabled = false;
+
+  if (!res.ok) return falla('msgCatalogo', res.error);
+
+  $('msgCatalogo').textContent =
+    'Publicado: "' + res.titulo + '" (' + tipo + ' · destino ' + $(ids.destino).value +
+    (res.con_preview ? ' · con previsualización' : ' · sin previsualización') + ').';
+  $('msgCatalogo').className = 'msg ok';
+
+  [ids.titulo, ids.autor, ids.contenido, ids.desc].forEach((i) => { if ($(i)) $(i).value = ''; });
+
+  [ids.archivo, ids.preview].forEach((i) => { if ($(i)) $(i).value = ''; });
+
+  listarItems();
+}
+
+async function listarItems() {
+  $('msgItems').textContent = 'Cargando items…';
+  $('msgItems').className = 'msg';
+
+  const res = await llamar({ accion: 'listar_items', clave: claveMaestra }, 'bvlux-catalogo');
+
+  if (!res.ok) return falla('msgItems', res.error);
+
+  $('msgItems').textContent = res.items.length + ' item(s) publicados.';
+  $('msgItems').className = 'msg';
+
+  const nivelTxt = { gratuito: 'GRATUITO', experto: 'EXPERTO', avanzado: 'AVANZADO', promo: 'PROMO' };
+
+  const destinoTxt = { stream: 'STREAM', portafolio: 'PORTAFOLIO', distribution: 'DISTRIBUTION',
+    distribucion: 'DISTRIBUTION', artists: 'ARTISTS', tienda: 'TIENDA', escuela: 'ESCUELA', catalogo: 'STREAM' };
+
+  const tipoTxt = { imagen: 'IMAGEN', video: 'VIDEO', documento: 'DOCUMENTO', producto: 'PRODUCTO' };
+
+  $('tbodyItems').innerHTML = '';
+
+  res.items.forEach((it) => {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML =
+      '<td>' + fecha(it.created_at) + '</td>' +
+      '<td>' + esc(tipoTxt[it.tipo] || it.tipo || '—') + '</td>' +
+      '<td><b>' + esc(it.titulo || '—') + '</b>' +
+        (it.descripcion ? '<br><small style="color:var(--mut)">' + esc(String(it.descripcion).slice(0, 80)) + '</small>' : '') + '</td>' +
+      '<td>' + esc(it.autor || '—') + '</td>' +
+      '<td>' + esc(nivelTxt[it.nivel] || it.nivel || '—') + '</td>' +
+      '<td>' + (it.precio != null ? '$' + esc(it.precio) : '—') + '</td>' +
+      '<td>' + esc((it.preview_modo === 'pixeleda' ? 'PIXELADA' : 'PREVIEW') +
+        (it.ruta_preview ? ' ✔' : ' (sin archivo)')) + '</td>' +
+      '<td>' + esc(destinoTxt[it.destino] || it.destino || '—') + '</td>' +
+      '<td></td>';
+
+    const td = tr.lastElementChild;
+
+    const bDel = document.createElement('button');
+    bDel.className = 'mini baja';
+    bDel.textContent = 'BORRAR';
+    bDel.addEventListener('click', () => borrarItem(it, bDel));
+    td.appendChild(bDel);
+
+    $('tbodyItems').appendChild(tr);
+  });
+
+  etiquetaMoviles('tbodyItems');
+}
+
+async function borrarItem(it, btn) {
+  if (!confirm('¿BORRAR "' + (it.titulo || it.id) + '" (' + it.tipo + ')? Se borra el archivo y su previsualización. No se puede recuperar.')) return;
+
+  btn.disabled = true;
+
+  const res = await llamar({ accion: 'borrar_item', clave: claveMaestra, id: it.id }, 'bvlux-catalogo');
+
+  if (!res.ok) {
+    alert(res.error || 'No se pudo borrar.');
+    btn.disabled = false;
+    return;
+  }
+
+  listarItems();
 }
 
 </script>
