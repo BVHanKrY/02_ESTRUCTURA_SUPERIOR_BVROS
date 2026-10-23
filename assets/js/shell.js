@@ -770,9 +770,9 @@ const BV_PAGE_TEXTS = {
     es: {
 
         'index.html': [
-            ['.hub-hero h1', 'Una casa para crear, aprender y publicar.'],
+            ['.hub-hero h1', 'Bienvenidos a la próxima red musical más grande del Ecuador.'],
             ['.hub-hero .eyebrow', 'RED MUSICAL · ECUADOR'],
-            ['.hub-hero p', 'Esta es la cabeza del ecosistema. Desde aquí se accede a la plataforma musical, distribución interna, perfiles artísticos, formación y productos.'],
+            ['.hub-hero p', 'Una casa para crear, aprender y publicar. Desde aquí se accede a la plataforma musical, distribución interna, perfiles artísticos, formación y productos.'],
             ['.module-grid a:nth-child(1) h2', 'Música en línea'],
             ['.module-grid a:nth-child(1) p', 'Catálogo y reproducción musical.'],
             ['.module-grid a:nth-child(2) h2', 'Distribución'],
@@ -821,9 +821,9 @@ const BV_PAGE_TEXTS = {
     en: {
 
         'index.html': [
-            ['.hub-hero h1', 'A home to create, learn and publish.'],
+            ['.hub-hero h1', 'Welcome to Ecuador\'s next largest music network.'],
             ['.hub-hero .eyebrow', 'MUSIC NETWORK · ECUADOR'],
-            ['.hub-hero p', 'This is the head of the ecosystem. From here you can access the music platform, internal distribution, artist profiles, training and products.'],
+            ['.hub-hero p', 'A home to create, learn and publish. From here you can access the music platform, internal distribution, artist profiles, training and products.'],
             ['.module-grid a:nth-child(1) h2', 'BVros Stream'],
             ['.module-grid a:nth-child(1) p', 'Music catalog and playback.'],
             ['.module-grid a:nth-child(2) h2', 'Distribution'],
