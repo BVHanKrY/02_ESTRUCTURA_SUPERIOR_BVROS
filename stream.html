@@ -701,7 +701,7 @@ const TRACK_IDS = {
         'BVROS-TRK-PULSO-003',
 
     'raiz-de-mi-ser':
-        'BVROS-TRK-RAIZ-001'
+        'BVROS-TRK-RAIZ-004'
 
 };
 
@@ -1022,7 +1022,7 @@ function renderTracks(){
                     class="track-row"
                     data-index="${index}"
                     ${track.dbTrack && track.src ? `data-secure-audio="${track.src}"` : ''}
-                    ${track.dbTrack ? `data-track-id="${track.panelId}"` : ''}
+                    ${track.dbTrack ? `data-track-id="${track.panelCode || track.panelId}"` : ''}
                 >
 
                     <div class="track-num">
@@ -1458,7 +1458,14 @@ async function cargarPistasDelPanel(){
                     body: JSON.stringify({
                         accion: 'publico',
                         tipo: 'musica',
-                        destino: 'stream'
+                        destino: 'stream',
+
+                        /* FIX-1: el catálogo estático ya tiene
+                           estas pistas — se envían sus códigos y
+                           slugs para que el panel NO las
+                           duplique arriba del listado. */
+                        excluir_codes: Object.values(TRACK_IDS),
+                        excluir_slugs: Object.keys(TRACK_IDS)
                     })
                 }
             );
@@ -1501,6 +1508,13 @@ async function cargarPistasDelPanel(){
 
                     panelId:
                         i.id,
+
+                    /* FIX-1: código real de la pista
+                       (BVROS-TRK-XXX-NNN) — el mismo sistema
+                       de get-audio-url que el catálogo
+                       estático. */
+                    panelCode:
+                        i.track_code || '',
 
                     nivel:
                         i.nivel || 'gratuito',

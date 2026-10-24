@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>BVros · Panel del dueño</title>
-<!-- BVLUX PCD-2 · panel con: BUZÓN del dueño (respuestas llegan a Mensajes), SUSCRIPCIONES con QUITAR ACCIÓN y ELIMINAR USUARIO, CORREOS con destinatarios visibles y REENVIAR, pestaña CATÁLOGO con PISTA + IMAGEN/VIDEO + DOCUMENTO + PRODUCTO (destino: módulos reales, tienda incluida), sin pestaña CONTENIDO (su función vive dentro de CATÁLOGO). Requiere bvlux-pcd2.sql + re-despliegue de bvlux-catalogo, bvlux-soporte, bvlux-correos, bvlux-panel-control. -->
+<!-- BVLUX PCD-2 + FIX-1 · panel con: BUZÓN del dueño (respuestas llegan a Mensajes), SUSCRIPCIONES con QUITAR ACCIÓN y ELIMINAR USUARIO, CORREOS con destinatarios visibles y REENVIAR, pestaña CATÁLOGO con PISTA + IMAGEN/VIDEO + DOCUMENTO + PRODUCTO. FIX-1: el audio sube a bvros-stream-private/<pista>/stream.mp3 (una carpeta por pista, como tus subidas manuales) y se registra en tracks + track_assets con la FK real (track_id, bucket_name, object_path, active); destino automático por tipo: audio → Música en Línea, imagen/video → Portafolio/Escuela/Tienda, documento → Escuela, producto → Tienda; diagnóstico que verifica cada track_asset contra el Storage real. Requiere bvlux-pcd2.sql + re-despliegue de bvlux-catalogo (FIX-1). -->
 <style>
   :root{
     --bg:#0d0f12; --panel:#161a20; --line:#262c35;
@@ -505,13 +505,11 @@
           <div>
             <label>Destino / módulo de tu web</label>
             <select id="catDestino">
-              <option value="stream">Música en Línea (stream)</option>
-              <option value="portafolio">Portafolio</option>
-              <option value="distribution">Distribución (distribution)</option>
-              <option value="artists">Artista (artists)</option>
-              <option value="tienda">Tienda (store)</option>
-              <option value="escuela">Escuela</option>
+              <option value="stream">Música en Línea (automático)</option>
             </select>
+            <div class="nota" style="margin-top:4px;">El audio SIEMPRE va a Música en Línea con la misma
+            estructura de carpetas que tus subidas manuales:
+            una carpeta por pista con stream.mp3 dentro.</div>
           </div>
           <div>
             <label>Audio (mp3/wav/ogg/m4a/flac · máx 25 MB) *</label>
@@ -528,6 +526,7 @@
             <input id="catDesc" placeholder="Ej: Inédito · lanzamiento del nuevo tema">
           </div>
         </div>
+        <div class="nota" id="catRutaPrev" style="margin-top:8px; color:var(--acc, #ff8a2a);">Escribe el título para ver la carpeta destino.</div>
         <button id="btnPublicar">PUBLICAR EN EL CATÁLOGO</button>
       </div>
 
@@ -544,11 +543,14 @@
             <tbody id="tbodyPistas"></tbody>
           </table>
         </div>
-        <div class="nota">La pista se guarda en las MISMAS tablas y el MISMO bucket privado que usa tu catálogo:
-        aparece en tu web como cualquier otra. SIN URL externa y SIN descarga: se escucha con el
-        mecanismo de siempre de tu página (get-audio-url). ESTRUCTURA DEFINIDA (PCD-2): la música
-        nueva SIEMPRE sube a bvros-stream-private / carpeta catalogo/. Tus másteres originales siguen
-        en bvros-masters-private (solo para ti) y Avatars para fotos de perfil: cero confusión.</div>
+        <div class="nota">La pista se guarda EXACTAMENTE como tus subidas manuales: bucket privado
+        bvros-stream-private, UNA CARPETA POR PISTA con el archivo stream.mp3 dentro
+        (bvros-stream-private/tinkuy/stream.mp3, bvros-stream-private/regresion/stream.mp3, …).
+        Después puedes añadir en esa misma carpeta preview.mp3, cover.jpg, master.wav o
+        instrumental.mp3. La pista se registra en tracks y track_assets (track_id, bucket_name,
+        object_path, active) y se escucha con el mecanismo de SIEMPRE de tu página: get-audio-url
+        con URL temporal. Sin URL externa y sin descarga. El código de pista se genera solo
+        siguiendo tu convención (BVROS-TRK-XXX-001, 002, 003…).</div>
       </div>
 
       <!-- PCD-2 · SUBIR IMAGEN Y VIDEO -->
@@ -596,9 +598,7 @@
             <select id="ivDestino">
               <option value="portafolio">Portafolio</option>
               <option value="escuela">Escuela</option>
-              <option value="artists">Artista (artists)</option>
               <option value="tienda">Tienda (store)</option>
-              <option value="distribution">Distribución (distribution)</option>
             </select>
           </div>
           <div>
@@ -663,12 +663,10 @@
           <div>
             <label>Destino / módulo de tu web</label>
             <select id="dcDestino">
-              <option value="escuela">Escuela</option>
-              <option value="portafolio">Portafolio</option>
-              <option value="artists">Artista (artists)</option>
-              <option value="tienda">Tienda (store)</option>
-              <option value="distribution">Distribución (distribution)</option>
+              <option value="escuela">Escuela (automático)</option>
             </select>
+            <div class="nota" style="margin-top:4px;">Los documentos van DIRECTO a la Escuela:
+            ebooks, partituras, guías y material de estudio.</div>
           </div>
           <div>
             <label>Documento (pdf/epub/doc/docx/ppt/pptx/odt/ods/xls/xlsx/mus/mscz/txt/md/zip · máx 25 MB) *</label>
@@ -893,7 +891,7 @@ const supabase = createClient(
 
 let claveMaestra = '';
 
-console.log('BVLUX panel · versión de página PCD-2');
+console.log('BVLUX panel · versión de página PCD-2 + FIX-1 (catálogo con estructura del dueño)');
 
 const $ = (id) => document.getElementById(id);
 
@@ -2158,6 +2156,33 @@ $('btnPublicar').addEventListener('click', subirPista);
 
 $('btnListarPistas').addEventListener('click', listarPistas);
 
+/* FIX-1 · vista previa en vivo de la carpeta destino:
+   igual que tus carpetas manuales (tinkuy/, regresion/…). */
+
+function slugPanel(txt) {
+  return (txt || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '').slice(0, 60) || 'pista';
+}
+
+function actualizarRutaPista() {
+  const t = $('catTitulo').value.trim();
+  const el = $('catRutaPrev');
+  if (!el) return;
+  if (!t) {
+    el.textContent = 'Escribe el título para ver la carpeta destino.';
+    return;
+  }
+  const carp = slugPanel(t);
+  el.textContent = 'Se subirá a: bvros-stream-private/' + carp + '/stream.mp3' +
+    ($('catPortada').files[0] ? '  ·  y ' + carp + '/cover.jpg' : '');
+}
+
+$('catTitulo').addEventListener('input', actualizarRutaPista);
+
+$('catPortada').addEventListener('change', actualizarRutaPista);
+
 async function arranqueCatalogo() {
   if (!diagHecho) diagCatalogo();
 
@@ -2180,27 +2205,39 @@ async function diagCatalogo() {
 
   const as = (res.columnas?.track_assets || []).map((c) => c.name + (c.required ? '*' : ''));
 
+  const tr = (res.columnas?.tracks || []).map((c) => c.name + (c.required ? '*' : ''));
+
+  const verif = (res.verificacion_storage || [])
+    .map((v) => (v.existe ? 'EXISTE   ' : 'NO EXISTE') + ' · ' + v.bucket + '/' + v.ruta)
+    .join('\n· ');
+
   const diag =
     'Tablas detectadas:' +
     '\n· releases: ' + (rel.join(', ') || '(sin columnas)') +
     '\n· track_assets: ' + (as.join(', ') || '(sin columnas)') +
+    '\n· tracks: ' + (tr.join(', ') || '(sin columnas)') +
     '\n\nBuckets: ' + (res.buckets || []).join(', ') +
-    (res.almacen
-      ? '\n\nBucket del catálogo (detectado): ' + res.almacen.bucket +
-        ' · carpeta: ' + (res.almacen.carpeta || '(raíz)') +
-        ' · método: ' + res.almacen.como
-      : '\n\n(sin filas de ejemplo: se usará la carpeta catalogo/ del primer bucket)') +
+    '\n\nBucket de música (fijo): ' + (res.bucket_musica || 'bvros-stream-private') +
     '\n\nConvención de tipos de archivo: ' + JSON.stringify(res.convencion_kinds || {}) +
+    (verif
+      ? '\n\nVerificación de track_assets contra el Storage (¿el archivo existe de verdad?):\n· ' + verif
+      : '') +
     (res.con_sql_pcd
       ? ''
       : '\n\nAVISO: falta bvlux-pcd.sql (columnas acceso_nivel, precio_unitario, preview_seg, destino). Ejecútalo para guardar nivel/precio/preview.');
 
   $('diagCatalogo').textContent = diag;
 
+  const faltan = (res.verificacion_storage || []).filter((v) => !v.existe).length;
+
   $('msgDiagCatalogo').textContent =
-    'Esquema leído. Bucket del catálogo: ' + (res.almacen?.bucket || '(sin detectar)') +
+    'Esquema leído. Bucket de música: ' + (res.bucket_musica || 'bvros-stream-private') +
+    (faltan
+      ? ' · ATENCIÓN: ' + faltan + ' registro(s) de track_assets apuntan a archivos que NO existen (mira el detalle).'
+      : ' · track_assets verificado contra el Storage: todo apunta a archivos reales.') +
     (res.con_sql_pcd ? '' : ' · FALTA bvlux-pcd.sql');
-  $('msgDiagCatalogo').className = 'msg' + (res.con_sql_pcd ? '' : ' err');
+
+  $('msgDiagCatalogo').className = 'msg' + (res.con_sql_pcd || faltan ? (faltan ? ' err' : '') : '');
 }
 
 async function subirPista() {
@@ -2256,9 +2293,14 @@ async function subirPista() {
   }
 
   $('msgCatalogo').textContent =
-    'Publicada: "' + res.titulo + '" (bucket ' + res.bucket +
-    (res.con_caratula ? ' · con carátula' : ' · sin carátula') + ').';
-  $('msgCatalogo').className = 'msg ok';
+    res.aviso
+      ? res.aviso
+      : 'Publicada: "' + res.titulo + '" → ' + (res.ruta_audio || res.bucket) +
+        (res.track_code ? ' · código ' + res.track_code : '') +
+        (res.con_caratula ? ' · con carátula' : ' · sin carátula') +
+        '.';
+
+  $('msgCatalogo').className = 'msg' + (res.aviso ? ' err' : ' ok');
 
   $('catTitulo').value = '';
   $('catAlbum').value = '';
@@ -2296,13 +2338,14 @@ async function listarPistas() {
     const nivel = r.acceso_nivel ? (nivelTxt[r.acceso_nivel] || r.acceso_nivel) : '—';
 
     tr.innerHTML =
-      '<td><b>' + esc(tituloDe(r)) + '</b></td>' +
+      '<td><b>' + esc(tituloDe(r)) + '</b>' +
+        (p.track && p.track.code ? '<br><small style="color:var(--mut)">' + esc(p.track.code) + '</small>' : '') + '</td>' +
       '<td>' + esc(artistaDe(r)) + '</td>' +
       '<td>' + esc(nivel) + '</td>' +
       '<td>' + (r.precio_unitario != null ? '$' + esc(r.precio_unitario) : '—') + '</td>' +
       '<td>' + (r.preview_seg != null ? r.preview_seg + ' s' : '—') + '</td>' +
       '<td>' + esc(r.destino || '—') + '</td>' +
-      '<td>' + (p.audio_path ? 'audio: sí' : 'audio: NO') +
+      '<td>' + (p.audio_path ? '<code>' + esc(p.audio_path) + '</code>' : 'audio: NO (sin registro)') +
         (p.portada_path ? ' · carátula: sí' : ' · carátula: no') + '</td>' +
       '<td></td>';
 
