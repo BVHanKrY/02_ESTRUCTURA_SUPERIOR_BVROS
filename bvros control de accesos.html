@@ -530,6 +530,64 @@
         <button id="btnPublicar">PUBLICAR EN EL CATÁLOGO</button>
       </div>
 
+      <!-- FIX-2 · RECONOCER AUDIO YA SUBIDO A MANO -->
+      <div class="subcard">
+        <h2>Reconocer audio ya subido a Storage (subida manual)</h2>
+        <div class="nota" style="margin-top:6px;">¿Ya subiste la carpeta a mano en Supabase → Storage →
+        <b>bvros-stream-private</b> (una carpeta por pista con <b>stream.mp3</b> dentro)?
+        Aquí el sistema la RECONOCE y la publica: la registra en releases, tracks y
+        track_assets para que suene en «Música en Línea» con el mecanismo de siempre
+        (get-audio-url, URL temporal). NO se vuelve a subir el archivo.</div>
+        <div style="margin-top:10px;">
+          <button class="sec" id="btnEscanearStorage">ESCANEAR STORAGE (detectar carpetas)</button>
+          <div class="msg" id="msgEscaneo"></div>
+          <div id="listaEscaneo" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+        <div class="grid" style="margin-top:12px;">
+          <div>
+            <label>Carpeta de la pista *</label>
+            <input id="regCarpeta" placeholder="Ej: tinkuy   ·   o   artists/bvhankry/pulso/tinkuy">
+            <div class="nota" style="margin-top:4px;">La carpeta DENTRO de bvros-stream-private que contiene stream.mp3.</div>
+          </div>
+          <div>
+            <label>Título *</label>
+            <input id="regTitulo" placeholder="Ej: Raíz de mi ser">
+          </div>
+          <div>
+            <label>Artista</label>
+            <input id="regArtista" placeholder="BVHanKrY">
+          </div>
+          <div>
+            <label>Código de pista (opcional · restaura una pista existente)</label>
+            <input id="regCodigo" placeholder="Ej: BVROS-TRK-RAIZ-001 (vacío = se genera solo)">
+          </div>
+          <div>
+            <label>Nivel que puede escucharla</label>
+            <select id="regNivel">
+              <option value="gratuito">Gratuito (todos)</option>
+              <option value="experto">Experto</option>
+              <option value="avanzado">Avanzado</option>
+              <option value="promo">Promoción especial</option>
+            </select>
+          </div>
+          <div>
+            <label>Precio de la pista suelta (USD, 0 = incluida)</label>
+            <input type="number" id="regPrecio" value="0" min="0" step="0.01">
+          </div>
+          <div>
+            <label>Segundos de previsualización (0 = completa)</label>
+            <input type="number" id="regPreview" value="15" min="0" max="600">
+          </div>
+          <div>
+            <label>Carátula (opcional · jpg/png/webp, máx 5 MB)</label>
+            <input type="file" id="regPortada" accept="image/*">
+            <div class="nota" style="margin-top:4px;">Se guarda en la MISMA carpeta como cover.jpg/png/webp y la pista sale en la web CON su imagen, igual que las originales.</div>
+          </div>
+        </div>
+        <button id="btnRegistrarExistente">REGISTRAR EN EL CATÁLOGO</button>
+        <div class="msg" id="msgRegistro"></div>
+      </div>
+
       <div class="subcard">
         <h2>Pistas publicadas</h2>
         <button class="sec" id="btnListarPistas">ACTUALIZAR LISTA</button>
@@ -891,7 +949,7 @@ const supabase = createClient(
 
 let claveMaestra = '';
 
-console.log('BVLUX panel · versión de página PCD-2 + FIX-1 (catálogo con estructura del dueño)');
+console.log('BVLUX panel · versión de página PCD-2 + FIX-4 (códigos BVROS-TRK/REL automáticos + errores visibles + carátula en registro)');
 
 const $ = (id) => document.getElementById(id);
 
@@ -2292,12 +2350,22 @@ async function subirPista() {
     return;
   }
 
+  /* FIX-4 · el diagnóstico SIEMPRE se muestra (también cuando
+     la subida queda incompleta) para ver el motivo exacto, y
+     el mensaje muestra la ruta REAL de la carátula subida. */
+
+  if (res.diagnostico) {
+    $('diagCatalogo').textContent = JSON.stringify(res.diagnostico, null, 1);
+  }
+
   $('msgCatalogo').textContent =
     res.aviso
       ? res.aviso
       : 'Publicada: "' + res.titulo + '" → ' + (res.ruta_audio || res.bucket) +
         (res.track_code ? ' · código ' + res.track_code : '') +
-        (res.con_caratula ? ' · con carátula' : ' · sin carátula') +
+        (res.ruta_portada
+          ? ' · carátula: ' + res.ruta_portada
+          : ' · sin carátula') +
         '.';
 
   $('msgCatalogo').className = 'msg' + (res.aviso ? ' err' : ' ok');
@@ -2375,6 +2443,151 @@ async function borrarPista(r, btn) {
     btn.disabled = false;
     return;
   }
+
+  listarPistas();
+}
+
+/* =========================================================
+   FIX-2 · RECONOCER AUDIO YA SUBIDO A MANO:
+   1) ESCANEAR: lista las carpetas del bucket bvros-stream-
+      private que tienen stream.mp3 y dice cuáles están
+      registradas y cuáles no.
+   2) REGISTRAR: publica la carpeta indicada SIN volver a
+      subir el archivo (releases + tracks + track_assets),
+      con el estado de publicación de las pistas que YA
+      suenan. Si se da un código existente (BVROS-TRK-…),
+      se restaura esa pista en vez de crear otra.
+   ========================================================= */
+
+$('btnEscanearStorage').addEventListener('click', escanearStorage);
+
+$('btnRegistrarExistente').addEventListener('click', registrarExistente);
+
+async function escanearStorage() {
+  const btn = $('btnEscanearStorage');
+
+  btn.disabled = true;
+
+  $('msgEscaneo').textContent = 'Buscando carpetas con stream.mp3 en bvros-stream-private…';
+  $('msgEscaneo').className = 'msg';
+
+  $('listaEscaneo').innerHTML = '';
+
+  const res = await llamar({ accion: 'escanear_storage', clave: claveMaestra }, 'bvlux-catalogo');
+
+  btn.disabled = false;
+
+  if (!res.ok) return falla('msgEscaneo', res.error);
+
+  $('msgEscaneo').textContent =
+    res.total + ' carpeta(s) con audio encontradas · ' +
+    res.ya_registradas + ' ya registrada(s) · ' +
+    (res.total - res.ya_registradas) + ' por registrar.';
+  $('msgEscaneo').className = 'msg ok';
+
+  (res.carpetas || []).forEach((c) => {
+    const fila = document.createElement('div');
+
+    fila.style.cssText =
+      'display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--borde, #333);';
+
+    const info = document.createElement('div');
+
+    info.style.cssText = 'flex:1; min-width:200px; font-size:.72rem;';
+
+    info.innerHTML =
+      '<b>' + esc(c.titulo_sugerido) + '</b>' +
+      ' <span style="color:var(--mut)">· ' + esc(c.carpeta) + '/' + esc(c.archivo) + '</span>' +
+      (c.registrado
+        ? ' <span style="color:#0f0">YA REGISTRADA</span>'
+        : ' <span style="color:var(--acc, #ff8a2a)">SIN REGISTRAR</span>');
+
+    const btnUsar = document.createElement('button');
+
+    btnUsar.className = 'mini';
+
+    btnUsar.textContent = c.registrado ? 'REVISAR' : 'USAR ESTA';
+
+    btnUsar.addEventListener('click', () => {
+      $('regCarpeta').value = c.carpeta;
+      if (!$('regTitulo').value.trim()) $('regTitulo').value = c.titulo_sugerido;
+      if (!$('regArtista').value.trim()) $('regArtista').value = c.artista_sugerido;
+      $('msgRegistro').textContent =
+        'Carpeta "' + c.carpeta + '" cargada. Revisa el título y pulsa REGISTRAR EN EL CATÁLOGO.';
+      $('msgRegistro').className = 'msg ok';
+    });
+
+    fila.appendChild(info);
+
+    fila.appendChild(btnUsar);
+
+    $('listaEscaneo').appendChild(fila);
+  });
+}
+
+async function registrarExistente() {
+  const carpeta = $('regCarpeta').value.trim();
+  const titulo = $('regTitulo').value.trim();
+
+  if (!carpeta || !titulo) {
+    $('msgRegistro').textContent = 'Completa carpeta y título.';
+    $('msgRegistro').className = 'msg err';
+    return;
+  }
+
+  const btn = $('btnRegistrarExistente');
+
+  btn.disabled = true;
+
+  $('msgRegistro').textContent = 'Registrando "' + titulo + '" desde ' + carpeta + '…';
+  $('msgRegistro').className = 'msg';
+
+  /* FIX-4 · ahora via FORMULARIO para poder adjuntar la
+     carátula opcional (los archivos no viajan por JSON). */
+
+  const fdReg = new FormData();
+
+  fdReg.append('accion', 'registrar_existente');
+  fdReg.append('clave', claveMaestra);
+  fdReg.append('carpeta', carpeta);
+  fdReg.append('titulo', titulo);
+  fdReg.append('artista', $('regArtista').value.trim() || 'BVHanKrY');
+  fdReg.append('codigo', $('regCodigo').value.trim());
+  fdReg.append('nivel', $('regNivel').value);
+  fdReg.append('precio', $('regPrecio').value || '0');
+  fdReg.append('preview_seg', $('regPreview').value || '15');
+  fdReg.append('destino', 'stream');
+
+  const regCover = $('regPortada') && $('regPortada').files[0] ? $('regPortada').files[0] : null;
+
+  if (regCover) fdReg.append('portada', regCover);
+
+  const res = await llamarForm(fdReg, 'bvlux-catalogo');
+
+  btn.disabled = false;
+
+  if (!res.ok) {
+    falla('msgRegistro', res.error);
+
+    if (res.diagnostico) {
+      $('diagCatalogo').textContent = JSON.stringify(res.diagnostico, null, 1);
+    }
+
+    return;
+  }
+
+  $('msgRegistro').textContent =
+    'Registrada: "' + titulo + '" → ' + res.ruta_audio +
+    (res.track_code ? ' · código ' + res.track_code : '') +
+    (res.ruta_portada ? ' · carátula: ' + res.ruta_portada : '') +
+    (res.track_reutilizado ? ' · pista existente reutilizada y publicada' : '') +
+    ' · Suena con el sistema de siempre (get-audio-url).' +
+    (res.aviso ? ' AVISO: ' + res.aviso : '');
+  $('msgRegistro').className = 'msg' + (res.aviso ? ' err' : ' ok');
+
+  $('regTitulo').value = '';
+  $('regCodigo').value = '';
+  if ($('regPortada')) $('regPortada').value = '';
 
   listarPistas();
 }

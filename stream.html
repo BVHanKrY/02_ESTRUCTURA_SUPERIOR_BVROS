@@ -701,7 +701,7 @@ const TRACK_IDS = {
         'BVROS-TRK-PULSO-003',
 
     'raiz-de-mi-ser':
-        'BVROS-TRK-RAIZ-004'
+        'BVROS-TRK-RAIZ-001'
 
 };
 
@@ -986,6 +986,11 @@ function renderTracks(){
     }
 
 
+    /* FIX-4 · fallback de portada: si una pista publicada aún
+       no tiene carátula, la fila muestra un placeholder
+       (círculo BVros) en vez de una imagen rota.
+       NADA más cambia en el render. */
+
     list.innerHTML =
         tracks.map((track,index)=>{
 
@@ -1034,6 +1039,7 @@ function renderTracks(){
                         class="track-cover"
                         src="${track.cover || ''}"
                         alt=""
+                        onerror="this.onerror=null;this.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect width=%2280%22 height=%2280%22 fill=%22%231c1c22%22/><circle cx=%2240%22 cy=%2240%22 r=%2216%22 fill=%22none%22 stroke=%22%23ff7a1a%22 stroke-width=%223%22/></svg>')"
                     >
 
 
@@ -1481,9 +1487,16 @@ async function cargarPistasDelPanel(){
             return;
         }
 
+        /* FIX-2 · SOLO se aceptan pistas del panel con código
+           real (BVROS-TRK-…): son las únicas que usan el
+           sistema de siempre (get-audio-url). Cualquier
+           release contenedor (p. ej. la carpeta/álbum
+           "Pulso") o registro sin código NO se renderiza,
+           aunque el servidor lo envíe. */
+
         const delPanel =
             data.items
-                .filter(i => i.tipo === 'musica')
+                .filter(i => i.tipo === 'musica' && i.track_code)
                 .map(i => ({
 
                     slug:
