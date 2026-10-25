@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>BVros · Panel del dueño</title>
+<!-- BVLUX PCD-2 + FIX-6 · panel del dueño. NUEVO EN FIX-6 (catálogo): 1) el campo "Álbum (opcional)" ahora es "Nombre del lanzamiento" y debajo hay un selector "Tipo de lanzamiento" (Sencillo / EP / Álbum / LP / Remixes) que se guarda en releases.release_type; 2) el panel envía release_nombre y release_tipo a bvlux-catalogo FIX-6; 3) NUNCA más un error oculto: cualquier fallo vuelca el diagnóstico COMPLETO (con el error REAL de la base y la verdad de la portada: si LLEGÓ, si falló o dónde quedó) y el recuadro de diagnóstico se ABRE solo; 4) el mensaje de éxito muestra el código de pista (BVROS-TRK-…), el del lanzamiento (BVROS-REL-…), el tipo elegido y la ruta EXACTA de la carátula en el Storage. Requiere re-desplegar bvlux-catalogo FIX-6. -->
 <!-- BVLUX PCD-2 + FIX-1 · panel con: BUZÓN del dueño (respuestas llegan a Mensajes), SUSCRIPCIONES con QUITAR ACCIÓN y ELIMINAR USUARIO, CORREOS con destinatarios visibles y REENVIAR, pestaña CATÁLOGO con PISTA + IMAGEN/VIDEO + DOCUMENTO + PRODUCTO. FIX-1: el audio sube a bvros-stream-private/<pista>/stream.mp3 (una carpeta por pista, como tus subidas manuales) y se registra en tracks + track_assets con la FK real (track_id, bucket_name, object_path, active); destino automático por tipo: audio → Música en Línea, imagen/video → Portafolio/Escuela/Tienda, documento → Escuela, producto → Tienda; diagnóstico que verifica cada track_asset contra el Storage real. Requiere bvlux-pcd2.sql + re-despliegue de bvlux-catalogo (FIX-1). -->
 <style>
   :root{
@@ -463,7 +464,7 @@
     <div class="card hidden" data-vista="catalogo">
       <h1 style="font-size:1rem;">Catálogo · publicar directo a tu web (música, imagen/video, documento, producto)</h1>
       <div class="msg" id="msgCatalogo"></div>
-      <details style="margin-top:10px;">
+      <details id="cajaDiagCatalogo" style="margin-top:10px;">
         <summary style="cursor:pointer; font-size:.75rem; color:var(--mut);">DIAGNÓSTICO (esquema detectado y bucket del catálogo)</summary>
         <button class="sec" id="btnDiagCatalogo" style="margin-top:8px;">EJECUTAR DIAGNÓSTICO</button>
         <div class="msg" id="msgDiagCatalogo"></div>
@@ -482,8 +483,22 @@
             <input id="catArtista" placeholder="Ej: BVros">
           </div>
           <div>
-            <label>Álbum (opcional)</label>
-            <input id="catAlbum" placeholder="Ej: Inéditos 2026">
+            <label>Nombre del lanzamiento (opcional)</label>
+            <input id="catAlbum" placeholder="Ej: Raíz">
+            <div class="nota" style="margin-top:4px;">Nombre con el que se registra el lanzamiento en
+            releases (BVROS-REL-…). Si lo dejas vacío se usa el título de la pista.</div>
+          </div>
+          <div>
+            <label>Tipo de lanzamiento</label>
+            <select id="catReleaseTipo">
+              <option value="single">Sencillo (single)</option>
+              <option value="ep">EP</option>
+              <option value="album">Álbum</option>
+              <option value="lp">LP</option>
+              <option value="remixes">Remixes</option>
+            </select>
+            <div class="nota" style="margin-top:4px;">Clasifica el lanzamiento: Sencillo, EP, Álbum, LP o
+            Remixes. Se guarda en releases.release_type.</div>
           </div>
           <div>
             <label>Nivel que puede escucharla</label>
@@ -2317,6 +2332,15 @@ async function subirPista() {
 
   const portada = $('catPortada').files[0] || null;
 
+  /* FIX-6 · nombre y tipo del lanzamiento (elección clara
+     del dueño) → bvlux-catalogo los guarda en releases. */
+
+  const releaseNombre = $('catAlbum').value.trim();
+
+  const selTipo = $('catReleaseTipo');
+
+  const releaseTipo = selTipo ? selTipo.value : 'single';
+
   $('btnPublicar').disabled = true;
 
   $('msgCatalogo').textContent = 'Publicando "' + titulo + '"… (los archivos grandes tardan uno o dos minutos)';
@@ -2328,7 +2352,9 @@ async function subirPista() {
   fd.append('clave', claveMaestra);
   fd.append('titulo', titulo);
   fd.append('artista', artista);
-  fd.append('album', $('catAlbum').value.trim());
+  fd.append('release_nombre', releaseNombre);
+  fd.append('release_tipo', releaseTipo);
+  fd.append('album', releaseNombre);
   fd.append('descripcion', $('catDesc').value.trim());
   fd.append('nivel', $('catNivel').value);
   fd.append('precio', $('catPrecio').value || '0');
@@ -2344,39 +2370,102 @@ async function subirPista() {
   if (!res.ok) {
     falla('msgCatalogo', res.error);
 
-    if (res.diagnostico) {
-      $('diagCatalogo').textContent = JSON.stringify(res.diagnostico, null, 1);
-    }
+    mostrarDiagError(res);
+
     return;
   }
 
   /* FIX-4 · el diagnóstico SIEMPRE se muestra (también cuando
      la subida queda incompleta) para ver el motivo exacto, y
-     el mensaje muestra la ruta REAL de la carátula subida. */
+     el mensaje muestra la ruta REAL de la carátula subida.
+     FIX-6 · la VERDAD de la portada (¿llegó?, ¿falló?, ¿dónde
+     quedó?), los códigos de pista y lanzamiento, y el
+     diagnóstico se ABRE solo en cuanto hay un fallo. */
 
-  if (res.diagnostico) {
-    $('diagCatalogo').textContent = JSON.stringify(res.diagnostico, null, 1);
+  if (res.aviso) {
+    $('msgCatalogo').textContent = res.aviso;
+
+    $('msgCatalogo').className = 'msg err';
+
+    mostrarDiagError(res);
+
+  } else {
+    $('msgCatalogo').textContent =
+      'Publicada: "' + res.titulo + '" → ' + (res.ruta_audio || res.bucket) +
+      (res.track_code ? ' · pista ' + res.track_code : '') +
+      (res.release_codigo ? ' · lanzamiento ' + res.release_codigo : '') +
+      (res.release_tipo ? ' (' + res.release_tipo + ')' : '') +
+      (res.ruta_portada
+        ? ' · carátula subida a ' + (res.bucket || 'bvros-stream-private') + '/' + res.ruta_portada
+        : (res.portada_recibida === false
+          ? ' · SIN carátula: no llegó ningún archivo de imagen al servidor'
+          : (res.portada_error ? ' · carátula FALLÓ: ' + res.portada_error : ''))) +
+      (res.release_nota ? ' · ' + res.release_nota : '') +
+      '.';
+
+    $('msgCatalogo').className = 'msg ok';
+
+    if (res.diagnostico) {
+      $('diagCatalogo').textContent = JSON.stringify(res.diagnostico, null, 1);
+    }
   }
-
-  $('msgCatalogo').textContent =
-    res.aviso
-      ? res.aviso
-      : 'Publicada: "' + res.titulo + '" → ' + (res.ruta_audio || res.bucket) +
-        (res.track_code ? ' · código ' + res.track_code : '') +
-        (res.ruta_portada
-          ? ' · carátula: ' + res.ruta_portada
-          : ' · sin carátula') +
-        '.';
-
-  $('msgCatalogo').className = 'msg' + (res.aviso ? ' err' : ' ok');
 
   $('catTitulo').value = '';
   $('catAlbum').value = '';
   $('catDesc').value = '';
   $('catAudio').value = '';
   $('catPortada').value = '';
+  if (selTipo) selTipo.value = 'single';
 
   listarPistas();
+}
+
+/* FIX-6 · NUNCA más un error oculto: vuelca el diagnóstico
+   completo (incluido el error REAL de la base de datos y la
+   verdad de la portada) en el recuadro de diagnóstico, lo
+   ABRE solo y te lo muestra. Así siempre se sabe qué pasa. */
+
+function mostrarDiagError(res) {
+  const d = res.diagnostico || {};
+
+  const partes = [];
+
+  if (d.tracks_error || (res.tracks_fallo && res.tracks_fallo !== 'sin detalle')) {
+    const te = d.tracks_error || {};
+
+    partes.push(
+      'ERROR REAL DE LA BASE (tabla tracks): ' + (te.message || res.tracks_fallo || '?') +
+      (te.code ? ' [código ' + te.code + ']' : '') +
+      (te.hint ? ' · Sugerencia: ' + te.hint : '') +
+      (te.details ? ' · Detalles: ' + te.details : '')
+    );
+  }
+
+  if (Array.isArray(d.tracks_obligatorias) && d.tracks_obligatorias.length) {
+    partes.push('Columnas obligatorias de tracks en tu base: ' + d.tracks_obligatorias.join(', '));
+  }
+
+  if (res.portada_recibida === false) {
+    partes.push('PORTADA: el formulario NO envió ningún archivo de imagen. Vuelve a elegir la carátula y reintenta.');
+  } else if (res.portada_error) {
+    partes.push('PORTADA: la imagen SÍ llegó pero NO se pudo guardar: ' + res.portada_error);
+  } else if (res.ruta_portada) {
+    partes.push('PORTADA: guardada en ' + (res.bucket || 'bvros-stream-private') + '/' + res.ruta_portada + ' (verifícala en Supabase → Storage).');
+  }
+
+  const texto =
+    (partes.length ? partes.join('\n\n') + '\n\n──── DIAGNÓSTICO COMPLETO ────\n' : '') +
+    JSON.stringify(res.diagnostico || {}, null, 1);
+
+  $('diagCatalogo').textContent = texto;
+
+  const caja = document.getElementById('cajaDiagCatalogo');
+
+  if (caja) caja.open = true;
+
+  try {
+    $('diagCatalogo').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (_) {}
 }
 
 async function listarPistas() {
