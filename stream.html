@@ -844,6 +844,14 @@ const CATALOG_PATHS = [
 
 async function load(){
 
+    /* FIX-5 · el panel se consulta EN PARALELO con el
+       catálogo estático (antes esperaba a que todo lo
+       demás terminara: por eso la portada y la pista
+       tardaban en aparecer). La llamada de más abajo
+       reutiliza la misma promesa, sin duplicar. */
+
+    cargarPistasDelPanel();
+
     try{
 
         let response = null;
@@ -1255,6 +1263,46 @@ function nivelPermite(nivelTrack){
 }
 
 
+/* FIX-5 · NIVEL FRESCO: si la caché del navegador dice
+   "bloqueado", se refresca el perfil DESDE LA BASE DE
+   DATOS antes de decidir. Así, cuando subes de nivel
+   (experto / avanzado / promo), el cambio se respeta
+   AL INSTANTE, sin recargar la página: no hay
+   previsualización ni cartel de compra para quien ya
+   pagó. Si la caché ya autoriza, ni se consulta (0
+   latencia extra). */
+
+async function nivelPermiteFresco(track){
+
+    if(nivelPermite(track.nivel)){
+        return true;
+    }
+
+    const auth =
+        window.BVrosAuth;
+
+    if(
+        auth &&
+        auth.isAuthenticated &&
+        auth.isAuthenticated() &&
+        typeof auth.refreshProfile === 'function'
+    ){
+
+        try{
+            await auth.refreshProfile();
+        }catch(_){
+            /* se decide con el perfil disponible */
+        }
+
+        return nivelPermite(track.nivel);
+
+    }
+
+    return false;
+
+}
+
+
 function nivelEtiqueta(nivel){
 
     return {
@@ -1438,10 +1486,13 @@ function pintarAvisoPago(bar, track, conPreview){
    (un servidor no puede medir el MP3), por eso las
    pistas del panel salían con --:--- mientras las
    estáticas muestran su tiempo escrito a mano.
-   Aquí se lee la duración REAL del propio archivo con
-   la MISMA vía segura del reproductor:
-   audio-service.js → get-audio-url → URL firmada →
-   metadatos. Al terminar se guarda en la misma caché
+   Aquí se lee la duración REAL del propio archivo:
+   se usa DIRECTAMENTE la URL firmada (3600s) que el
+   panel ya entrega en cada pista (la misma que suena
+   en la previsualización) y se leen sus metadatos.
+   Sin imports externos: así nunca depende de rutas
+   relativas de otros archivos. Al terminar se guarda
+   en la misma caché
    que ya usa el sitio (bvros_dur_*) y se pinta en la
    tarjeta (3:32, etc.). Sirve para TODAS las pistas
    futuras que subas desde el panel.
@@ -1451,34 +1502,15 @@ console.info(
     '[BVros Stream] duración real del panel ACTIVA'
 );
 
-let duracionSecureFn = null;
-
 async function completarDuracionesPanel(){
-
-    if(!duracionSecureFn){
-
-        try{
-
-            const modulo =
-                await import('./services/audio-service.js');
-
-            duracionSecureFn =
-                modulo.ensureSecureAudioSource || null;
-
-        }catch(_){
-            return; /* sin servicio seguro, no hay sondas */
-        }
-
-        if(!duracionSecureFn) return;
-
-    }
 
     for(const track of tracks){
 
         /* solo pistas publicadas desde el panel */
         if(!track.dbTrack) continue;
 
-        /* ya en sondéo o ya conocida: saltar */
+        /* sin URL firmada, en sondéo o ya conocida */
+        if(!track.src) continue;
         if(track.probeDur) continue;
         if(getCachedDuration(track.slug) !== null){
             continue;
@@ -1489,18 +1521,13 @@ async function completarDuracionesPanel(){
         try{
 
             /* elemento suelto (no interfiere con el
-               reproductor global): solo metadatos */
+               reproductor global): solo metadatos,
+               con la URL que YA trae la pista. */
             const probe = new Audio();
 
             probe.preload = 'metadata';
 
-            probe.dataset.trackId = String(
-                track.panelCode ||
-                track.panelId ||
-                trackIdFor(track.slug)
-            );
-
-            await duracionSecureFn(probe);
+            probe.src = track.src;
 
             const segundos =
                 await new Promise((resolver, fallar) => {
@@ -1579,45 +1606,108 @@ async function completarDuracionesPanel(){
    ADITIVO y a prueba de fallos: si algo falla, el
    catálogo estático queda exactamente igual. */
 
-async function cargarPistasDelPanel(){
+/* FIX-5 · dedupe: la carga del panel se lanza en
+   PARALELO desde load() y cualquier llamada extra
+   reutiliza la MISMA promesa (nunca se fusiona dos
+   veces ni se consulta dos veces la función). */
+
+let panelPromesa = null;
+
+function cargarPistasDelPanel(){
+
+    if(!panelPromesa){
+        panelPromesa = fusionarPistasDelPanel();
+    }
+
+    return panelPromesa;
+
+}
+
+async function fusionarPistasDelPanel(){
 
     if(!PCD_URL || !PCD_KEY) return;
 
     try{
 
-        const res =
-            await fetch(
-                PCD_URL + '/functions/v1/bvlux-catalogo',
-                {
-                    method: 'POST',
+        let data = null;
 
-                    headers: {
-                        'Content-Type': 'application/json',
-                        apikey: PCD_KEY,
-                        Authorization: 'Bearer ' + PCD_KEY
-                    },
+        /* FIX-5 · caché de sesión (10 minutos; las URL
+           firmadas viven 3600s): al volver a la página,
+           las pistas del panel y sus portadas aparecen
+           AL INSTANTE, sin esperar a la función. */
+        try{
 
-                    body: JSON.stringify({
-                        accion: 'publico',
-                        tipo: 'musica',
-                        destino: 'stream',
+            const cruda =
+                sessionStorage.getItem(
+                    'bvros_panel_publico_v1'
+                );
 
-                        /* FIX-1: el catálogo estático ya tiene
-                           estas pistas — se envían sus códigos y
-                           slugs para que el panel NO las
-                           duplique arriba del listado. */
-                        excluir_codes: Object.values(TRACK_IDS),
-                        excluir_slugs: Object.keys(TRACK_IDS)
-                    })
+            if(cruda){
+
+                const cache = JSON.parse(cruda);
+
+                if(
+                    cache && cache.t &&
+                    (Date.now() - cache.t) <
+                        10 * 60 * 1000 &&
+                    cache.data
+                ){
+                    data = cache.data;
                 }
-            );
 
-        if(!res.ok){
-            throw new Error('HTTP ' + res.status);
+            }
+
+        }catch(_){ /* caché inválida: se ignora */ }
+
+        if(!data){
+
+            const res =
+                await fetch(
+                    PCD_URL + '/functions/v1/bvlux-catalogo',
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type': 'application/json',
+                            apikey: PCD_KEY,
+                            Authorization: 'Bearer ' + PCD_KEY
+                        },
+
+                        body: JSON.stringify({
+                            accion: 'publico',
+                            tipo: 'musica',
+                            destino: 'stream',
+
+                            /* FIX-1: el catálogo estático ya tiene
+                               estas pistas — se envían sus códigos y
+                               slugs para que el panel NO las
+                               duplique arriba del listado. */
+                            excluir_codes: Object.values(TRACK_IDS),
+                            excluir_slugs: Object.keys(TRACK_IDS)
+                        })
+                    }
+                );
+
+            if(!res.ok){
+                throw new Error('HTTP ' + res.status);
+            }
+
+            data =
+                await res.json();
+
+            try{
+                sessionStorage.setItem(
+                    'bvros_panel_publico_v1',
+                    JSON.stringify({
+                        t: Date.now(),
+                        data
+                    })
+                );
+            }catch(_){
+                /* sin espacio: simplemente sin caché */
+            }
+
         }
-
-        const data =
-            await res.json();
 
         if(!data.ok || !Array.isArray(data.items)){
             return;
@@ -1630,6 +1720,15 @@ async function cargarPistasDelPanel(){
 
                     slug:
                         i.slug || ('db-' + i.id),
+
+                    /* FIX-5 · id con el CÓDIGO REAL de la
+                       pista: el reproductor global resuelve
+                       el audio con track.id PRIMERO (y luego
+                       trackIdFor(slug)). Sin esto enviaba el
+                       slug ("apropiado") y get-audio-url
+                       respondía 404 · track no encontrado. */
+                    id:
+                        i.track_code || undefined,
 
                     title:
                         i.titulo || 'Sin título',
@@ -1737,7 +1836,7 @@ async function play(index){
 
     if(
         track.dbTrack &&
-        !nivelPermite(track.nivel)
+        !(await nivelPermiteFresco(track))
     ){
 
         abrirVistaPanel(track);
@@ -1745,6 +1844,10 @@ async function play(index){
         return;
 
     }
+
+    /* FIX-5 · si el nivel ya permite la pista, el aviso
+       de compra viejo se retira al reproducir. */
+    cerrarPreview();
 
     currentIndex =
         index;
