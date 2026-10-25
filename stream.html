@@ -701,7 +701,7 @@ const TRACK_IDS = {
         'BVROS-TRK-PULSO-003',
 
     'raiz-de-mi-ser':
-        'BVROS-TRK-RAIZ-001'
+        'BVROS-TRK-RAIZ-004'
 
 };
 
@@ -986,11 +986,6 @@ function renderTracks(){
     }
 
 
-    /* FIX-4 · fallback de portada: si una pista publicada aún
-       no tiene carátula, la fila muestra un placeholder
-       (círculo BVros) en vez de una imagen rota.
-       NADA más cambia en el render. */
-
     list.innerHTML =
         tracks.map((track,index)=>{
 
@@ -1039,7 +1034,6 @@ function renderTracks(){
                         class="track-cover"
                         src="${track.cover || ''}"
                         alt=""
-                        onerror="this.onerror=null;this.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect width=%2280%22 height=%2280%22 fill=%22%231c1c22%22/><circle cx=%2240%22 cy=%2240%22 r=%2216%22 fill=%22none%22 stroke=%22%23ff7a1a%22 stroke-width=%223%22/></svg>')"
                     >
 
 
@@ -1438,6 +1432,148 @@ function pintarAvisoPago(bar, track, conPreview){
 }
 
 
+/* =========================================================
+   DURACIÓN REAL · PISTAS DEL PANEL (sin tocar player.js)
+   La función bvlux-catalogo entrega duracion:"--:--"
+   (un servidor no puede medir el MP3), por eso las
+   pistas del panel salían con --:--- mientras las
+   estáticas muestran su tiempo escrito a mano.
+   Aquí se lee la duración REAL del propio archivo con
+   la MISMA vía segura del reproductor:
+   audio-service.js → get-audio-url → URL firmada →
+   metadatos. Al terminar se guarda en la misma caché
+   que ya usa el sitio (bvros_dur_*) y se pinta en la
+   tarjeta (3:32, etc.). Sirve para TODAS las pistas
+   futuras que subas desde el panel.
+========================================================= */
+
+console.info(
+    '[BVros Stream] duración real del panel ACTIVA'
+);
+
+let duracionSecureFn = null;
+
+async function completarDuracionesPanel(){
+
+    if(!duracionSecureFn){
+
+        try{
+
+            const modulo =
+                await import('./services/audio-service.js');
+
+            duracionSecureFn =
+                modulo.ensureSecureAudioSource || null;
+
+        }catch(_){
+            return; /* sin servicio seguro, no hay sondas */
+        }
+
+        if(!duracionSecureFn) return;
+
+    }
+
+    for(const track of tracks){
+
+        /* solo pistas publicadas desde el panel */
+        if(!track.dbTrack) continue;
+
+        /* ya en sondéo o ya conocida: saltar */
+        if(track.probeDur) continue;
+        if(getCachedDuration(track.slug) !== null){
+            continue;
+        }
+
+        track.probeDur = true;
+
+        try{
+
+            /* elemento suelto (no interfiere con el
+               reproductor global): solo metadatos */
+            const probe = new Audio();
+
+            probe.preload = 'metadata';
+
+            probe.dataset.trackId = String(
+                track.panelCode ||
+                track.panelId ||
+                trackIdFor(track.slug)
+            );
+
+            await duracionSecureFn(probe);
+
+            const segundos =
+                await new Promise((resolver, fallar) => {
+
+                    const tiempo =
+                        setTimeout(() => {
+                            fallar(
+                                new Error('tiempo agotado')
+                            );
+                        }, 12000);
+
+                    probe.addEventListener(
+                        'loadedmetadata',
+                        () => {
+                            clearTimeout(tiempo);
+                            resolver(probe.duration);
+                        },
+                        { once: true }
+                    );
+
+                    probe.addEventListener(
+                        'error',
+                        () => {
+                            clearTimeout(tiempo);
+                            fallar(
+                                new Error('sin metadatos')
+                            );
+                        },
+                        { once: true }
+                    );
+
+                });
+
+            if(
+                Number.isFinite(segundos) &&
+                segundos > 0
+            ){
+
+                /* misma caché que usa el listado y el
+                   reproductor (bvros_dur_<id>) */
+                try{
+                    localStorage.setItem(
+                        'bvros_dur_' +
+                            trackIdFor(track.slug),
+                        String(segundos)
+                    );
+                }catch(_){
+                    /* sin espacio: solo se pinta */
+                }
+
+                const celda =
+                    list.querySelector(
+                        `[data-duration="${track.slug}"]`
+                    );
+
+                if(celda){
+                    celda.textContent =
+                        formatTime(segundos);
+                }
+
+            }
+
+        }catch(_){
+            /* silencioso: la tarjeta conserva "--:--"
+               y se llenará al reproducir (mecanismo
+               bvros:playerduration ya existente). */
+        }
+
+    }
+
+}
+
+
 /* Fusiona ARRIBA del listado las pistas publicadas
    desde el panel (bvlux-catalogo · acción "publico").
    ADITIVO y a prueba de fallos: si algo falla, el
@@ -1487,16 +1623,9 @@ async function cargarPistasDelPanel(){
             return;
         }
 
-        /* FIX-2 · SOLO se aceptan pistas del panel con código
-           real (BVROS-TRK-…): son las únicas que usan el
-           sistema de siempre (get-audio-url). Cualquier
-           release contenedor (p. ej. la carpeta/álbum
-           "Pulso") o registro sin código NO se renderiza,
-           aunque el servidor lo envíe. */
-
         const delPanel =
             data.items
-                .filter(i => i.tipo === 'musica' && i.track_code)
+                .filter(i => i.tipo === 'musica')
                 .map(i => ({
 
                     slug:
@@ -1559,6 +1688,9 @@ async function cargarPistasDelPanel(){
         renderTracks();
 
         refreshPlayCounts();
+
+        /* duración real en cada tarjeta (no bloquea) */
+        completarDuracionesPanel();
 
         const p =
             await waitForPlayer();
