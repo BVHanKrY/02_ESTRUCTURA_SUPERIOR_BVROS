@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>BVros · Panel del dueño</title>
-<!-- BVLUX PCD-2 + FIX-6 · panel del dueño. NUEVO EN FIX-6 (catálogo): 1) el campo "Álbum (opcional)" ahora es "Nombre del lanzamiento" y debajo hay un selector "Tipo de lanzamiento" (Sencillo / EP / Álbum / LP / Remixes) que se guarda en releases.release_type; 2) el panel envía release_nombre y release_tipo a bvlux-catalogo FIX-6; 3) NUNCA más un error oculto: cualquier fallo vuelca el diagnóstico COMPLETO (con el error REAL de la base y la verdad de la portada: si LLEGÓ, si falló o dónde quedó) y el recuadro de diagnóstico se ABRE solo; 4) el mensaje de éxito muestra el código de pista (BVROS-TRK-…), el del lanzamiento (BVROS-REL-…), el tipo elegido y la ruta EXACTA de la carátula en el Storage. Requiere re-desplegar bvlux-catalogo FIX-6. -->
+<!-- BVLUX PCD-2 + FIX-7 · panel del dueño. NUEVO EN FIX-7 (catálogo): 1) el mensaje muestra el bucket REAL donde quedó la carátula (portada_bucket) — si tu bucket de música solo acepta audio, la imagen cae en un bucket compatible y la web la firma igual; 2) el diagnóstico lista qué buckets aceptan imágenes; 3) requiere bvlux-catalogo FIX-7, que ARREGLA LA CAUSA RAÍZ: el id del release creado ahora se asigna (antes la función creía que el release había fallado, tracks nacía sin release_id y la pista no sonaba aunque el release SÍ estuviera en Supabase). FIX-6 anterior (sigue vigente): 1) el campo "Álbum (opcional)" ahora es "Nombre del lanzamiento" y debajo hay un selector "Tipo de lanzamiento" (Sencillo / EP / Álbum / LP / Remixes) que se guarda en releases.release_type; 2) el panel envía release_nombre y release_tipo a bvlux-catalogo; 3) NUNCA más un error oculto: cualquier fallo vuelca el diagnóstico COMPLETO (con el error REAL de la base y la verdad de la portada: si LLEGÓ, si falló o dónde quedó) y el recuadro de diagnóstico se ABRE solo; 4) el mensaje de éxito muestra el código de pista (BVROS-TRK-…), el del lanzamiento (BVROS-REL-…), el tipo elegido y la ruta EXACTA de la carátula en el Storage. -->
 <!-- BVLUX PCD-2 + FIX-1 · panel con: BUZÓN del dueño (respuestas llegan a Mensajes), SUSCRIPCIONES con QUITAR ACCIÓN y ELIMINAR USUARIO, CORREOS con destinatarios visibles y REENVIAR, pestaña CATÁLOGO con PISTA + IMAGEN/VIDEO + DOCUMENTO + PRODUCTO. FIX-1: el audio sube a bvros-stream-private/<pista>/stream.mp3 (una carpeta por pista, como tus subidas manuales) y se registra en tracks + track_assets con la FK real (track_id, bucket_name, object_path, active); destino automático por tipo: audio → Música en Línea, imagen/video → Portafolio/Escuela/Tienda, documento → Escuela, producto → Tienda; diagnóstico que verifica cada track_asset contra el Storage real. Requiere bvlux-pcd2.sql + re-despliegue de bvlux-catalogo (FIX-1). -->
 <style>
   :root{
@@ -2290,6 +2290,9 @@ async function diagCatalogo() {
     '\n· track_assets: ' + (as.join(', ') || '(sin columnas)') +
     '\n· tracks: ' + (tr.join(', ') || '(sin columnas)') +
     '\n\nBuckets: ' + (res.buckets || []).join(', ') +
+    ((res.buckets_imagen && res.buckets_imagen.length)
+      ? '\nBuckets que ACEPTAN imágenes (para la carátula): ' + res.buckets_imagen.join(', ')
+      : '') +
     '\n\nBucket de música (fijo): ' + (res.bucket_musica || 'bvros-stream-private') +
     '\n\nConvención de tipos de archivo: ' + JSON.stringify(res.convencion_kinds || {}) +
     (verif
@@ -2396,7 +2399,7 @@ async function subirPista() {
       (res.release_codigo ? ' · lanzamiento ' + res.release_codigo : '') +
       (res.release_tipo ? ' (' + res.release_tipo + ')' : '') +
       (res.ruta_portada
-        ? ' · carátula subida a ' + (res.bucket || 'bvros-stream-private') + '/' + res.ruta_portada
+        ? ' · carátula subida a ' + (res.portada_bucket || res.bucket || 'bvros-stream-private') + '/' + res.ruta_portada
         : (res.portada_recibida === false
           ? ' · SIN carátula: no llegó ningún archivo de imagen al servidor'
           : (res.portada_error ? ' · carátula FALLÓ: ' + res.portada_error : ''))) +
@@ -2450,7 +2453,7 @@ function mostrarDiagError(res) {
   } else if (res.portada_error) {
     partes.push('PORTADA: la imagen SÍ llegó pero NO se pudo guardar: ' + res.portada_error);
   } else if (res.ruta_portada) {
-    partes.push('PORTADA: guardada en ' + (res.bucket || 'bvros-stream-private') + '/' + res.ruta_portada + ' (verifícala en Supabase → Storage).');
+    partes.push('PORTADA: guardada en ' + (res.portada_bucket || res.bucket || 'bvros-stream-private') + '/' + res.ruta_portada + ' (verifícala en Supabase → Storage, dentro de ESE bucket).');
   }
 
   const texto =
@@ -2668,7 +2671,7 @@ async function registrarExistente() {
   $('msgRegistro').textContent =
     'Registrada: "' + titulo + '" → ' + res.ruta_audio +
     (res.track_code ? ' · código ' + res.track_code : '') +
-    (res.ruta_portada ? ' · carátula: ' + res.ruta_portada : '') +
+    (res.ruta_portada ? ' · carátula: ' + (res.portada_bucket || 'bvros-stream-private') + '/' + res.ruta_portada : '') +
     (res.track_reutilizado ? ' · pista existente reutilizada y publicada' : '') +
     ' · Suena con el sistema de siempre (get-audio-url).' +
     (res.aviso ? ' AVISO: ' + res.aviso : '');
